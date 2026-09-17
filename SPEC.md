@@ -14,12 +14,12 @@
 - **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
 - **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
 
-- **Aluno 2 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 2 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 2 - Nome**: <mark>`Vítor Santana Feijó`</mark>
+- **Aluno 2 - Cartão UFRGS**: <mark>`588403`</mark>
 
 ## Detalhes do que será implementado
 
-- **Título do trabalho**: <mark>`<preencher>`</mark>
+- **Título do trabalho**: <mark>`Caelum`</mark>
 - **Parágrafo curto descrevendo o que será implementado**: <mark>`<preencher>`</mark>
 
 ## Especificação visual
@@ -39,7 +39,7 @@
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-<mark>`<preencher>`</mark>
+<mark>`https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR`</mark>
 
 ### Vídeo - Timestamp
 
@@ -48,8 +48,8 @@
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
 
-- **Timestamp inicial**: <mark>`<preencher>`</mark>
-- **Timestamp final**: <mark>`<preencher>`</mark>
+- **Timestamp inicial**: <mark>`1:00`</mark>
+- **Timestamp final**: <mark>`3:15`</mark>
 
 ### Imagens
 
@@ -65,15 +65,15 @@
 
 #### Imagem 1
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: <mark>`Decolagem do avião`</mark>
 
-![Imagem 1](images/spec/image1.jpg)
+![Imagem 1](images/spec/image1.png)
 
 #### Imagem 2
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: <mark>`Visão de dentro do cockpit`</mark>
 
-![Imagem 2](images/spec/image2.jpg)
+![Imagem 2](images/spec/image2.png)
 
 #### Imagem 3
 
@@ -86,16 +86,23 @@
 Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final - Moodle](https://moodle.ufrgs.br/mod/assign/view.php?id=6302370)), escreva um parágrafo **curto** explicando como este requisito será atendido, apontando itens específicos do vídeo/imagens que você incluiu acima que atendem estes requisitos.
 
 ### Malhas poligonais complexas
-<mark>`<preencher>`</mark>
+
+O avião, piloto, cabine do piloto(cockpit), 
 
 ### Transformações geométricas controladas pelo usuário
-<mark>`<preencher>`</mark>
+
+O usuário controlará o avião por meio do WASD no teclado.
 
 ### Diferentes tipos de câmeras
-<mark>`<preencher>`</mark>
+
+Haverão 3 cameras:
+- Camera primeira pessoa dentro do cockpit do avião (camera fixa livre)
+- Camera terceira pessoa na perspectiva do avião (camera look at)
+- Camera totalemente livre "god mode"
 
 ### Instâncias de objetos
-<mark>`<preencher>`</mark>
+
+Terão varios aviões iguais intanciados em cada aeroporto
 
 ### Testes de intersecção
 <mark>`<preencher>`</mark>
