@@ -14,13 +14,14 @@
 - **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
 - **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
 
-- **Aluno 2 - Nome**: <mark>`Vítor Santana Feijó`</mark>
-- **Aluno 2 - Cartão UFRGS**: <mark>`588403`</mark>
+- **Aluno 2 - Nome**: Vítor Santana Feijó
+- **Aluno 2 - Cartão UFRGS**: 588403
 
 ## Detalhes do que será implementado
 
-- **Título do trabalho**: <mark>`Caelum`</mark>
-- **Parágrafo curto descrevendo o que será implementado**: <mark>`<preencher>`</mark>
+- **Título do trabalho**: Caelum
+- **Parágrafo curto descrevendo o que será implementado**: 
+O nosso trabalho  será a implementação de um simulador de voo em avião(como o do jogo *Flight Simulator*). \\ Haverão três perspectivas de gameplay, a do piloto em primeira pessoa na qual será possivel ser mover e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião que poderá fazer viagem entre varios aeroportos. E por fim será implementado uma visão "god mode" que será possivel se mover livremente. 
 
 ## Especificação visual
 
@@ -39,7 +40,7 @@
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-<mark>`https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR`</mark>
+https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR
 
 ### Vídeo - Timestamp
 
@@ -48,8 +49,8 @@
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
 
-- **Timestamp inicial**: <mark>`1:00`</mark>
-- **Timestamp final**: <mark>`3:15`</mark>
+- **Timestamp inicial**: 1:00
+- **Timestamp final**: 3:15
 
 ### Imagens
 
@@ -65,13 +66,13 @@
 
 #### Imagem 1
 
-- **Descrição**: <mark>`Decolagem do avião`</mark>
+- **Descrição**: Decolagem do avião
 
 ![Imagem 1](images/spec/image1.png)
 
 #### Imagem 2
 
-- **Descrição**: <mark>`Visão de dentro do cockpit`</mark>
+- **Descrição**: Visão de dentro do cockpit
 
 ![Imagem 2](images/spec/image2.png)
 
@@ -87,11 +88,11 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 ### Malhas poligonais complexas
 
-O avião, piloto, cabine do piloto(cockpit), 
+O avião, piloto, cabine do piloto(cockpit)...
 
 ### Transformações geométricas controladas pelo usuário
 
-O usuário controlará o avião por meio do WASD no teclado.
+Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WASD no teclado.
 
 ### Diferentes tipos de câmeras
 
@@ -102,7 +103,7 @@ Haverão 3 cameras:
 
 ### Instâncias de objetos
 
-Terão varios aviões iguais intanciados em cada aeroporto
+Haverão varios aviões iguais intanciados em cada aeroporto
 
 ### Testes de intersecção
 <mark>`<preencher>`</mark>
