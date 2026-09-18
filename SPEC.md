@@ -106,19 +106,20 @@ Haverão 3 cameras:
 Haverão varios aviões iguais intanciados em cada aeroporto
 
 ### Testes de intersecção
-<mark>`<preencher>`</mark>
+Avião com os predios do aeroporto e o terreno
 
 ### Modelos de Iluminação em todos os objetos
-<mark>`<preencher>`</mark>
+- Cockpit terá uma lampada
+- Avião terá um farol frontal
 
 ### Mapeamento de texturas em todos os objetos
-<mark>`<preencher>`</mark>
+- Aviões, cabine, pista de decolagem...
 
 ### Movimentação com curva Bézier cúbica
-<mark>`<preencher>`</mark>
+? outros aviões voando pelo ceu ?
 
 ### Animações baseadas no tempo ($\Delta t$)
-<mark>`<preencher>`</mark>
+?
 
 ### Funcionalidade extra obrigatória
 
@@ -128,7 +129,8 @@ Haverão varios aviões iguais intanciados em cada aeroporto
 > - Esta funcionalidade também deverá ser documentada no arquivo
 >   `README.md` da entrega final.
 
-<mark>`<preencher>`</mark>
+? sombras ?
+? Interface Gráfica (representação os sensores do avião: altitude, velocidade, etc)
 
 ## Limitações esperadas
 
@@ -139,4 +141,6 @@ Haverão varios aviões iguais intanciados em cada aeroporto
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-<mark>`<preencher>`</mark>
+- colisão não deformará modelos
+- simulação de voo simplificada
+etc
