@@ -11,16 +11,18 @@
 
 ## Integrantes da dupla
 
-- **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 1 - Nome**: João Luis Scheffel Koller
+- **Aluno 1 - Cartão UFRGS**: 00589701
 
-- **Aluno 2 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 2 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 2 - Nome**: Vítor Santana Feijó
+- **Aluno 2 - Cartão UFRGS**: 00588403
 
 ## Detalhes do que será implementado
 
-- **Título do trabalho**: <mark>`<preencher>`</mark>
-- **Parágrafo curto descrevendo o que será implementado**: <mark>`<preencher>`</mark>
+- **Título do trabalho**: Caelum
+- **Parágrafo curto descrevendo o que será implementado**: 
+O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião, a qual será uma câmera look-at focada na aeronave, acompanhando seu movimento. Por fim será implementado uma visão "God mode", em que será possivel mover-se livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas simples e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
+A movimentação do avião será controlada pelo teclado: "W" e "S" controlarão o Throttle da aeronave (respectivamente, mais e menos aceleração), e o mouse controlará para onde o avião estará mirando. Por fim, caso o botão direito do mouse estiver pressionado, a movimenação do dipositivo passará a controlar a câmera e não mais o sentido e a direção do avião.
 
 ## Especificação visual
 
@@ -39,7 +41,7 @@
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-<mark>`<preencher>`</mark>
+https://www.youtube.com/live/HXZ2hlLK9Qg?si=3gEkvlRpy14oUR3d
 
 ### Vídeo - Timestamp
 
@@ -48,8 +50,8 @@
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
 
-- **Timestamp inicial**: <mark>`<preencher>`</mark>
-- **Timestamp final**: <mark>`<preencher>`</mark>
+- **Timestamp inicial**: 1:38
+- **Timestamp final**: 2:08
 
 ### Imagens
 
@@ -65,52 +67,64 @@
 
 #### Imagem 1
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: Decolagem do avião e câmera look-at
 
-![Imagem 1](images/spec/image1.jpg)
+![Imagem 1](images/spec/image1.png)
 
 #### Imagem 2
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: Visão de dentro do cockpit
 
-![Imagem 2](images/spec/image2.jpg)
+![Imagem 2](images/spec/image2.png)
 
 #### Imagem 3
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: Câmera livre no video
 
-![Imagem 3](images/spec/image3.jpg)
+![Imagem 3](images/spec/image3.png)
 
 ## Especificação textual
 
 Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final - Moodle](https://moodle.ufrgs.br/mod/assign/view.php?id=6302370)), escreva um parágrafo **curto** explicando como este requisito será atendido, apontando itens específicos do vídeo/imagens que você incluiu acima que atendem estes requisitos.
 
 ### Malhas poligonais complexas
-<mark>`<preencher>`</mark>
+
+- Serão formados por malhas poligonais complexas os seguintes objetos da cena: aviões, pilotos, a cabine de comando(cockpit) e as árvores do cenário.
 
 ### Transformações geométricas controladas pelo usuário
-<mark>`<preencher>`</mark>
+
+Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WS no teclado e mouse. Inclinações de "pitch", "yaw" e "roll" da aeronave também serão modeladas e controladas pelo jogador por intermédio de transformações geométricas.
 
 ### Diferentes tipos de câmeras
-<mark>`<preencher>`</mark>
+
+Haverá 3 câmeras:
+- Câmera em primeira pessoa dentro do cockpit do avião (câmera fixa livre).
+- Câmera em terceira pessoa na perspectiva do avião (câmera look-at).
+- Câmera totalemente livre ("God mode").
 
 ### Instâncias de objetos
-<mark>`<preencher>`</mark>
+
+Haverá aviões instanciados possivelmente nos aeroportos e em voo no céu. Além disso, várias árvores estarão espalhadas pelo mundo.
 
 ### Testes de intersecção
-<mark>`<preencher>`</mark>
+Aviões poderão se colirdir com os predios do aeroporto, terreno e arvóres inapropriadamente, o que representaria um acidente. Vale ressaltar que o teste de colisão com o terreno (solo) também servirá para posicionar a aeronave sobre o solo em uma situação regular pré- ou pós-voo.
 
 ### Modelos de Iluminação em todos os objetos
-<mark>`<preencher>`</mark>
+
+- Será utilizado o modelo de reflexão de Phong.
 
 ### Mapeamento de texturas em todos os objetos
-<mark>`<preencher>`</mark>
+
+Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista de pouso e decolagem, prédios do aeroporto, grama e árvores. 
 
 ### Movimentação com curva Bézier cúbica
-<mark>`<preencher>`</mark>
+
+- Haverá pelo menos um outro avião em voo pelo céu seguindo uma curva de Bézier em sua trajetória. (para simular um contexto real de vias aéreas sobre uma cidade, já que, geralmente, um número maior que 1 de aeronaves sobrevoam um espaço aéreo concomitantemente).
 
 ### Animações baseadas no tempo ($\Delta t$)
-<mark>`<preencher>`</mark>
+
+- Arvóres movimentar-se-ão para simular o efeito do vento.
+- A animação do segundo avião voando pelo céu será igualmente baseada no tempo.
 
 ### Funcionalidade extra obrigatória
 
@@ -120,7 +134,16 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 > - Esta funcionalidade também deverá ser documentada no arquivo
 >   `README.md` da entrega final.
 
-<mark>`<preencher>`</mark>
+
+- Interface Gráfica: Botões em uma espécie de menu servirão para escolher qual avião o usuário deseja pilotar.
+- Além disso, Instrumentos/Sensores da aeronave  apresentarão (não diretamente no cockpit, como em um caso real, mas sobre a tela do simulador, de modo virtual em um design simplificado):
+  - altitude
+  - velocidade
+  - potência do motor
+  - bússola (sentido de voo)
+
+- Câmera totalemente livre "God mode"
+
 
 ## Limitações esperadas
 
@@ -131,4 +154,19 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-<mark>`<preencher>`</mark>
+- Não haverá mapeamento de terrenos reais com fotos de satélite, já que o solo gerado não serão demasiado grande (em comparação com o tamanho de um estado brasileiro, por exemplo) e, portanto, não há sentido na tentativa de representação de um terreno real do planeta terra.
+
+- Do mesmo modo, não haverá um minimapa, já que o terreno não disporá de regiões e ambientes significamente distintos como cidades, regiões únicas, etc.
+
+- colisões não deformarão modelos, devido a alta complexidade do cálculo das deformações de objetos baseado no seu formato e em seus materiais.
+
+- Interface gráfica mais simples que a apresentada no vídeo, já que nossa aplicação terá um número significativamente menor de funcionalidades e opções de jogo do que a apresentada no vídeo (e.g. jogo online em servidores globais, voo por regiões reais do planeta terra, física mais realista, etc). 
+
+- Não haverá modelagem de sombras, tendo em vista que escolhemos uma outra opção de funcionalidade extra e buscamos desenvolver uma aplicação mais leve de ser executada.
+
+- A física de voo será simplificada. Entre outros aspectos, os seguintes pontos serão desconsiderados:
+Peso do avião, resistência e arrasto do ar, distribuição de forças de sustentação pelo corpo e diferentes regiões da asa da aeronave, entre outros.
+
+  Decidimos isso devido à alta complexidade inerente à modelagem desses fenômenos físicos que foge ao escopo da disciplina e requer conhecimentos mais avançados de física superior aplicada à aviação.
+
+- O cockpit não será interagível como com botões pressionáveis ou com display HUD presentes no vídeo, pois o realismo da simulação foge ao escopo da disciplina e requer conhecimentos mais profundos sobre aviação e aviônica.
