@@ -21,9 +21,8 @@
 
 - **Título do trabalho**: Caelum
 - **Parágrafo curto descrevendo o que será implementado**: 
-O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). \ Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião a qual será uma câmera look-at focada no avião, acompanhando seu movimento. Por fim será implementado uma visão "god mode" em que será possivel se mover livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas simples e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
-A movimentação do avião será controlado pelo teclado, o W será o acelerador e S o freio, e o mouse controlará para onde o avião estará mirando, mas caso o botão direito estiver apertado será possivel mover a câmera.
-
+O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). \ Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião, a qual será uma câmera look-at focada na aeronave, acompanhando seu movimento. Por fim será implementado uma visão "God mode", em que será possivel mover-se livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas simples e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
+A movimentação do avião será controlada pelo teclado: "W" e "S" controlarão o Throttle da aeronave (respectivamente, mais e menos aceleração), e o mouse controlará para onde o avião estará mirando. Por fim, caso o botão direito do mouse estiver pressionado, a movimenação do dipositivo passará a controlar a câmera e não mais o sentido e a direção do avião.
 
 ## Especificação visual
 
@@ -68,7 +67,7 @@ https://www.youtube.com/live/HXZ2hlLK9Qg?si=3gEkvlRpy14oUR3d
 
 #### Imagem 1
 
-- **Descrição**: Decolagem do avião
+- **Descrição**: Decolagem do avião e câmera look-at
 
 ![Imagem 1](images/spec/image1.png)
 
@@ -80,7 +79,7 @@ https://www.youtube.com/live/HXZ2hlLK9Qg?si=3gEkvlRpy14oUR3d
 
 #### Imagem 3
 
-- **Descrição**: Camera livre no video
+- **Descrição**: Câmera livre no video
 
 ![Imagem 3](images/spec/image3.png)
 
@@ -90,43 +89,42 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 ### Malhas poligonais complexas
 
-- Avião, piloto, cabine do piloto(cockpit), arvores
+- Serão formados por malhas poligonais complexas os seguintes objetos da cena: aviões, pilotos, a cabine de comando(cockpit) e as árvores do cenário.
 
 ### Transformações geométricas controladas pelo usuário
 
-Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WS no teclado e mouse. Inclinações de "pitch", "yaw" e "roll" do avião também serão transformações geométricas.
+Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WS no teclado e mouse. Inclinações de "pitch", "yaw" e "roll" da aeronave também serão modeladas e controladas pelo jogador por intermédio de transformações geométricas.
 
 ### Diferentes tipos de câmeras
 
-Haverão 3 cameras:
-- Camera primeira pessoa dentro do cockpit do avião (camera fixa livre)
-- Camera terceira pessoa na perspectiva do avião (camera look at)
-- Camera totalemente livre "god mode"
+Haverá 3 câmeras:
+- Câmera em primeira pessoa dentro do cockpit do avião (câmera fixa livre).
+- Câmera em terceira pessoa na perspectiva do avião (câmera look-at).
+- Câmera totalemente livre ("God mode").
 
 ### Instâncias de objetos
 
-Haverão varios aviões iguais intanciados em cada aeroporto e no ceu. Além disso, varias arvóres estarão espalhadas pelo mundo.
+Haverá aviões instanciados possivelmente nos aeroportos e em voo no céu. Além disso, várias árvores estarão espalhadas pelo mundo.
 
 ### Testes de intersecção
-Avião com os predios do aeroporto, terreno e arvóres.
+Aviões poderão se colirdir com os predios do aeroporto, terreno e arvóres inapropriadamente, o que representaria um acidente. Vale ressaltar que o teste de colisão com o terreno (solo) também servirá para posicionar a aeronave sobre o solo em uma situação regular pré- ou pós-voo.
 
 ### Modelos de Iluminação em todos os objetos
 
-- modelo de reflexão de Phong
+- Será utilizado o modelo de reflexão de Phong.
 
 ### Mapeamento de texturas em todos os objetos
 
-Objetos que terão textura:
-Aviões, cabine, pista de decolagem, prédios, grama, arvóres. 
+Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista de pouso e decolagem, prédios do aeroporto, grama e árvores. 
 
 ### Movimentação com curva Bézier cúbica
 
-- Haverá outro avião voando pelo ceu seguindo uma curva de Bézier
+- Haverá pelo menos um outro avião em voo pelo céu seguindo uma curva de Bézier em sua trajetória. (para simular um contexto real de vias aéreas sobre uma cidade, já que, geralmente, um número maior que 1 de aeronaves sobrevoam um espaço aéreo concomitantemente).
 
 ### Animações baseadas no tempo ($\Delta t$)
 
-- Arvóres se movimentarão para simular o efeito do vento 
-- Animação do avião voando pelo céu será baseada no tempo
+- Arvóres movimentar-se-ão para simular o efeito do vento.
+- A animação do segundo avião voando pelo céu será igualmente baseada no tempo.
 
 ### Funcionalidade extra obrigatória
 
@@ -137,14 +135,14 @@ Aviões, cabine, pista de decolagem, prédios, grama, arvóres.
 >   `README.md` da entrega final.
 
 
-- Interface Gráfica: Botões para escolher qual avião você usara para pilotar
-- Instrumentos/Sensores do avião:
+- Interface Gráfica: Botões em uma espécie de menu servirão para escolher qual avião o usuário deseja pilotar.
+- Além disso, Instrumentos/Sensores da aeronave  apresentarão (não diretamente no cockpit, como em um caso real, mas sobre a tela do simulador, de modo virtual em um design simplificado):
   - altitude
   - velocidade
-  - rpm do motor
-  - bússola
-  - inclinação (row) do avião
-- Camera totalemente livre "god mode"
+  - potência do motor
+  - bússola (sentido de voo)
+
+- Câmera totalemente livre "God mode"
 
 
 ## Limitações esperadas
@@ -156,12 +154,19 @@ Aviões, cabine, pista de decolagem, prédios, grama, arvóres.
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-- Sem mapeamento de terrenos reais
-- Minimapa
-- Colisão não deformará modelos
-- Simulação de voo simplificada
-- Interface gráfica mais simples
-- Sombras
-- Física simplifica
-  - Peso do avião, resistência do ar, distribuição de forças de sustentação serão desconsideradas
-- Cockpit não será interagível
+- Não haverá mapeamento de terrenos reais com fotos de satélite, já que o solo gerado não serão demasiado grande (em comparação com o tamanho de um estado brasileiro, por exemplo) e, portanto, não há sentido na tentativa de representação de um terreno real do planeta terra.
+
+- Do mesmo modo, não haverá um minimapa, já que o terreno não disporá de regiões e ambientes significamente distintos como cidades, regiões únicas, etc.
+
+- colisões não deformarão modelos, devido a alta complexidade do cálculo das deformações de objetos baseado no seu formato e em seus materiais.
+
+- Interface gráfica mais simples que a apresentada no vídeo, já que nossa aplicação terá um número significativamente menor de funcionalidades e opções de jogo do que a apresentada no vídeo (e.g. jogo online em servidores globais, voo por regiões reais do planeta terra, física mais realista, etc). 
+
+- Não haverá modelagem de sombras, tendo em vista que escolhemos uma outra opção de funcionalidade extra e buscamos desenvolver uma aplicação mais leve de ser executada.
+
+- A física de voo será simplificada. Entre outros aspectos, os seguintes pontos serão desconsiderados:
+Peso do avião, resistência e arrasto do ar, distribuição de forças de sustentação pelo corpo e diferentes regiões da asa da aeronave, entre outros.
+
+  Decidimos isso devido à alta complexidade inerente à modelagem desses fenômenos físicos que foge ao escopo da disciplina e requer conhecimentos mais avançados de física superior aplicada à aviação.
+
+- O cockpit não será interagível como com botões pressionáveis ou com display HUD presentes no vídeo, pois o realismo da simulação foge ao escopo da disciplina e requer conhecimentos mais profundos sobre aviação e aviônica.
