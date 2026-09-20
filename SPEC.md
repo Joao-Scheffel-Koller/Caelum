@@ -108,20 +108,25 @@ Haverão 3 cameras:
 Haverão varios aviões iguais intanciados em cada aeroporto e no ceu. Além disso, varias arvóres estarão espalhadas pelo mundo.
 
 ### Testes de intersecção
-Avião com os predios do aeroporto e o terreno
+Avião com os predios do aeroporto, terreno e arvóres.
 
 ### Modelos de Iluminação em todos os objetos
-- Cockpit terá uma lampada
-- Avião terá um farol frontal
+
+- modelo de reflexão de Phong
 
 ### Mapeamento de texturas em todos os objetos
-- Aviões, cabine, pista de decolagem...
+
+Objetos que terão textura:
+Aviões, cabine, pista de decolagem, prédios, grama, arvóres. 
 
 ### Movimentação com curva Bézier cúbica
-? outros aviões voando pelo ceu ?
+
+- Haverá outro avião voando pelo ceu seguindo uma curva de Bézier
 
 ### Animações baseadas no tempo ($\Delta t$)
-?
+
+- Arvóres se movimentarão para simular o efeito do vento 
+- Animação do avião voando pelo céu será baseada no tempo
 
 ### Funcionalidade extra obrigatória
 
@@ -132,7 +137,13 @@ Avião com os predios do aeroporto e o terreno
 >   `README.md` da entrega final.
 
 
-- Interface Gráfica: Botões para escolher qual avião você usara para pilotar e sensores do avião na tela
+- Interface Gráfica: Botões para escolher qual avião você usara para pilotar
+- Instrumentos/Sensores do avião:
+  - altitude
+  - velocidade
+  - rpm do motor
+  - bússola
+  - inclinação (row) do avião
 - Camera totalemente livre "god mode"
 
 
@@ -145,5 +156,12 @@ Avião com os predios do aeroporto e o terreno
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-- colisão não deformará modelos
-- simulação de voo simplificada
+- Sem mapeamento de terrenos reais
+- Minimapa
+- Colisão não deformará modelos
+- Simulação de voo simplificada
+- Interface gráfica mais simples
+- Sombras
+- Física simplifica
+  - Peso do avião, resistência do ar, distribuição de forças de sustentação serão desconsideradas
+- Cockpit não será interagível
