@@ -11,11 +11,11 @@
 
 ## Integrantes da dupla
 
-- **Aluno 1 - Nome**: <mark>`<preencher>`</mark>
-- **Aluno 1 - Cartão UFRGS**: <mark>`<preencher>`</mark>
+- **Aluno 1 - Nome**: João Luis Scheffel Koller
+- **Aluno 1 - Cartão UFRGS**: 00589701
 
 - **Aluno 2 - Nome**: Vítor Santana Feijó
-- **Aluno 2 - Cartão UFRGS**: 588403
+- **Aluno 2 - Cartão UFRGS**: 00588403
 
 ## Detalhes do que será implementado
 
