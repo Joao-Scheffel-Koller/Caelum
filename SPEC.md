@@ -21,7 +21,9 @@
 
 - **Título do trabalho**: Caelum
 - **Parágrafo curto descrevendo o que será implementado**: 
-O nosso trabalho  será a implementação de um simulador de voo em avião(como o do jogo *Flight Simulator*). \\ Haverão três perspectivas de gameplay, a do piloto em primeira pessoa na qual será possivel ser mover e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião que poderá fazer viagem entre varios aeroportos. E por fim será implementado uma visão "god mode" que será possivel se mover livremente. 
+O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). \ Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião a qual será uma câmera look-at focada no avião, acompanhando seu movimento. Por fim será implementado uma visão "god mode" em que será possivel se mover livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas simples e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
+A movimentação do avião será controlado pelo teclado, o W será o acelerador e S o freio, e o mouse controlará para onde o avião estará mirando, mas caso o botão direito estiver apertado será possivel mover a câmera.
+
 
 ## Especificação visual
 
@@ -40,7 +42,7 @@ O nosso trabalho  será a implementação de um simulador de voo em avião(como 
 >   do próprio repositório. Mas, garanta que qualquer um tenha
 >   permissão de acesso ao vídeo através deste link.
 
-https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR
+https://www.youtube.com/live/HXZ2hlLK9Qg?si=3gEkvlRpy14oUR3d
 
 ### Vídeo - Timestamp
 
@@ -49,8 +51,8 @@ https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR
 >   será a base de comparação para avaliar se o seu trabalho final
 >   conseguiu ou não reproduzir a referência.
 
-- **Timestamp inicial**: 1:00
-- **Timestamp final**: 3:15
+- **Timestamp inicial**: 1:38
+- **Timestamp final**: 2:08
 
 ### Imagens
 
@@ -78,9 +80,9 @@ https://youtu.be/FC7a0mKlhrI?si=GyensYUTs7kG8ucR
 
 #### Imagem 3
 
-- **Descrição**: <mark>`<preencher>`</mark>
+- **Descrição**: Camera livre no video
 
-![Imagem 3](images/spec/image3.jpg)
+![Imagem 3](images/spec/image3.png)
 
 ## Especificação textual
 
@@ -88,11 +90,11 @@ Para cada um dos requisitos abaixo (detalhados no [Enunciado do Trabalho final -
 
 ### Malhas poligonais complexas
 
-O avião, piloto, cabine do piloto(cockpit)...
+- Avião, piloto, cabine do piloto(cockpit), arvores
 
 ### Transformações geométricas controladas pelo usuário
 
-Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WASD no teclado.
+Um exemplo de transformação geométrica controlada pelo usuário será controlar o avião por meio do WS no teclado e mouse. Inclinações de "pitch", "yaw" e "roll" do avião também serão transformações geométricas.
 
 ### Diferentes tipos de câmeras
 
@@ -103,7 +105,7 @@ Haverão 3 cameras:
 
 ### Instâncias de objetos
 
-Haverão varios aviões iguais intanciados em cada aeroporto
+Haverão varios aviões iguais intanciados em cada aeroporto e no ceu. Além disso, varias arvóres estarão espalhadas pelo mundo.
 
 ### Testes de intersecção
 Avião com os predios do aeroporto e o terreno
@@ -129,8 +131,10 @@ Avião com os predios do aeroporto e o terreno
 > - Esta funcionalidade também deverá ser documentada no arquivo
 >   `README.md` da entrega final.
 
-? sombras ?
-? Interface Gráfica (representação os sensores do avião: altitude, velocidade, etc)
+
+- Interface Gráfica: Botões para escolher qual avião você usara para pilotar e sensores do avião na tela
+- Camera totalemente livre "god mode"
+
 
 ## Limitações esperadas
 
@@ -143,4 +147,3 @@ Avião com os predios do aeroporto e o terreno
 
 - colisão não deformará modelos
 - simulação de voo simplificada
-etc
