@@ -24,6 +24,8 @@
 O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião, a qual será uma câmera look-at focada na aeronave, acompanhando seu movimento. Por fim será implementado uma visão "God mode", em que será possivel mover-se livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas simples e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
 A movimentação do avião será controlada pelo teclado: "W" e "S" controlarão o Throttle da aeronave (respectivamente, mais e menos aceleração), e o mouse controlará para onde o avião estará mirando. Por fim, caso o botão direito do mouse estiver pressionado, a movimenação do dipositivo passará a controlar a câmera e não mais o sentido e a direção do avião.
 
+> Comentário Professor: Adicionem à aplicação um objetivo com lógica não trivial, como decolar da cidade A e pousar na cidade B.
+
 ## Especificação visual
 
 ### Vídeo - Link
@@ -113,6 +115,8 @@ Aviões poderão se colirdir com os predios do aeroporto, terreno e arvóres ina
 
 - Será utilizado o modelo de reflexão de Phong.
 
+> Comentário Professor: O avião do vídeo de referência possui luzes piscantes. Implementem esse efeito.
+
 ### Mapeamento de texturas em todos os objetos
 
 Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista de pouso e decolagem, prédios do aeroporto, grama e árvores. 
@@ -121,10 +125,14 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 
 - Haverá pelo menos um outro avião em voo pelo céu seguindo uma curva de Bézier em sua trajetória. (para simular um contexto real de vias aéreas sobre uma cidade, já que, geralmente, um número maior que 1 de aeronaves sobrevoam um espaço aéreo concomitantemente).
 
+> Comentário Professor: Orientem o avião que segue a curva de Bézier conforme a direção de movimentação, de forma fisicamente plausível para uma aeronave.
+
 ### Animações baseadas no tempo ($\Delta t$)
 
 - Arvóres movimentar-se-ão para simular o efeito do vento.
 - A animação do segundo avião voando pelo céu será igualmente baseada no tempo.
+
+> Comentário Professor: Baseiem no tempo também a física do avião principal.
 
 ### Funcionalidade extra obrigatória
 
@@ -144,6 +152,8 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 
 - Câmera totalemente livre "God mode"
 
+> Comentário Professor: Para que eu considere a interface gráfica uma funcionalidade extra, implementem medidores com ponteiros dinâmicos, conforme os exemplos das imagens 1 e 3, com aparência o mais próxima possível das referências visuais. Não considerem a câmera livre como funcionalidade extra.
+
 
 ## Limitações esperadas
 
@@ -155,6 +165,8 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 >   que será implementado parcialmente.
 
 - Não haverá mapeamento de terrenos reais com fotos de satélite, já que o solo gerado não serão demasiado grande (em comparação com o tamanho de um estado brasileiro, por exemplo) e, portanto, não há sentido na tentativa de representação de um terreno real do planeta terra.
+
+> Comentário Professor: Utilizem texturas de satélite para que o cenário fique semelhante à referência visual.
 
 - Do mesmo modo, não haverá um minimapa, já que o terreno não disporá de regiões e ambientes significamente distintos como cidades, regiões únicas, etc.
 
