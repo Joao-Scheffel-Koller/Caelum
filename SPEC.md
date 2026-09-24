@@ -21,7 +21,7 @@
 
 - **Título do trabalho**: Caelum
 - **Parágrafo curto descrevendo o que será implementado**: 
-O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). Inicialmente, o avião do jogador é posicionado em um aeroporto (aqui chamado de "A") e seu objetivo é decolar, voar e aterrisar em outro aeroporto (aqui chamado "B"). Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião, a qual será uma câmera look-at focada na aeronave, acompanhando seu movimento. Por fim será implementado uma visão "God mode", em que será possivel mover-se livremente pelo cenário (independentemente da posição do avião). O mundo gerado (solo) terá igualmente texturas com imagens reais de satélite de alguma região do globo e nele haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
+O nosso trabalho  será a implementação de um simulador de voo em avião de física simples (não há a pretensão de ela ser muito realista). Inicialmente, o avião do jogador é posicionado em um aeroporto (aqui chamado de "A") e seu objetivo é decolar, voar e aterrisar em outro aeroporto (aqui chamado "B"). Haverá três perspectivas de gameplay: a do piloto em primeira pessoa na qual será possivel mover-se e ver toda a cabine(cockpit). Adicionalmente, haverá a perspectiva em terceira pessoa do avião, a qual será uma câmera look-at focada na aeronave, acompanhando seu movimento. Por fim será implementado uma visão "God mode", em que será possivel mover-se livremente pelo cenário (independentemente da posição do avião). No mundo, haverá mais de uma pista de decolagem e pouso para que o avião se desloque de um ponto do mapa para outro.
 A movimentação do avião será controlada pelo teclado: "W" e "S" controlarão o Throttle da aeronave (respectivamente, mais e menos aceleração), e o mouse controlará para onde o avião estará mirando. Por fim, caso o botão direito do mouse estiver pressionado, a movimenação do dipositivo passará a controlar a câmera e não mais o sentido e a direção do avião.
 
 ## Especificação visual
@@ -120,7 +120,7 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 
 ### Movimentação com curva Bézier cúbica
 
-- Haverá pelo menos um outro avião em voo pelo céu seguindo uma curva de Bézier em sua trajetória com uma direção de movimento que simula a movimentação de um avião real. (para simular um contexto real de vias aéreas sobre uma cidade, já que, geralmente, um número maior que 1 de aeronaves sobrevoam um espaço aéreo concomitantemente).
+- Haverá pelo menos um outro avião em voo pelo céu seguindo uma curva de Bézier em sua trajetória com uma direção de movimento que simula a movimentação de um avião real, i.e. movimentos plausíveis para uma aeronave. (para simular um contexto real de vias aéreas sobre uma cidade, já que, geralmente, um número maior que 1 de aeronaves sobrevoam um espaço aéreo concomitantemente).
 
 ### Animações baseadas no tempo ($\Delta t$)
 
@@ -137,13 +137,13 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 
 
 - Interface Gráfica: Botões em uma espécie de menu servirão para escolher qual avião o usuário deseja pilotar.
-- Além disso, Instrumentos/Sensores da aeronave  apresentarão (não diretamente no cockpit, como em um caso real, mas sobre a tela do simulador, de modo virtual em um design simplificado):
+- Além disso, Instrumentos/Sensores da aeronave  apresentarão (não diretamente no cockpit, como em um caso real, mas sobre a tela do simulador):
   - altitude
   - velocidade
   - potência do motor
   - bússola (sentido de voo)
-
-- Câmera totalemente livre "God mode"
+  
+  OBS: os instrumentos terão design com ponteiros dinâmicos similar a medidores reais, conforme é apresentado no vídeo de referência.
 
 
 ## Limitações esperadas
@@ -155,9 +155,7 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
 > - Para cada item, **explique por que** não será implementado ou por
 >   que será implementado parcialmente.
 
-- Não haverá mapeamento de terrenos reais com fotos de satélite, já que o solo gerado não serão demasiado grande (em comparação com o tamanho de um estado brasileiro, por exemplo) e, portanto, não há sentido na tentativa de representação de um terreno real do planeta terra.
-
-- Do mesmo modo, não haverá um minimapa, já que o terreno não disporá de regiões e ambientes significamente distintos como cidades, regiões únicas, etc.
+- Não haverá um minimapa, já que o terreno não disporá de regiões e ambientes significamente distintos como cidades, regiões únicas, etc.
 
 - colisões não deformarão modelos, devido a alta complexidade do cálculo das deformações de objetos baseado no seu formato e em seus materiais.
 
