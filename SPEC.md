@@ -142,6 +142,7 @@ Os seguintes objetos terão textura: Aviões, cabine de comando (cockpit), pista
   - velocidade
   - potência do motor
   - bússola (sentido de voo)
+  - Horizonte artificial
   
   OBS: os instrumentos terão design com ponteiros dinâmicos similar a medidores reais, conforme é apresentado no vídeo de referência.
 
