@@ -21,6 +21,7 @@ Aircraft :: Aircraft()
 
         void Aircraft::set_position(glm::vec3 p){position = p;}
         void Aircraft::set_velocity(glm::vec3 v){velocity = v;}
+        void Aircraft::set_acceleration(glm::vec3 a){acceleration = a;}
 
         //getters
         float Aircraft::get_pitch(){return pitch;}
@@ -30,6 +31,7 @@ Aircraft :: Aircraft()
 
         glm::vec3 Aircraft::get_position(){return position;}
         glm::vec3 Aircraft::get_velocity(){return velocity;}
+        glm::vec3 Aircraft::get_acceleration(){return acceleration;}
         
         
 

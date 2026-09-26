@@ -16,6 +16,7 @@ class Aircraft{
     private:
         glm::vec3 position;
         glm::vec3 velocity;
+        glm::vec3 acceleration;
 
         float pitch;
         float yaw;
@@ -32,6 +33,7 @@ class Aircraft{
 
         void set_position(glm::vec3 p);
         void set_velocity(glm::vec3 v);
+        void set_acceleration(glm::vec3 a);
 
         //getters
         float get_pitch();
@@ -40,7 +42,9 @@ class Aircraft{
         float get_roll();
 
         glm::vec3 get_position();
-        glm::vec3 get_velocity();        
+        glm::vec3 get_velocity();
+        glm::vec3 get_acceleration();
+                
 
 };
 #endif
