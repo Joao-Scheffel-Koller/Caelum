@@ -14,12 +14,24 @@ Aircraft :: Aircraft()
 
         //placeholders for getters and setters
 
-void Aircraft::set_throttle(float value)
-    {
-        throttle = value;
-    }
+        void Aircraft::set_throttle(float value){throttle = value;}
+        void Aircraft::set_pitch(float value){pitch = value;}
+        void Aircraft::set_yaw(float value){yaw = value;}
+        void Aircraft::set_roll(float value){roll = value;}
 
-float Aircraft::get_pitch()
-{
-    return pitch;
-}
+        void Aircraft::set_position(glm::vec3 p){position = p;}
+        void Aircraft::set_velocity(glm::vec3 v){velocity = v;}
+
+        //getters
+        float Aircraft::get_pitch(){return pitch;}
+        float Aircraft::get_throttle(){return throttle;}
+        float Aircraft::get_yaw(){return yaw;}
+        float Aircraft::get_roll(){return roll;}
+
+        glm::vec3 Aircraft::get_position(){return position;}
+        glm::vec3 Aircraft::get_velocity(){return velocity;}
+        
+        
+
+
+        
