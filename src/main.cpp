@@ -334,6 +334,13 @@ int main(int argc, char* argv[])
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    
+    //FLUGZEUGTEST: ENTERFNEN SIE DIES VOR DER ABGABE
+
+    Aircraft aircraft;
+    glm::vec3 velocity(1.0f, 1.0f, 1.0f);
+
+    aircraft.set_velocity(velocity);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -427,8 +434,10 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_sphere");
 
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
-              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
+        /*model = Matrix_Translate(1.0f,0.0f,0.0f)
+              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f); */
+        model = Matrix_Translate(aircraft.get_velocity().x,aircraft.get_velocity().y,aircraft.get_velocity().z)
+              * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f); 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BUNNY);
         DrawVirtualObject("the_bunny");
