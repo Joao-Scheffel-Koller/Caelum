@@ -1,11 +1,9 @@
 #include "Aircraft.hpp"
 
 class FlightModel{
-    private:
-        Aircraft aircraft;
+
     public:
-        FlightModel(Aircraft aircraft);
-        void set_aircraft();
-        void remove_aircraft();
-        void update(float dt);
+        void update(Aircraft* a, float dt);
+        void increase_throttle(Aircraft* a);
+        void decrease_throttle(Aircraft* a);
 };

@@ -229,6 +229,13 @@ GLint g_bbox_max_uniform;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
+// Avião global
+
+Aircraft MainAircraft;
+glm::vec3 velocity = glm::vec3(0.00008f, 0.00008f, 0.00008f);
+
+FlightModel MainModel;
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -336,6 +343,7 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     
+    MainAircraft.set_velocity(velocity);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -384,7 +392,7 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -10.0f; // Posição do "far plane"
+        float farplane  = -200.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -428,8 +436,11 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, SPHERE);
         DrawVirtualObject("the_sphere");
 
+        float current_time = (float)glfwGetTime();
+        MainModel.update(&MainAircraft, current_time);
+
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate(1.0f,0.0f,0.0f)
+        model = Matrix_Translate(MainAircraft.get_position().x, MainAircraft.get_position().y,MainAircraft.get_position().z)
               * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
@@ -437,7 +448,7 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_bunny");
 
         // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f);
+        model = Matrix_Translate(0.0f,-1.1f,0.0f) * Matrix_Scale(200.0f, 0.0f, 200.0f);
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, PLANE);
         DrawVirtualObject("the_plane");
@@ -1288,6 +1299,16 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         LoadShadersFromFiles();
         fprintf(stdout,"Shaders recarregados!\n");
         fflush(stdout);
+    }
+
+    //se o usuário clica w ou s, muda-se o throtlle do avião
+    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+    {
+        MainModel.increase_throttle(&MainAircraft);
+    }
+    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    {
+        MainModel.decrease_throttle(&MainAircraft);
     }
 }
 

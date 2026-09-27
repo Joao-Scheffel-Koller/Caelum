@@ -22,6 +22,8 @@ class Aircraft{
         float yaw;
         float roll;
         float throttle;
+        float throttle_increase_rate;
+        float max_throttle;
     public:
         Aircraft();
         
@@ -40,6 +42,8 @@ class Aircraft{
         float get_throttle();
         float get_yaw();
         float get_roll();
+        float get_throttle_increase_rate();
+        float get_max_throttle();
 
         glm::vec3 get_position();
         glm::vec3 get_velocity();
