@@ -111,6 +111,14 @@ struct ObjModel
     }
 };
 
+//Tipo de câmera ativa
+enum class CameraType
+{
+    FREE,      // Câmera livre (a implementar)
+    LOOK_AT,   // Orbita o avião
+    COCKPIT    // Visão do piloto (a implementar)
+};
+
 
 // Declaração de funções utilizadas para pilha de matrizes de modelagem.
 void PushMatrix(glm::mat4 M);
@@ -235,6 +243,9 @@ Aircraft MainAircraft;
 glm::vec3 velocity = glm::vec3(0.00008f, 0.00008f, 0.00008f);
 
 FlightModel MainModel;
+
+//tipo de câmera ativo começa em look-at
+CameraType current_camera_type = CameraType::LOOK_AT;
 
 int main(int argc, char* argv[])
 {
@@ -366,6 +377,11 @@ int main(int argc, char* argv[])
         // os shaders de vértice e fragmentos).
         glUseProgram(g_GpuProgramID);
 
+        //calculammos o estado do avião
+        float current_time = (float)glfwGetTime();
+        MainModel.update(&MainAircraft, current_time);
+        glm::vec3 aircraft_position = MainAircraft.get_position();
+
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
         // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
         // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
@@ -377,8 +393,16 @@ int main(int argc, char* argv[])
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_position_c;
+        if(current_camera_type == CameraType::LOOK_AT)
+        {
+            camera_position_c  = glm::vec4(aircraft_position.x+x,aircraft_position.y+y,aircraft_position.z+z,1.0f); // Ponto "c", centro da câmera
+        }
+        else
+        {
+            camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
+        }
+        glm::vec4 camera_lookat_l    = glm::vec4(aircraft_position.x,aircraft_position.y,aircraft_position.z,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
         glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
@@ -436,11 +460,8 @@ int main(int argc, char* argv[])
         glUniform1i(g_object_id_uniform, SPHERE);
         DrawVirtualObject("the_sphere");
 
-        float current_time = (float)glfwGetTime();
-        MainModel.update(&MainAircraft, current_time);
-
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate(MainAircraft.get_position().x, MainAircraft.get_position().y,MainAircraft.get_position().z)
+        model = Matrix_Translate(aircraft_position.x, aircraft_position.y, aircraft_position.z)
               * Matrix_Rotate_X(g_AngleX + (float)glfwGetTime() * 0.1f);
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
@@ -1309,6 +1330,18 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     if (key == GLFW_KEY_S && action == GLFW_PRESS)
     {
         MainModel.decrease_throttle(&MainAircraft);
+    }
+    if (key == GLFW_KEY_L && action == GLFW_PRESS)
+    {
+        current_camera_type = CameraType::LOOK_AT;
+    }
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+        current_camera_type = CameraType::COCKPIT;
+    }
+        if (key == GLFW_KEY_F && action == GLFW_PRESS)
+    {
+        current_camera_type = CameraType::FREE;
     }
 }
 
