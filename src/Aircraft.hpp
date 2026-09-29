@@ -17,6 +17,9 @@ class Aircraft{
         glm::vec3 position;
         glm::vec3 velocity;
         glm::vec3 acceleration;
+        glm::vec3 forward;
+        glm::vec3 up;
+        glm::vec3 right;
 
         float pitch;
         float yaw;
@@ -24,6 +27,7 @@ class Aircraft{
         float throttle;
         float throttle_increase_rate;
         float max_throttle;
+        
     public:
         Aircraft();
         
