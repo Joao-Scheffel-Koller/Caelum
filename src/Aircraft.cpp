@@ -14,6 +14,7 @@ Aircraft :: Aircraft()
         yaw = 0.0f;
         throttle_increase_rate = 0.000001f;
         max_throttle = 1.0f;
+        max_scalar_velocity = 0.5f;
     }
 
 
@@ -35,6 +36,7 @@ Aircraft :: Aircraft()
         float Aircraft::get_roll(){return roll;}
         float Aircraft::get_throttle_increase_rate(){return throttle_increase_rate;}
         float Aircraft::get_max_throttle(){return max_throttle;}
+        float Aircraft::get_max_scalar_velocity(){return max_scalar_velocity;}
 
         glm::vec3 Aircraft::get_position(){return position;}
         glm::vec3 Aircraft::get_velocity(){return velocity;}

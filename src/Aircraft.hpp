@@ -27,6 +27,7 @@ class Aircraft{
         float throttle;
         float throttle_increase_rate;
         float max_throttle;
+        float max_scalar_velocity;
         
     public:
         Aircraft();
@@ -48,6 +49,7 @@ class Aircraft{
         float get_roll();
         float get_throttle_increase_rate();
         float get_max_throttle();
+        float get_max_scalar_velocity();
 
         glm::vec3 get_position();
         glm::vec3 get_velocity();
