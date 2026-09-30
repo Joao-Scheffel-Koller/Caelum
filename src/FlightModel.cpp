@@ -18,14 +18,14 @@
 } */
 
 FlightModel :: FlightModel(){
-    gravity = 1.0f;
+    //para testes, gravity = 0,mas depois mudar para gravity = -1.0f
+    gravity = 0.0f;
 }
 
 void FlightModel::update( Aircraft* aircraft, float dt)
 {
-    printf("dt = %f\n", dt);
     // 1. Propulsão
-    float thrust = aircraft->get_throttle() * aircraft->get_max_throttle();
+    float thrust = aircraft->get_throttle() * aircraft->get_max_thrust();
     glm::vec3 thrustForce = aircraft->get_forward() * thrust;
 
 

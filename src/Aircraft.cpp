@@ -13,12 +13,13 @@ Aircraft :: Aircraft()
         roll = 0.0f;
         pitch = 0.0f;
         yaw = 0.0f;
-        throttle_increase_rate = 0.000001f;
+        throttle_increase_rate = 0.05f;
         max_throttle = 1.0f;
-        max_scalar_velocity = 0.5f;
+        max_scalar_velocity = 2.0f;
         mass = 40.0f;
-        lift_factor = 0.00000000004f;
+        lift_factor = 0.5f;
         drag_factor = 0.3f;
+        max_thrust = 80.0f;
     }
 
 
@@ -53,6 +54,7 @@ Aircraft :: Aircraft()
         float Aircraft::get_mass(){return mass;}
         float Aircraft::get_lift_factor(){return lift_factor;}
         float Aircraft::get_drag_factor(){return drag_factor;}
+        float Aircraft::get_max_thrust(){return max_thrust;}
 
         glm::vec3 Aircraft::get_position(){return position;}
         glm::vec3 Aircraft::get_velocity(){return velocity;}

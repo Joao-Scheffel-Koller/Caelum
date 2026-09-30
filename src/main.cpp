@@ -240,7 +240,7 @@ GLuint g_NumLoadedTextures = 0;
 // Avião global
 
 Aircraft MainAircraft;
-glm::vec3 velocity = glm::vec3(0.0008f, 0.0008f, 0.0008f);
+glm::vec3 velocity = glm::vec3(0.00000008f, 0.00000008f, 0.00000008f);
 
 FlightModel MainModel;
 
@@ -411,9 +411,7 @@ int main(int argc, char* argv[])
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
         // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        printf("camera_position_c: %f, %f, %f, %f\n", camera_position_c.r, camera_position_c.g, camera_position_c.b, camera_position_c.a);
-        printf("camera_view_vector: %f, %f, %f, %f\n", camera_view_vector.r, camera_view_vector.g, camera_view_vector.b, camera_view_vector.a);
-        printf("camera_up_vector: %f, %f, %f, %f\n", camera_up_vector.r, camera_up_vector.g, camera_up_vector.b, camera_up_vector.a);
+        
         
         
         glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);

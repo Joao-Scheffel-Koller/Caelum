@@ -33,6 +33,7 @@ class Aircraft{
 
         float lift_factor;
         float drag_factor;
+        float max_thrust;
         
     public:
         Aircraft();
@@ -45,6 +46,7 @@ class Aircraft{
         void set_mass(float value);
         void set_drag_factor(float value);
         void set_lift_factor(float value);
+        void set_max_thrust(float value);
 
         void set_position(glm::vec3 p);
         void set_velocity(glm::vec3 v);
@@ -64,6 +66,7 @@ class Aircraft{
         float get_mass();
         float get_lift_factor();
         float get_drag_factor();
+        float get_max_thrust();
 
         glm::vec3 get_position();
         glm::vec3 get_velocity();
