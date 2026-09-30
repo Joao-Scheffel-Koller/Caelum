@@ -21,6 +21,8 @@ class Aircraft{
         glm::vec3 up;
         glm::vec3 right;
 
+
+        float mass;
         float pitch;
         float yaw;
         float roll;
@@ -28,6 +30,9 @@ class Aircraft{
         float throttle_increase_rate;
         float max_throttle;
         float max_scalar_velocity;
+
+        float lift_factor;
+        float drag_factor;
         
     public:
         Aircraft();
@@ -37,10 +42,16 @@ class Aircraft{
         void set_pitch(float value);
         void set_yaw(float value);
         void set_roll(float value);
+        void set_mass(float value);
+        void set_drag_factor(float value);
+        void set_lift_factor(float value);
 
         void set_position(glm::vec3 p);
         void set_velocity(glm::vec3 v);
         void set_acceleration(glm::vec3 a);
+        void set_forward(glm::vec3 v);
+        void set_right(glm::vec3 v);
+        void set_up(glm::vec3 v);
 
         //getters
         float get_pitch();
@@ -50,11 +61,16 @@ class Aircraft{
         float get_throttle_increase_rate();
         float get_max_throttle();
         float get_max_scalar_velocity();
+        float get_mass();
+        float get_lift_factor();
+        float get_drag_factor();
 
         glm::vec3 get_position();
         glm::vec3 get_velocity();
         glm::vec3 get_acceleration();
-                
+        glm::vec3 get_forward();
+        glm::vec3 get_right();
+        glm::vec3 get_up();  
 
 };
 #endif
