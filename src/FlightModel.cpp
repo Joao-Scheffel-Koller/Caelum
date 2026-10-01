@@ -4,7 +4,7 @@
 
 FlightModel :: FlightModel(){
     //para testes, gravity = 0,mas depois mudar para gravity = -1.0f
-    gravity = 0.0f;
+    gravity = -1.0f;
 }
 
 void FlightModel::update( Aircraft* aircraft, float dt)
@@ -69,6 +69,10 @@ void FlightModel::update( Aircraft* aircraft, float dt)
     // 9. Atualiza posição
     glm::vec3 position = aircraft->get_position();
     position += velocity * dt;
+    //ajusta colisão com o solo
+    if (position.y < 0.0f){
+        position.y = 0.0f;
+    }
     aircraft->set_position(position);
 }
 

@@ -18,7 +18,7 @@ Aircraft :: Aircraft()
         max_scalar_velocity = 2.0f;
         mass = 40.0f;
         lift_factor = 0.5f;
-        drag_factor = 0.3f;
+        drag_factor = 0.9f;
         max_thrust = 80.0f;
     }
 
