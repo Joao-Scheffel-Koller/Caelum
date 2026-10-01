@@ -16,7 +16,8 @@ Aircraft :: Aircraft()
         throttle_increase_rate = 0.05f;
         max_throttle = 1.0f;
         max_scalar_velocity = 2.0f;
-        mass = 40.0f;
+        //Deve ser alterada a massa para 40.0f depois de ajustes nas constantes
+        mass = 10.0f;
         lift_factor = 0.5f;
         drag_factor = 0.9f;
         max_thrust = 80.0f;
