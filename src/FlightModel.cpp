@@ -2,21 +2,6 @@
 #include "Aircraft.hpp"
 #include <stdio.h>
 
-/*void FlightModel::update(Aircraft* a, float dt)
-{
-    //Vec3 acceleration = calculateAcceleration();
-    glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
-    a->set_acceleration(acceleration);
-
-    glm::vec3 velocity = a->get_velocity();
-    velocity += a->get_throttle() * dt;
-    a->set_velocity(velocity);
-
-    glm::vec3 position = a->get_position();
-    position += velocity * dt;
-    a->set_position(position);
-} */
-
 FlightModel :: FlightModel(){
     //para testes, gravity = 0,mas depois mudar para gravity = -1.0f
     gravity = 0.0f;
@@ -39,8 +24,12 @@ void FlightModel::update( Aircraft* aircraft, float dt)
 
     // 3. Velocidade atual
     glm::vec3 velocity = aircraft->get_velocity();
-    float speed = velocity.length();
-
+    //.length() is not used because it was always rounding the number up to 3.0f
+    float speed = std::sqrt(
+    velocity.x * velocity.x +
+    velocity.y * velocity.y +
+    velocity.z * velocity.z
+    );
 
     // 4. Sustentação
     float lift = aircraft->get_lift_factor() * speed * speed;
@@ -58,7 +47,6 @@ void FlightModel::update( Aircraft* aircraft, float dt)
             * speed
             * speed;
     }
-
 
     // 6. Força resultante
     glm::vec3 totalForce =
