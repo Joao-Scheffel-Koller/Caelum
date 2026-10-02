@@ -1,6 +1,8 @@
 #include "FlightModel.hpp"
 #include "Aircraft.hpp"
 #include <stdio.h>
+#include "mathops.hpp"
+
 
 FlightModel :: FlightModel(){
     //para testes, gravity = 0,mas depois mudar para gravity = -1.0f
@@ -9,9 +11,26 @@ FlightModel :: FlightModel(){
 
 void FlightModel:: update_orientation(Aircraft* aircraft, float mouse_delta_x, float mouse_delta_y)
 {
-    aircraft->set_roll(aircraft->get_roll() + mouse_delta_x * 0.01f);
+    float roll = aircraft->get_roll();
+    float yaw = aircraft->get_yaw();
+    float pitch = aircraft->get_pitch();
+    aircraft->set_roll(roll + mouse_delta_x * 0.01f);
     aircraft->set_yaw(0.0f);
-    aircraft->set_pitch(aircraft->get_pitch() - mouse_delta_y * 0.01f);
+    aircraft->set_pitch(pitch - mouse_delta_y * 0.01f);
+
+    glm::vec4 new_forward, new_up, new_right, old_forward, old_up, old_right;
+
+    old_forward = glm::vec4(aircraft->get_forward(), 0.0f);
+    old_up = glm::vec4(aircraft->get_up(), 0.0f);
+    old_right = glm::vec4(aircraft->get_right(), 0.0f);
+
+    new_forward = old_forward * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
+    new_up = old_up * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
+    new_right = old_right * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
+
+    aircraft->set_forward(glm::vec3(new_forward));
+    aircraft->set_up(glm::vec3(new_up));
+    aircraft->set_right(glm::vec3(new_right));
 
 }
 
