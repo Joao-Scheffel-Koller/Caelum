@@ -247,6 +247,11 @@ FlightModel MainModel;
 //tipo de câmera ativo começa em look-at
 CameraType current_camera_type = CameraType::LOOK_AT;
 
+//Armazenamos variações na posição do mouse para controlar as inclinações do avião
+//IMPORTANTE: essas variáveis se destinam APENAS para o controle do avião e NÃO devem ser utilizadas para controle
+//de câmera.
+float mouse_delta_y, mouse_delta_x;
+
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -381,7 +386,7 @@ int main(int argc, char* argv[])
         //calculammos o estado do avião
         float current_time = (float)glfwGetTime();
         float dt = current_time - previous_time;
-        MainModel.update(&MainAircraft, dt);
+        MainModel.update(&MainAircraft, dt, mouse_delta_x, mouse_delta_y);
         glm::vec3 aircraft_position = MainAircraft.get_position();
         previous_time = current_time;
 
@@ -467,7 +472,10 @@ int main(int argc, char* argv[])
         DrawVirtualObject("the_sphere");
 
         // Desenhamos o modelo do coelho
-        model = Matrix_Translate(aircraft_position.x, aircraft_position.y, aircraft_position.z);
+        model = Matrix_Translate(aircraft_position.x, aircraft_position.y, aircraft_position.z)
+        * Matrix_Rotate_X(MainAircraft.get_roll())
+        * Matrix_Rotate_Y(MainAircraft.get_yaw())
+        * Matrix_Rotate_Z(MainAircraft.get_pitch());
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BUNNY);
@@ -1163,6 +1171,8 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
+
+
 // Função callback chamada sempre que o usuário movimentar o cursor do mouse em
 // cima da janela OpenGL.
 void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
@@ -1211,6 +1221,16 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     
         // Atualizamos as variáveis globais para armazenar a posição atual do
         // cursor como sendo a última posição conhecida do cursor.
+        g_LastCursorPosX = xpos;
+        g_LastCursorPosY = ypos;
+    }
+
+    //Se só estamos movendo o mouse, controlamos o avião
+    if((!g_RightMouseButtonPressed) && (!g_LeftMouseButtonPressed))
+    {
+        mouse_delta_x = xpos - g_LastCursorPosX;
+        mouse_delta_y = ypos - g_LastCursorPosY;
+
         g_LastCursorPosX = xpos;
         g_LastCursorPosY = ypos;
     }

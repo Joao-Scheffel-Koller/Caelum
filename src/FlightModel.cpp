@@ -7,8 +7,19 @@ FlightModel :: FlightModel(){
     gravity = -1.0f;
 }
 
-void FlightModel::update( Aircraft* aircraft, float dt)
+void FlightModel:: update_orientation(Aircraft* aircraft, float mouse_delta_x, float mouse_delta_y)
 {
+    aircraft->set_roll(aircraft->get_roll() + mouse_delta_x * 0.01f);
+    aircraft->set_yaw(0.0f);
+    aircraft->set_pitch(aircraft->get_pitch() - mouse_delta_y * 0.01f);
+
+}
+
+void FlightModel::update( Aircraft* aircraft, float dt, float mouse_delta_x, float mouse_delta_y)
+{
+
+    update_orientation(aircraft, mouse_delta_x, mouse_delta_y);
+
     // 1. Propulsão
     float thrust = aircraft->get_throttle() * aircraft->get_max_thrust();
     glm::vec3 thrustForce = aircraft->get_forward() * thrust;
@@ -20,7 +31,6 @@ void FlightModel::update( Aircraft* aircraft, float dt)
         gravity * aircraft->get_mass(),
         0.0f
     };
-
 
     // 3. Velocidade atual
     glm::vec3 velocity = aircraft->get_velocity();
