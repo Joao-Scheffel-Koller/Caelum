@@ -116,7 +116,7 @@ enum class CameraType
 {
     FREE,      // Câmera livre (a implementar)
     LOOK_AT,   // Orbita o avião
-    COCKPIT    // Visão do piloto (a implementar)
+    COCKPIT,    // Visão do piloto (a implementar)
 };
 
 
@@ -387,6 +387,8 @@ int main(int argc, char* argv[])
         float current_time = (float)glfwGetTime();
         float dt = current_time - previous_time;
         MainModel.update(&MainAircraft, dt, mouse_delta_x, mouse_delta_y);
+        mouse_delta_x = 0.0f;
+        mouse_delta_y = 0.0f;
         glm::vec3 aircraft_position = MainAircraft.get_position();
         previous_time = current_time;
 
@@ -408,7 +410,9 @@ int main(int argc, char* argv[])
         }
         else
         {
-            camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
+            //camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
+            camera_position_c = glm::vec4(aircraft_position-MainAircraft.get_forward()
+            +glm::vec3(x,y,z), 1.0f);
         }
         glm::vec4 camera_lookat_l    = glm::vec4(aircraft_position.x,aircraft_position.y,aircraft_position.z,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
@@ -1228,8 +1232,11 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     //Se só estamos movendo o mouse, controlamos o avião
     if((!g_RightMouseButtonPressed) && (!g_LeftMouseButtonPressed))
     {
-        mouse_delta_x = xpos - g_LastCursorPosX;
-        mouse_delta_y = ypos - g_LastCursorPosY;
+        float dx = xpos - g_LastCursorPosX;
+        float dy = ypos - g_LastCursorPosY;
+
+        mouse_delta_x += dx;
+        mouse_delta_y += dy;
 
         g_LastCursorPosX = xpos;
         g_LastCursorPosY = ypos;

@@ -11,26 +11,73 @@ FlightModel :: FlightModel(){
 
 void FlightModel:: update_orientation(Aircraft* aircraft, float mouse_delta_x, float mouse_delta_y)
 {
+    float sense = 0.01f;
     float roll = aircraft->get_roll();
-    float yaw = aircraft->get_yaw();
+    float yaw = 0.0f;
     float pitch = aircraft->get_pitch();
-    aircraft->set_roll(roll + mouse_delta_x * 0.01f);
-    aircraft->set_yaw(0.0f);
-    aircraft->set_pitch(pitch - mouse_delta_y * 0.01f);
 
-    glm::vec4 new_forward, new_up, new_right, old_forward, old_up, old_right;
+    roll += mouse_delta_x * sense;
+    pitch -= mouse_delta_y * sense;
 
-    old_forward = glm::vec4(aircraft->get_forward(), 0.0f);
-    old_up = glm::vec4(aircraft->get_up(), 0.0f);
-    old_right = glm::vec4(aircraft->get_right(), 0.0f);
+    aircraft->set_roll(roll);
+    aircraft->set_yaw(yaw);
+    aircraft->set_pitch(pitch);
 
-    new_forward = old_forward * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
-    new_up = old_up * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
-    new_right = old_right * Matrix_Rotate_X(roll) * Matrix_Rotate_Y(yaw) * Matrix_Rotate_Z(pitch);
+    glm::vec3 local_forward(0.0f, 0.0f, -1.0f);
+    glm::vec3 local_up     (0.0f, 1.0f,  0.0f);
+    glm::vec3 local_right  (1.0f, 0.0f,  0.0f);
 
-    aircraft->set_forward(glm::vec3(new_forward));
-    aircraft->set_up(glm::vec3(new_up));
-    aircraft->set_right(glm::vec3(new_right));
+
+    glm::mat4 rotation = glm::mat4(1.0f);
+
+    rotation = glm::rotate(
+            rotation,
+            yaw,
+            glm::vec3(0.0f, 1.0f, 0.0f)
+        );
+
+    rotation = glm::rotate(
+            rotation,
+            pitch,
+            glm::vec3(1.0f, 0.0f, 0.0f)
+        );
+
+    rotation = glm::rotate(
+            rotation,
+            roll,
+            glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+
+
+        glm::vec3 new_forward =
+        glm::vec3(
+            rotation *
+            glm::vec4(local_forward, 0.0f)
+        );
+
+    glm::vec3 new_up =
+        glm::vec3(
+            rotation *
+            glm::vec4(local_up, 0.0f)
+        );
+
+    glm::vec3 new_right =
+        glm::vec3(
+            rotation *
+            glm::vec4(local_right, 0.0f)
+        );
+    
+        aircraft->set_forward(
+        glm::normalize(new_forward)
+    );
+
+    aircraft->set_up(
+        glm::normalize(new_up)
+    );
+
+    aircraft->set_right(
+        glm::normalize(new_right)
+    );
 
 }
 
