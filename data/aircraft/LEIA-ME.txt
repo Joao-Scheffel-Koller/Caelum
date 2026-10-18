@@ -1,0 +1,27 @@
+Modelo A320 - materiais corrigidos e exportacao OBJ
+
+Arquivos principais:
+- aircraft.obj: geometria triangulada, com normais e UVs.
+- aircraft.mtl: materiais. Deve ficar ao lado do OBJ.
+- textures/: imagens utilizadas. Mantenha esta pasta junto dos arquivos.
+- aircraft.blend: copia editavel com as correcoes.
+- preview.png: imagem de conferencia.
+
+Foram recuperadas as imagens disponiveis cujos nomes/caminhos divergiam
+das referencias do FBX. A pintura externa foi simplificada para branco e
+azul, com o simbolo na cauda remapeado a partir da imagem fornecida.
+As imagens que nao vieram no download foram substituidas por cores de
+material compativeis. Nao se trata de uma restauracao exata da pintura
+original. Os paineis de cockpit disponiveis foram preservados.
+
+Validacao: o OBJ foi reimportado no Blender com 522 objetos de malha,
+51.022 triangulos e sem referencias a imagens ausentes. Tres objetos
+vazios do FBX nao possuem faces exportaveis. O OBJ usa Y para cima.
+
+Correcoes de materiais, UVs e exportacao com auxilio de IA (Codex).
+Os arquivos originais do download nao foram alterados.
+
+Credito original:
+"A320-200 with cockpit (ver VIII)" (https://skfb.ly/6R8YA) by TonyWony is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Ajustes adicionais: pintura azul continua na traseira e portas; simbolo da cauda com projecao compartilhada entre a parte fixa e movel; tecido original Fabric_Demin aplicado aos bancos dos passageiros, incluindo cor, rugosidade e normal map.

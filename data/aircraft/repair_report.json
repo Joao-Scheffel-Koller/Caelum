@@ -1,0 +1,104 @@
+{
+  "relinked": [
+    [
+      "FabricUpholsteryBrightAnglePattern001_COL_VAR1_3K.jpg",
+      "FabricUpholsteryBrightAnglePattern001_COL_.jpeg"
+    ],
+    [
+      "FabricUpholsteryBrightAnglePattern001_GLOSS_3K.jpg",
+      "FabricUpholsteryBrightAnglePattern001_REFL.jpeg"
+    ],
+    [
+      "FabricUpholsteryBrightAnglePattern001_NRM_3K.jpg",
+      "FabricUpholsteryBrightAnglePattern001_NRM_.jpeg"
+    ],
+    [
+      "FULL-SIZE-A320-CRT-CFM-EIS-OVERHEAD.png",
+      "FULL-SIZE-A320-CRT-CFM-EIS-OVERHEAD.png"
+    ],
+    [
+      "FULL-SIZE-CENTRE-PANEL-v2500.png",
+      "FULL-SIZE-CENTRE-PANEL-v2500.png"
+    ],
+    [
+      "FULL-SIZE-MAIN-PANEL-CRT.png",
+      "FULL-SIZE-MAIN-PANEL-CRT.png"
+    ],
+    [
+      "I_base.png",
+      "I_base.png"
+    ],
+    [
+      "I_rough.png",
+      "I_rough.png"
+    ],
+    [
+      "leather07 normal 4k.jpg",
+      "leather07_normal_4k.jpg"
+    ],
+    [
+      "leather07 roughness 4k.jpg",
+      "leather07_roughness_4k.jpg"
+    ],
+    [
+      "logo.png",
+      "logo.png"
+    ],
+    [
+      "panel bumb.png",
+      "panel_bumb.png"
+    ],
+    [
+      "panel bumb.png.001",
+      "panel_bumb.png"
+    ],
+    [
+      "Rubber 01_diffuse.png",
+      "Rubber_01_diffuse.png"
+    ]
+  ],
+  "missing_images_replaced": [
+    "$_57.PNG",
+    "--file-filter=*_rough.png",
+    "18961baf-a437-4739-b7be-b1e286fce0be_car_202x158.jpg",
+    "Foam_Tubes_Metallic.jpg",
+    "Foam_Tubes_Roughness.jpg",
+    "g1.vert_base.png",
+    "g1.vert_metal.png",
+    "leather07 diffuse 4k.jpg",
+    "prop texture.png",
+    "roughmap.png",
+    "Rudder_base.png",
+    "tail_base.png",
+    "tail_metal.png"
+  ],
+  "fallback_materials": [
+    "Foam Panels Tubes",
+    "Leather blue",
+    "black.001",
+    "black.002",
+    "dash borasd above",
+    "dash borasd above.001",
+    "dash bored",
+    "dash bored glow",
+    "dash bored glow.001",
+    "dash bored.001",
+    "doors",
+    "fuselarge.001",
+    "props"
+  ],
+  "meshes": 525,
+  "bounds": [
+    [
+      -27.425107955932617,
+      -17.17855453491211,
+      -3.342473268508911
+    ],
+    [
+      10.548507690429688,
+      17.178678512573242,
+      8.196298599243164
+    ]
+  ],
+  "body_uv": "Remapped to supplied clean fuselage strip; other exterior atlas mismatches use matching paint."
+}
