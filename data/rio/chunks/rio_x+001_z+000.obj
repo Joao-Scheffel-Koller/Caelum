@@ -1,0 +1,13 @@
+# Deterministic Caelum map chunk. Shared coordinates, Y up.
+mtllib rio.obj.mtl
+o rio_x+001_z+000
+s off
+usemtl WATER_0
+v 4223.611 0.0 -1127.782
+vt 42.23611 11.277819999999998
+vn 0.0 1.0 0.0
+v 441.821 0.0 2004.216
+vt 4.41821 -20.04216
+v 4204.647 0.0 3769.415
+vt 42.04647 -37.69415
+f 1/1/1 2/2/1 3/3/1
