@@ -1,5 +1,11 @@
 ## File used to store ai prompts
 
+3. Codex (2026-10-28): "pode implementar, depois separe cada parte commits e
+   de push na branch". Integrar os assets do Rio e do A320 ao OpenGL, carregar
+   materiais e texturas do MTL, e iniciar sobre a pista do Santos Dumont.
+   Implementacao com IA: ModelRenderer.*, GameScene.*, shader_fragment.glsl,
+   integracao em main.cpp/CMakeLists.txt e documentacao correspondente.
+
 1. formate o @file:trabalho.md  para ficar bonito em markdown
 
 2. Codex (2026-10-28): dividir o OBJ do Rio em partes deterministicas por uma
