@@ -17,7 +17,20 @@ Mantenha `chunks/rio.obj.mtl` e a pasta `chunks/textures/` junto dos OBJ.
 As imagens antes referenciadas por caminhos absolutos em Downloads foram
 copiadas e passaram a ter caminhos relativos. A divisao preserva as imagens.
 
-## Regra deterministica
+## Ponto inicial no jogo
+
+`src/GameScene.cpp` posiciona o aviao na pista 20L do Santos Dumont. Os extremos
+do eixo da pista no OSM usado na conversao sao (-22.9045972, -43.163205) e
+(-22.9164863, -43.1624422). Projetando com a mesma Mercator local do OSM2World
+(origem indicada acima), os pontos XZ sao aproximadamente (5231.294, 6195.887)
+e (5309.545, 7519.976).
+
+O ponto inicial fica 100 m a partir do primeiro extremo, na direcao do segundo:
+XZ=(5237.1933, 6295.7127), direcao XZ=(0.05899537, 0.99825826). A altura foi
+conferida nos triangulos `ASPHALT_0` de `rio_x+002_z+003.obj`: Y=0. O modelo do
+aviao e posicionado pela base das rodas, mantendo a escala original em metros.
+
+## Regra de divisao
 
 - Grade XZ de 2000 metros, ancorada em (0, 0).
 - Cada face pertence a celula que contem o centro medio de seus vertices.
