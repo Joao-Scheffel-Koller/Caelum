@@ -72,6 +72,10 @@ void FlightModel::update( Aircraft* aircraft, float dt)
     //ajusta colisão com o solo
     if (position.y < 0.0f){
         position.y = 0.0f;
+        // AI-assisted fix: the runway cancels downward velocity on contact.
+        // Otherwise speed/lift would include accumulated falling through the floor.
+        if (velocity.y < 0.0f) velocity.y = 0.0f;
+        aircraft->set_velocity(velocity);
     }
     aircraft->set_position(position);
 }
