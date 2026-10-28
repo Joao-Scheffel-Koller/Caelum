@@ -15,6 +15,7 @@ set(SOURCES
   src/Aircraft.cpp
   src/FlightModel.cpp
   src/ModelRenderer.cpp
+  src/GameScene.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)

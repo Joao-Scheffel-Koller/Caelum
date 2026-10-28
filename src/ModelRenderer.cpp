@@ -105,7 +105,7 @@ RenderModel ModelRenderer::Load(const std::string& path) {
     return result;
 }
 
-std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest) {
+std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const std::function<void(size_t)>& progress) {
     std::ifstream input(manifest);
     if(!input)throw std::runtime_error("Cannot open map manifest: "+manifest);
     std::vector<MapChunk> result;
@@ -121,6 +121,7 @@ std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest) {
             chunk.min=chunk.model.min;chunk.max=chunk.model.max;
             result.push_back(chunk);
             std::printf("Map chunk %zu: %s\n",result.size(),chunk.file.c_str());std::fflush(stdout);
+            if(progress)progress(result.size());
         }
     }
     if(result.empty())throw std::runtime_error("No map chunks in manifest");
