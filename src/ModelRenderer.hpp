@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
 // AI-assisted renderer for OBJ/MTL assets. Coordinates are never normalized.
 struct RenderMaterial {
@@ -33,7 +34,8 @@ class ModelRenderer {
 public:
     ~ModelRenderer();
     RenderModel Load(const std::string& path);
-    std::vector<MapChunk> LoadMap(const std::string& manifest);
+    std::vector<MapChunk> LoadMap(const std::string& manifest,
+        const std::function<void(size_t)>& progress = {});
     // Call after loading/reloading the shader program (R remains supported).
     void SetProgram(GLuint program);
     void Draw(const RenderModel& model, const glm::mat4& transform,
