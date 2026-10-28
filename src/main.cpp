@@ -52,6 +52,8 @@
 //Newly definied classes
 #include "Aircraft.hpp"
 #include "FlightModel.hpp"
+#include "GameScene.hpp"
+#include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
 // arquivo ".obj". Veja https://en.wikipedia.org/wiki/Wavefront_.obj_file .
@@ -207,9 +209,9 @@ bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mous
 // usuário através do mouse (veja função CursorPosCallback()). A posição
 // efetiva da câmera é calculada dentro da função main(), dentro do loop de
 // renderização.
-float g_CameraTheta = 0.0f; // Ângulo no plano ZX em relação ao eixo Z
-float g_CameraPhi = 0.0f;   // Ângulo em relação ao eixo Y
-float g_CameraDistance = 3.5f; // Distância da câmera para a origem
+float g_CameraTheta = -3.08256f; // Ângulo no plano ZX em relação ao eixo Z
+float g_CameraPhi = 0.25f;   // Ângulo em relação ao eixo Y
+float g_CameraDistance = 70.0f; // Distância da câmera para a origem
 
 // Variáveis que controlam rotação do antebraço
 float g_ForearmAngleZ = 0.0f;
@@ -249,6 +251,10 @@ CameraType current_camera_type = CameraType::LOOK_AT;
 
 int main(int argc, char* argv[])
 {
+    // Optional developer check: load the real scene, render 60 frames, then exit.
+    const bool smoke_test = argc > 1 && std::string(argv[1]) == "--smoke-test";
+    int rendered_frames = 0;
+    int exit_code = EXIT_SUCCESS;
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
     // sistema operacional, onde poderemos renderizar com OpenGL.
     int success = glfwInit();
@@ -273,10 +279,9 @@ int main(int argc, char* argv[])
     // funções modernas de OpenGL.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
-    // de pixels, e com título "INF01047 ...".
+    // Janela da cena do Rio, com 800 colunas e 600 linhas de pixels.
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Caelum - Rio de Janeiro", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -320,27 +325,16 @@ int main(int argc, char* argv[])
     //
     LoadShadersFromFiles();
 
-    // Carregamos duas imagens para serem utilizadas como textura
-    LoadTextureImage("../../data/red_brick_diff_1k.jpg");      // TextureImage0
-    LoadTextureImage("../../data/rocky_terrain_02_diff_1k.jpg"); // TextureImage1
-
-    // Construímos a representação de objetos geométricos através de malhas de triângulos
-    ObjModel spheremodel("../../data/sphere.obj");
-    ComputeNormals(&spheremodel);
-    BuildTrianglesAndAddToVirtualScene(&spheremodel);
-
-    ObjModel bunnymodel("../../data/bunny.obj");
-    ComputeNormals(&bunnymodel);
-    BuildTrianglesAndAddToVirtualScene(&bunnymodel);
-
-    ObjModel planemodel("../../data/plane.obj");
-    ComputeNormals(&planemodel);
-    BuildTrianglesAndAddToVirtualScene(&planemodel);
-
-    if ( argc > 1 )
-    {
-        ObjModel model(argv[1]);
-        BuildTrianglesAndAddToVirtualScene(&model);
+    // AI-assisted scene integration. Release GPU resources before destroying GLFW.
+    std::unique_ptr<GameScene> scene(new GameScene);
+    try {
+        scene->Load(window);
+        scene->Spawn(MainAircraft);
+    } catch(const std::exception& error) {
+        fprintf(stderr,"Scene loading failed: %s\n",error.what());
+        scene.reset();
+        glfwTerminate();
+        return EXIT_FAILURE;
     }
 
     // Inicializamos o código para renderização de texto.
@@ -354,8 +348,7 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     
-    MainAircraft.set_velocity(velocity);
-    float previous_time = 0.0f;
+    float previous_time = (float)glfwGetTime();
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -368,7 +361,7 @@ int main(int argc, char* argv[])
         // Conversaremos sobre sistemas de cores nas aulas de Modelos de Iluminação.
         //
         //           R     G     B     A
-        glClearColor(0.9f, 0.9f, 1.0f, 1.0f);
+        glClearColor(0.60f, 0.76f, 0.90f, 1.0f);
 
         // "Pintamos" todos os pixels do framebuffer com a cor definida acima,
         // e também resetamos todos os pixels do Z-buffer (depth buffer).
@@ -380,9 +373,9 @@ int main(int argc, char* argv[])
 
         //calculammos o estado do avião
         float current_time = (float)glfwGetTime();
-        float dt = current_time - previous_time;
+        float dt = std::min(current_time - previous_time,0.05f);
         MainModel.update(&MainAircraft, dt);
-        glm::vec3 aircraft_position = MainAircraft.get_position();
+        glm::vec3 aircraft_position = MainAircraft.get_position() + glm::vec3(0,4,0);
         previous_time = current_time;
 
         // Computamos a posição da câmera utilizando coordenadas esféricas.  As
@@ -421,8 +414,8 @@ int main(int argc, char* argv[])
 
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
-        float nearplane = -0.1f;  // Posição do "near plane"
-        float farplane  = -200.0f; // Posição do "far plane"
+        float nearplane = -0.5f;  // Posição do "near plane"
+        float farplane  = -30000.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
         {
@@ -445,39 +438,13 @@ int main(int argc, char* argv[])
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
         }
 
-        glm::mat4 model = Matrix_Identity(); // Transformação identidade de modelagem
-
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        #define SPHERE 0
-        #define BUNNY  1
-        #define PLANE  2
-
-        // Desenhamos o modelo da esfera
-        model = Matrix_Translate(-1.0f,0.0f,0.0f)
-              * Matrix_Rotate_Z(0.6f)
-              * Matrix_Rotate_X(0.2f)
-              * Matrix_Rotate_Y(g_AngleY + (float)glfwGetTime() * 0.1f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, SPHERE);
-        DrawVirtualObject("the_sphere");
-
-        // Desenhamos o modelo do coelho
-        model = Matrix_Translate(aircraft_position.x, aircraft_position.y, aircraft_position.z);
-
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, BUNNY);
-        DrawVirtualObject("the_bunny");
-
-        // Desenhamos o plano do chão
-        model = Matrix_Translate(0.0f,-1.1f,0.0f) * Matrix_Scale(200.0f, 0.0f, 200.0f);
-        glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
-        glUniform1i(g_object_id_uniform, PLANE);
-        DrawVirtualObject("the_plane");
+        scene->Draw(g_GpuProgramID,MainAircraft,projection*view,glm::vec3(camera_position_c));
 
         // Imprimimos na tela os ângulos de Euler que controlam a rotação do
         // terceiro cubo.
@@ -489,6 +456,33 @@ int main(int argc, char* argv[])
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
         TextRendering_ShowFramesPerSecond(window);
+
+        if (smoke_test)
+        {
+            const GLenum error = glGetError();
+            if (error != GL_NO_ERROR) {
+                fprintf(stderr,"OpenGL error in smoke test: 0x%x\n",error);
+                exit_code = EXIT_FAILURE;
+                glfwSetWindowShouldClose(window,GL_TRUE);
+            }
+            if (++rendered_frames == 60) {
+                if (argc > 2) {
+                    int width,height;
+                    glfwGetFramebufferSize(window,&width,&height);
+                    std::vector<unsigned char> pixels(size_t(width)*height*3);
+                    glPixelStorei(GL_PACK_ALIGNMENT,1);
+                    glReadPixels(0,0,width,height,GL_RGB,GL_UNSIGNED_BYTE,pixels.data());
+                    std::ofstream screenshot(argv[2],std::ios::binary);
+                    screenshot << "P6\n" << width << " " << height << "\n255\n";
+                    for(int row=height-1;row>=0;--row)
+                        screenshot.write(reinterpret_cast<const char*>(pixels.data()+size_t(row)*width*3),width*3);
+                    if(!screenshot)exit_code=EXIT_FAILURE;
+                }
+                const glm::vec3 p=MainAircraft.get_position();
+                printf("Smoke test: 60 frames, position (%.3f, %.3f, %.3f), status %d\n",p.x,p.y,p.z,exit_code);
+                glfwSetWindowShouldClose(window,GL_TRUE);
+            }
+        }
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
@@ -506,10 +500,11 @@ int main(int argc, char* argv[])
     }
 
     // Finalizamos o uso dos recursos do sistema operacional
+    scene.reset();
     glfwTerminate();
 
     // Fim do programa
-    return 0;
+    return exit_code;
 }
 
 // Função que carrega uma imagem para ser utilizada como textura
@@ -1237,16 +1232,10 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     // Atualizamos a distância da câmera para a origem utilizando a
     // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance -= 0.1f*yoffset;
+    g_CameraDistance *= std::exp(-0.1f*float(yoffset));
 
-    // Uma câmera look-at nunca pode estar exatamente "em cima" do ponto para
-    // onde ela está olhando, pois isto gera problemas de divisão por zero na
-    // definição do sistema de coordenadas da câmera. Isto é, a variável abaixo
-    // nunca pode ser zero. Versões anteriores deste código possuíam este bug,
-    // o qual foi detectado pelo aluno Vinicius Fraga (2017/2).
-    const float verysmallnumber = std::numeric_limits<float>::epsilon();
-    if (g_CameraDistance < verysmallnumber)
-        g_CameraDistance = verysmallnumber;
+    // Limites em metros para o aviao real e para a extensao do mapa.
+    g_CameraDistance = std::max(5.0f,std::min(g_CameraDistance,15000.0f));
 }
 
 void Correcao_KeyCallback(int key, int action, int mod);

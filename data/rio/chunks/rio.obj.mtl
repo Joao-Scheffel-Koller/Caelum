@@ -1,0 +1,1478 @@
+# This file was created by OSM2World 0.5.0-SNAPSHOT - https://osm2world.org
+
+
+newmtl ASPHALT_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl ROAD_MARKING_DASHED_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl ROAD_MARKING_DASHED_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl KERB_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/cf9b55672797_KnerrKerb0001.png
+map_Kd textures/cf9b55672797_KnerrKerb0001.png
+Ni 1
+illum 2
+
+newmtl PAVING_STONE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/19ca141de1fc_PavingStones072_Color.jpg
+map_Kd textures/19ca141de1fc_PavingStones072_Color.jpg
+Ni 1
+illum 2
+
+newmtl CONCRETE_0
+Ns 92.156863
+Ka 0.27450982 0.27450982 0.27450982
+Kd 0.27450982 0.27450982 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl POWER_TOWER_VERTICAL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/ee3cc833bce4_powertower_vertical.png
+map_Kd textures/ee3cc833bce4_powertower_vertical.png
+map_d textures/ee3cc833bce4_powertower_vertical.png
+Ni 1
+illum 2
+
+newmtl POWER_TOWER_HORIZONTAL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/13f57ffa01b6_powertower_horizontal.png
+map_Kd -clamp on textures/13f57ffa01b6_powertower_horizontal.png
+map_d -clamp on textures/13f57ffa01b6_powertower_horizontal.png
+Ni 1
+illum 2
+
+newmtl MAT_0_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_0_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7b0e4d51fbd4_road_marking_crossing.png
+map_Kd textures/7b0e4d51fbd4_road_marking_crossing.png
+Ni 1
+illum 2
+
+newmtl SETT_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/735676f4e4e7_PavingStones033_Color.jpg
+map_Kd textures/735676f4e4e7_PavingStones033_Color.jpg
+Ni 1
+illum 2
+
+newmtl TREE_BILLBOARD_BROAD_LEAVED_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/311ded243f5d_arbaro_tree_broad_leaved.png
+map_Kd -clamp on textures/311ded243f5d_arbaro_tree_broad_leaved.png
+map_d -clamp on textures/311ded243f5d_arbaro_tree_broad_leaved.png
+Ni 1
+illum 2
+
+newmtl STEEL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/783c3ecc890c_Metal002_Color.jpg
+map_Kd textures/783c3ecc890c_Metal002_Color.jpg
+Ni 1
+illum 2
+
+newmtl EARTH_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/df0ce2352926_Ground042_Color.jpg
+map_Kd textures/df0ce2352926_Ground042_Color.jpg
+Ni 1
+illum 2
+
+newmtl TREE_BILLBOARD_CONIFEROUS_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/bcd526a81eba_arbaro_tree_coniferous.png
+map_Kd -clamp on textures/bcd526a81eba_arbaro_tree_coniferous.png
+map_d -clamp on textures/bcd526a81eba_arbaro_tree_coniferous.png
+Ni 1
+illum 2
+
+newmtl MAT_1_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/19ca141de1fc_PavingStones072_Color.jpg
+map_Kd textures/19ca141de1fc_PavingStones072_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_1_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl WOOD_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7413bbcd8ea3_Wood026_Color.jpg
+map_Kd textures/7413bbcd8ea3_Wood026_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_2_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/735676f4e4e7_PavingStones033_Color.jpg
+map_Kd textures/735676f4e4e7_PavingStones033_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_2_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl RED_ROAD_MARKING_0
+Ns 92.156863
+Ka 0.5019608 0.26666668 0.26666668
+Kd 0.5019608 0.26666668 0.26666668
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl UNHEWN_COBBLESTONE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/62a76eacf4d5_PavingStones016_Color.jpg
+map_Kd textures/62a76eacf4d5_PavingStones016_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_3_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_3_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/c426acfdd45d_road_arrow_through.png
+map_Kd -clamp on textures/c426acfdd45d_road_arrow_through.png
+Ni 1
+illum 2
+
+newmtl MAT_4_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/19ca141de1fc_PavingStones072_Color.jpg
+map_Kd textures/19ca141de1fc_PavingStones072_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_4_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7b0e4d51fbd4_road_marking_crossing.png
+map_Kd textures/7b0e4d51fbd4_road_marking_crossing.png
+Ni 1
+illum 2
+
+newmtl MAT_5_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/735676f4e4e7_PavingStones033_Color.jpg
+map_Kd textures/735676f4e4e7_PavingStones033_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_5_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7b0e4d51fbd4_road_marking_crossing.png
+map_Kd textures/7b0e4d51fbd4_road_marking_crossing.png
+Ni 1
+illum 2
+
+newmtl MAT_6_0
+Ns 92.156863
+Ka 0.27450982 0.27450982 0.27450982
+Kd 0.27450982 0.27450982 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_6_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl MAT_7_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_7_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/86469b1e4542_road_arrow_through_right.png
+map_Kd -clamp on textures/86469b1e4542_road_arrow_through_right.png
+Ni 1
+illum 2
+
+newmtl MAT_8_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_8_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/bf58b338e1a7_road_arrow_right.png
+map_Kd -clamp on textures/bf58b338e1a7_road_arrow_right.png
+Ni 1
+illum 2
+
+newmtl SANDSTONE_0
+Ns 92.156863
+Ka 0.4745098 0.45882353 0.15686275
+Kd 0.4745098 0.45882353 0.15686275
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/d21d3d9ee730_Bricks008_Color.jpg
+map_Kd textures/d21d3d9ee730_Bricks008_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_9_0
+Ns 92.156863
+Ka 0.27450982 0.27450982 0.27450982
+Kd 0.27450982 0.27450982 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_9_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7b0e4d51fbd4_road_marking_crossing.png
+map_Kd textures/7b0e4d51fbd4_road_marking_crossing.png
+Ni 1
+illum 2
+
+newmtl GRAVEL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6dde8ca865c7_Gravel004_Color.jpg
+map_Kd textures/6dde8ca865c7_Gravel004_Color.jpg
+Ni 1
+illum 2
+
+newmtl PLASTIC_0
+Ns 92.156863
+Ka 0.46666667 0.46666667 0.46666667
+Kd 0.46666667 0.46666667 0.46666667
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/b2cbb6c2123b_Plastic010_Color.jpg
+map_Kd textures/b2cbb6c2123b_Plastic010_Color.jpg
+Ni 1
+illum 2
+
+newmtl ADVERTISING_POSTER_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/28efa96de17b_OSM2World_Domposter.png
+map_Kd textures/28efa96de17b_OSM2World_Domposter.png
+Ni 1
+illum 2
+
+newmtl MAT_10_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/df0ce2352926_Ground042_Color.jpg
+map_Kd textures/df0ce2352926_Ground042_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_10_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7b0e4d51fbd4_road_marking_crossing.png
+map_Kd textures/7b0e4d51fbd4_road_marking_crossing.png
+Ni 1
+illum 2
+
+newmtl TAXIWAY_CENTER_MARKING_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.0
+Kd 0.5019608 0.5019608 0.0
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1
+illum 2
+
+newmtl RAILWAY_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/94e242e0367a_Railway_Color.jpg
+map_Kd textures/94e242e0367a_Railway_Color.jpg
+Ni 1
+illum 2
+
+newmtl STONE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/d21d3d9ee730_Bricks008_Color.jpg
+map_Kd textures/d21d3d9ee730_Bricks008_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_11_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6dde8ca865c7_Gravel004_Color.jpg
+map_Kd textures/6dde8ca865c7_Gravel004_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_11_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl ROCK_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/235b153b5fbb_Rock034_Color.jpg
+map_Kd textures/235b153b5fbb_Rock034_Color.jpg
+Ni 1
+illum 2
+
+newmtl GLASS_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/817138bb6971_Glass_Color.jpg
+map_Kd textures/817138bb6971_Glass_Color.jpg
+Ni 1
+illum 2
+
+newmtl GRASS_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/feacfdf50ae0_Ground003_Color.jpg
+map_Kd textures/feacfdf50ae0_Ground003_Color.jpg
+Ni 1
+illum 2
+
+newmtl METAL_FENCE_0
+Ns 92.156863
+Ka 0.36862746 0.3882353 0.4
+Kd 0.36862746 0.3882353 0.4
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1
+illum 2
+
+newmtl WATER_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/79e4126a535c_P1140080E_Water.jpg
+map_Kd textures/79e4126a535c_P1140080E_Water.jpg
+Ni 1
+illum 2
+
+newmtl MAT_12_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/df0ce2352926_Ground042_Color.jpg
+map_Kd textures/df0ce2352926_Ground042_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_12_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/23c218772c21_road_marking_dash.png
+map_Kd textures/23c218772c21_road_marking_dash.png
+Ni 1
+illum 2
+
+newmtl CHAIN_LINK_FENCE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/1e9ecd31ca79_Fence006_Color.png
+map_Kd textures/1e9ecd31ca79_Fence006_Color.png
+map_d textures/1e9ecd31ca79_Fence006_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_13_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_13_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/3a0c7ad66a72_runway_centerline_stripes.png
+map_Kd textures/3a0c7ad66a72_runway_centerline_stripes.png
+Ni 1
+illum 2
+
+newmtl SAND_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/65d4affa9603_Ground033_Color.jpg
+map_Kd textures/65d4affa9603_Ground033_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_14_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_14_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/c735d70aea4d_road_arrow_right_left.png
+map_Kd -clamp on textures/c735d70aea4d_road_arrow_right_left.png
+Ni 1
+illum 2
+
+newmtl MAT_15_0
+Ns 92.156863
+Ka 0.5019608 0.39215687 0.0
+Kd 0.5019608 0.39215687 0.0
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/b2cbb6c2123b_Plastic010_Color.jpg
+map_Kd textures/b2cbb6c2123b_Plastic010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_16_0
+Ns 92.156863
+Ka 0.27450982 0.27450982 0.27450982
+Kd 0.27450982 0.27450982 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_16_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/3a0c7ad66a72_runway_centerline_stripes.png
+map_Kd textures/3a0c7ad66a72_runway_centerline_stripes.png
+Ni 1
+illum 2
+
+newmtl BRICK_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/96c10b2eb3ed_Bricks029_Color.jpg
+map_Kd textures/96c10b2eb3ed_Bricks029_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_17_0
+Ns 92.156863
+Ka 0.5019608 0.4509804 0.27450982
+Kd 0.5019608 0.4509804 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_17_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl ROOF_DEFAULT_0
+Ns 92.156863
+Ka 0.4 0.0 0.0
+Kd 0.4 0.0 0.0
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl BUILDING_DEFAULT_0
+Ns 92.156863
+Ka 0.5019608 0.4509804 0.27450982
+Kd 0.5019608 0.4509804 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl ENTRANCE_DEFAULT_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/8fb78dfbb819_DE19F1FreisingDoor00005_small.png
+map_Kd textures/8fb78dfbb819_DE19F1FreisingDoor00005_small.png
+Ni 1
+illum 2
+
+newmtl SCRUB_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/066b3d2a2f4e_Grass-2048.JPG
+map_Kd textures/066b3d2a2f4e_Grass-2048.JPG
+Ni 1
+illum 2
+
+newmtl MAT_18_0
+Ns 92.156863
+Ka 0.48235294 0.48235294 0.43137255
+Kd 0.48235294 0.48235294 0.43137255
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_18_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl PEBBLESTONE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/4c6eb97f1f6a_Rocks022_Color.jpg
+map_Kd textures/4c6eb97f1f6a_Rocks022_Color.jpg
+Ni 1
+illum 2
+
+newmtl GRASS_PAVER_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/bedaec585cf9_PavingStones053_Color.jpg
+map_Kd textures/bedaec585cf9_PavingStones053_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_19_0
+Ns 92.156863
+Ka 0.47058824 0.47058824 0.47058824
+Kd 0.47058824 0.47058824 0.47058824
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl PITCH_SOCCER_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/066b3d2a2f4e_Grass-2048.JPG
+map_Kd textures/066b3d2a2f4e_Grass-2048.JPG
+Ni 1
+illum 2
+
+newmtl PITCH_SOCCER_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/6b27129d98fe_pitchSoccer.png
+map_Kd -clamp on textures/6b27129d98fe_pitchSoccer.png
+Ni 1
+illum 2
+
+newmtl PITCH_TENNIS_CLAY_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/9b0e9e5c1511_clay.jpg
+map_Kd textures/9b0e9e5c1511_clay.jpg
+Ni 1
+illum 2
+
+newmtl PITCH_TENNIS_CLAY_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/c0cfe76c79ac_pitchTennis.png
+map_Kd -clamp on textures/c0cfe76c79ac_pitchTennis.png
+Ni 1
+illum 2
+
+newmtl TENNIS_NET_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/eda115b410a8_tennis_net.png
+map_Kd textures/eda115b410a8_tennis_net.png
+map_d textures/eda115b410a8_tennis_net.png
+Ni 1
+illum 2
+
+newmtl MAT_20_0
+Ns 92.156863
+Ka 0.27450982 0.27450982 0.27450982
+Kd 0.27450982 0.27450982 0.27450982
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_20_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/e81b24d05414_tex-helipad_markings-15298634225582335805.png
+map_Kd -clamp on textures/e81b24d05414_tex-helipad_markings-15298634225582335805.png
+Ni 1
+illum 2
+
+newmtl GARAGE_DOOR_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/b9e61c3ce71d_DE20F1GarageDoor00001.jpg
+map_Kd textures/b9e61c3ce71d_DE20F1GarageDoor00001.jpg
+Ni 1
+illum 2
+
+newmtl MAT_21_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/afba57240769_Asphalt010_Color.png
+map_Kd textures/afba57240769_Asphalt010_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_21_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/e81b24d05414_tex-helipad_markings-15298634225582335805.png
+map_Kd -clamp on textures/e81b24d05414_tex-helipad_markings-15298634225582335805.png
+Ni 1
+illum 2
+
+newmtl SOLAR_PANEL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/67814515e2fd_SolarPanel001_Color.jpg
+map_Kd textures/67814515e2fd_SolarPanel001_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_22_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_23_0
+Ns 92.156863
+Ka 0.0 0.023529412 0.3647059
+Kd 0.0 0.023529412 0.3647059
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_23_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_24_0
+Ns 92.156863
+Ka 0.3254902 0.34509805 0.3529412
+Kd 0.3254902 0.34509805 0.3529412
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_25_0
+Ns 92.156863
+Ka 0.2901961 0.3372549 0.38039216
+Kd 0.2901961 0.3372549 0.38039216
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl PITCH_BEACHVOLLEYBALL_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/65d4affa9603_Ground033_Color.jpg
+map_Kd textures/65d4affa9603_Ground033_Color.jpg
+Ni 1
+illum 2
+
+newmtl PITCH_BEACHVOLLEYBALL_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka -clamp on textures/2e6d0c57306d_pitchBeachvolleyball.png
+map_Kd -clamp on textures/2e6d0c57306d_pitchBeachvolleyball.png
+Ni 1
+illum 2
+
+newmtl SCREE_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/31b4734ee795_Rocks008_Color.jpg
+map_Kd textures/31b4734ee795_Rocks008_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_26_0
+Ns 92.156863
+Ka 0.13333334 0.3529412 0.34117648
+Kd 0.13333334 0.3529412 0.34117648
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_27_0
+Ns 92.156863
+Ka 0.13333334 0.3529412 0.34117648
+Kd 0.13333334 0.3529412 0.34117648
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_28_0
+Ns 92.156863
+Ka 0.4 0.0 0.0
+Kd 0.4 0.0 0.0
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_29_0
+Ns 92.156863
+Ka 0.4 0.0 0.0
+Kd 0.4 0.0 0.0
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_30_0
+Ns 92.156863
+Ka 0.101960786 0.4117647 0.23921569
+Kd 0.101960786 0.4117647 0.23921569
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_30_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_31_0
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/dfc6318f13a5_Facade005_Color.jpg
+map_Kd textures/dfc6318f13a5_Facade005_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_32_0
+Ns 92.156863
+Ka 0.28235295 0.28627452 0.25882354
+Kd 0.28235295 0.28627452 0.25882354
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_32_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_33_0
+Ns 92.156863
+Ka 0.0 0.015686275 0.29803923
+Kd 0.0 0.015686275 0.29803923
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_33_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_34_0
+Ns 92.156863
+Ka 0.45490196 0.45882353 0.45490196
+Kd 0.45490196 0.45882353 0.45490196
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_35_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.36862746
+Kd 0.0 0.019607844 0.36862746
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_35_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_36_0
+Ns 92.156863
+Ka 0.42352942 0.43529412 0.42745098
+Kd 0.42352942 0.43529412 0.42745098
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_37_0
+Ns 92.156863
+Ka 0.0 0.015686275 0.27058825
+Kd 0.0 0.015686275 0.27058825
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_37_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_38_0
+Ns 92.156863
+Ka 0.0 0.015686275 0.27058825
+Kd 0.0 0.015686275 0.27058825
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_39_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.2627451
+Kd 0.0 0.019607844 0.2627451
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_40_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.2627451
+Kd 0.0 0.019607844 0.2627451
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_40_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_41_0
+Ns 92.156863
+Ka 0.3764706 0.3137255 0.28627452
+Kd 0.3764706 0.3137255 0.28627452
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_42_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.29803923
+Kd 0.0 0.019607844 0.29803923
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_42_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_43_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.29803923
+Kd 0.0 0.019607844 0.29803923
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_44_0
+Ns 92.156863
+Ka 0.3254902 0.3019608 0.29803923
+Kd 0.3254902 0.3019608 0.29803923
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_45_0
+Ns 92.156863
+Ka 0.33333334 0.33333334 0.33333334
+Kd 0.33333334 0.33333334 0.33333334
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_45_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_46_0
+Ns 92.156863
+Ka 0.33333334 0.33333334 0.33333334
+Kd 0.33333334 0.33333334 0.33333334
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_47_0
+Ns 92.156863
+Ka 0.2784314 0.25490198 0.19607843
+Kd 0.2784314 0.25490198 0.19607843
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_47_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_48_0
+Ns 92.156863
+Ka 0.25490198 0.25490198 0.25882354
+Kd 0.25490198 0.25490198 0.25882354
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/6decbbb626d3_Concrete034_Color.jpg
+map_Kd textures/6decbbb626d3_Concrete034_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_49_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.33333334
+Kd 0.0 0.019607844 0.33333334
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_49_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_50_0
+Ns 92.156863
+Ka 0.0 0.019607844 0.33333334
+Kd 0.0 0.019607844 0.33333334
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_51_0
+Ns 92.156863
+Ka 0.3254902 0.27058825 0.2627451
+Kd 0.3254902 0.27058825 0.2627451
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_52_0
+Ns 92.156863
+Ka 0.27450982 0.27058825 0.23137255
+Kd 0.27450982 0.27058825 0.23137255
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_52_1
+Ns 92.156863
+Ka 0.5019608 0.5019608 0.5019608
+Kd 0.5019608 0.5019608 0.5019608
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/7e2f09469e1b_Windows_Color.png
+map_Kd textures/7e2f09469e1b_Windows_Color.png
+Ni 1
+illum 2
+
+newmtl MAT_53_0
+Ns 92.156863
+Ka 0.27450982 0.27058825 0.23137255
+Kd 0.27450982 0.27058825 0.23137255
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/c63b921b3612_Plaster002_Color.jpg
+map_Kd textures/c63b921b3612_Plaster002_Color.jpg
+Ni 1
+illum 2
+
+newmtl MAT_54_0
+Ns 92.156863
+Ka 0.36078432 0.32941177 0.30588236
+Kd 0.36078432 0.32941177 0.30588236
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+map_Ka textures/713a3ba4032c_RoofingTiles010_Color.jpg
+map_Kd textures/713a3ba4032c_RoofingTiles010_Color.jpg
+Ni 1
+illum 2

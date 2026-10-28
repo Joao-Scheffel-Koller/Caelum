@@ -1,0 +1,4 @@
+# Preserve generated chunk hashes across Windows/Linux checkouts.
+data/rio/chunks/*.obj text eol=lf
+data/rio/chunks/*.mtl text eol=lf
+data/rio/chunks/manifest.json text eol=lf
