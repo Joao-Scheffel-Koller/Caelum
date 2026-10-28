@@ -5,6 +5,8 @@
    materiais e texturas do MTL, e iniciar sobre a pista do Santos Dumont.
    Implementacao com IA: ModelRenderer.*, GameScene.*, shader_fragment.glsl,
    integracao em main.cpp/CMakeLists.txt e documentacao correspondente.
+   Ajuste adicional em FlightModel.cpp: cancelar velocidade vertical negativa
+   no contato com o solo. Verificacao da cena com --smoke-test e captura PPM.
 
 1. formate o @file:trabalho.md  para ficar bonito em markdown
 
