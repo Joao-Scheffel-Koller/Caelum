@@ -31,7 +31,12 @@ const GLchar* const textfragmentshader_source = ""
 "out vec4 fragColor;\n"
 "void main()\n"
 "{\n"
-    "fragColor = vec4(0, 0, 0, texture(tex, texCoords).r);\n"
+    // AI-assisted: white labels with a dark edge remain legible inside the cockpit.
+    "vec2 d = 1.0 / vec2(textureSize(tex, 0));\n"
+    "float a = texture(tex, texCoords).r;\n"
+    "float edge = max(a, max(max(texture(tex, texCoords+vec2(d.x,0)).r, texture(tex, texCoords-vec2(d.x,0)).r),\n"
+    "                      max(texture(tex, texCoords+vec2(0,d.y)).r, texture(tex, texCoords-vec2(0,d.y)).r)));\n"
+    "fragColor = vec4(vec3(a/max(edge,0.0001)), edge);\n"
 "}\n"
 "\0";
 

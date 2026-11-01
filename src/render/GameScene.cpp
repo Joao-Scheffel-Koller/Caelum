@@ -60,7 +60,16 @@ glm::mat4 GameScene::AircraftTransform(Aircraft& aircraft) const {
            Matrix_Translate(-pivot.x,-pivot.y,-pivot.z);
 }
 
-void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProjection,const glm::vec3& camera) {
+CameraFrame GameScene::Cameras(Aircraft& aircraft) const {
+    CameraFrame frame;
+    frame.aircraftModel=AircraftTransform(aircraft);
+    frame.orbitTarget=aircraft.get_position()+glm::vec3(0,4,0);
+    // OBJ survey: above the left seat back, below overhead, behind dashboard.
+    frame.cockpitEyeLocal=glm::vec3(7.90f,.95f,-.65f);
+    return frame;
+}
+
+void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProjection,const glm::vec3& camera,SceneLayer layer) {
     renderer.SetProgram(program); // Also refreshes locations after R reloads shaders.
     glDisable(GL_CULL_FACE); // Trees/fences contain intentionally two-sided quads.
     glDisable(GL_BLEND);
@@ -68,20 +77,20 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
     glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     const glm::mat4 identity(1), transform=AircraftTransform(aircraft);
     std::vector<const MapChunk*> visible;
-    for(const auto& chunk:chunks)if(renderer.Visible(chunk,viewProjection)) {
+    if(layer!=SceneLayer::AIRCRAFT)for(const auto& chunk:chunks)if(renderer.Visible(chunk,viewProjection)) {
         visible.push_back(&chunk);
         if(chunk.foundation) {glEnable(GL_POLYGON_OFFSET_FILL);glPolygonOffset(1.0f,4.0f);}
         renderer.Draw(chunk.model,identity,camera,RenderPass::Solid);
         if(chunk.foundation)glDisable(GL_POLYGON_OFFSET_FILL);
     }
-    renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
+    if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
 
     // Draw all opaque geometry first, then glass from far to near.
     struct Instance {const RenderModel* model;glm::mat4 transform;glm::vec3 center;};
     std::vector<Instance> transparent;
     for(const auto* chunk:visible)
         transparent.push_back({&chunk->model,identity,(chunk->min+chunk->max)*.5f});
-    transparent.push_back({&aircraftModel,transform,aircraft.get_position()});
+    if(layer!=SceneLayer::WORLD)transparent.push_back({&aircraftModel,transform,aircraft.get_position()});
     std::sort(transparent.begin(),transparent.end(),[&](const Instance& a,const Instance& b){
         glm::vec3 da=a.center-camera,db=b.center-camera;
         return glm::dot(da,da)>glm::dot(db,db);

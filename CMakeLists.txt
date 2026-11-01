@@ -16,7 +16,12 @@ set(SOURCES
   src/aircraft/FlightModel.cpp
   src/render/ModelRenderer.cpp
   src/render/GameScene.cpp
+  src/camera/CameraController.cpp
+  src/camera/CameraInput.cpp
+  src/platform/FrameLimiter.cpp
   src/render/MaterialPolicy.cpp
+  src/camera/MouseCapture.cpp
+  src/render/RenderInspection.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
@@ -67,6 +72,12 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(camera_controller_test tests/CameraControllerTest.cpp src/camera/CameraController.cpp)
+  target_include_directories(camera_controller_test PRIVATE include src)
+  add_test(NAME camera_controller COMMAND camera_controller_test)
+  add_executable(camera_input_test tests/CameraInputTest.cpp src/camera/CameraInput.cpp src/camera/CameraController.cpp)
+  target_include_directories(camera_input_test PRIVATE include src)
+  add_test(NAME camera_input COMMAND camera_input_test)
   add_executable(material_policy_test tests/MaterialPolicyTest.cpp src/render/MaterialPolicy.cpp)
   target_include_directories(material_policy_test PRIVATE src)
   add_test(NAME material_policy COMMAND material_policy_test)
