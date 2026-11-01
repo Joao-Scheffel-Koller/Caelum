@@ -7,15 +7,15 @@
 # ser compilados.
 set(SOURCES
   src/main.cpp
-  src/correcao.cpp
-  src/textrendering.cpp
-  src/tiny_obj_loader.cpp
-  src/stb_image.cpp
-  src/glad.c
-  src/Aircraft.cpp
-  src/FlightModel.cpp
-  src/ModelRenderer.cpp
-  src/GameScene.cpp
+  src/course/correcao.cpp
+  src/ui/textrendering.cpp
+  src/third_party/tiny_obj_loader.cpp
+  src/third_party/stb_image.cpp
+  src/third_party/glad.c
+  src/aircraft/Aircraft.cpp
+  src/aircraft/FlightModel.cpp
+  src/render/ModelRenderer.cpp
+  src/render/GameScene.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
@@ -61,7 +61,7 @@ endforeach()
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src)
 
 if(WIN32)
 

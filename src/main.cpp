@@ -50,9 +50,9 @@
 #include "matrices.h"
 
 //Newly definied classes
-#include "Aircraft.hpp"
-#include "FlightModel.hpp"
-#include "GameScene.hpp"
+#include "aircraft/Aircraft.hpp"
+#include "aircraft/FlightModel.hpp"
+#include "render/GameScene.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -615,8 +615,8 @@ void LoadShadersFromFiles()
     //       |
     //       o-- shader_fragment.glsl
     //
-    GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
-    GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
+    GLuint vertex_shader_id = LoadShader_Vertex("../../src/render/shaders/shader_vertex.glsl");
+    GLuint fragment_shader_id = LoadShader_Fragment("../../src/render/shaders/shader_fragment.glsl");
 
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )

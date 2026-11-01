@@ -1,4 +1,4 @@
-#include "ModelRenderer.hpp"
+#include "render/ModelRenderer.hpp"
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 #include <glm/gtc/type_ptr.hpp>

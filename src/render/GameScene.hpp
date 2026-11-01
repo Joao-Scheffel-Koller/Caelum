@@ -1,7 +1,7 @@
 #ifndef CAELUM_GAME_SCENE_HPP
 #define CAELUM_GAME_SCENE_HPP
-#include "ModelRenderer.hpp"
-#include "Aircraft.hpp"
+#include "render/ModelRenderer.hpp"
+#include "aircraft/Aircraft.hpp"
 
 // AI-assisted integration of the aircraft and georeferenced Rio chunks.
 class GameScene {
