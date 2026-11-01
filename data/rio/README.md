@@ -17,9 +17,36 @@ Mantenha `chunks/rio.obj.mtl` e a pasta `chunks/textures/` junto dos OBJ.
 As imagens antes referenciadas por caminhos absolutos em Downloads foram
 copiadas e passaram a ter caminhos relativos. A divisao preserva as imagens.
 
+O jogo carrega tambem `chunks/base_terrain.obj`, separado do manifesto da
+divisao original. Ele cobre lacunas de chao da exportacao; nao substitui os
+materiais ou a geometria dos 125 arquivos originais.
+
+## Base de terreno para lacunas
+
+`tools/build_base_terrain.py` gera uma base limitada ao retangulo do extrato OSM
+original. Sao quatro vertices e dois triangulos, a Y=-0,02 m, usando `GRASS_0`
+e sua imagem compartilhada. A mesma projecao Mercator local posiciona a base.
+O renderer aplica um pequeno afastamento de profundidade para que ruas, agua e
+demais superficies existentes sejam desenhadas por cima.
+
+Essa base e um preenchimento visual generico, sem relevo ou classificacao
+geografica das lacunas. Ela nao acrescenta um terreno infinito. Os limites,
+origem e hashes da origem/OBJ ficam em `chunks/base_terrain.json`.
+
+Para reproduzir, a partir da raiz, usando o extrato original preservado localmente:
+
+```powershell
+python data/rio/tools/build_base_terrain.py C:/Users/vitor/Downloads/OSM2World-latest-bin/rio.osm data/rio/chunks/base_terrain.obj
+python data/rio/tools/test_base_terrain.py
+```
+
+Esse OSM so e necessario para regenerar a base. O jogo usa o OBJ, MTL e imagens
+ja presentes em `data/rio/chunks/`. A origem e o mesmo extrato OpenStreetMap
+utilizado na conversao, sob ODbL; os hashes permitem conferir sua identidade.
+
 ## Ponto inicial no jogo
 
-`src/GameScene.cpp` posiciona o aviao na pista 20L do Santos Dumont. Os extremos
+`src/render/GameScene.cpp` posiciona o aviao na pista 20L do Santos Dumont. Os extremos
 do eixo da pista no OSM usado na conversao sao (-22.9045972, -43.163205) e
 (-22.9164863, -43.1624422). Projetando com a mesma Mercator local do OSM2World
 (origem indicada acima), os pontos XZ sao aproximadamente (5231.294, 6195.887)

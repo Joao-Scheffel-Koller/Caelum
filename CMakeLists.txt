@@ -16,6 +16,7 @@ set(SOURCES
   src/aircraft/FlightModel.cpp
   src/render/ModelRenderer.cpp
   src/render/GameScene.cpp
+  src/render/MaterialPolicy.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
@@ -62,6 +63,21 @@ endforeach()
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
 target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src)
+
+# AI-assisted CPU regression checks: no window, graphics driver or assets needed.
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(material_policy_test tests/MaterialPolicyTest.cpp src/render/MaterialPolicy.cpp)
+  target_include_directories(material_policy_test PRIVATE src)
+  add_test(NAME material_policy COMMAND material_policy_test)
+  add_executable(material_loading_test tests/MaterialLoadingTest.cpp src/third_party/tiny_obj_loader.cpp)
+  target_include_directories(material_loading_test PRIVATE include)
+  add_test(NAME material_loading COMMAND material_loading_test)
+  find_program(CAELUM_TEST_PYTHON NAMES python3 python)
+  if(CAELUM_TEST_PYTHON)
+    add_test(NAME base_terrain COMMAND ${CAELUM_TEST_PYTHON} ${PROJECT_SOURCE_DIR}/data/rio/tools/test_base_terrain.py)
+  endif()
+endif()
 
 if(WIN32)
 

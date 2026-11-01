@@ -10,6 +10,7 @@ layout (location = 2) in vec2 texture_coefficients;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 camera_position;
 
 // Atributos de vértice que serão gerados como saída ("out") pelo Vertex Shader.
 // ** Estes serão interpolados pelo rasterizador! ** gerando, assim, valores
@@ -34,7 +35,11 @@ void main()
     // deste Vertex Shader, a placa de vídeo (GPU) fará a divisão por W. Veja
     // slides 41-67 e 69-86 do documento Aula_09_Projecoes.pdf.
 
-    gl_Position = projection * view * model * model_coefficients;
+    vec4 world = model * model_coefficients;
+    // Subtract the camera before rotating. Avoid cancellation between large
+    // map coordinates and view translation when surfaces are millimeters apart.
+    vec4 camera_relative = vec4(mat3(view)*(world.xyz-camera_position),1.0);
+    gl_Position = projection * camera_relative;
 
     // Como as variáveis acima  (tipo vec4) são vetores com 4 coeficientes,
     // também é possível acessar e modificar cada coeficiente de maneira
@@ -51,7 +56,7 @@ void main()
     // rasterizador para gerar atributos únicos para cada fragmento gerado.
 
     // Posição do vértice atual no sistema de coordenadas global (World).
-    position_world = model * model_coefficients;
+    position_world = world;
 
     // Posição do vértice atual no sistema de coordenadas local do modelo.
     position_model = model_coefficients;
