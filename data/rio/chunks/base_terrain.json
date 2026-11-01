@@ -1,0 +1,19 @@
+{
+  "source": "OpenStreetMap rio.osm",
+  "license": "ODbL",
+  "source_sha256": "0dd75b824eb1eb11345ac4c5fc6834b090ea1123204db2eb21706aa0519730e4",
+  "bounds": {
+    "minlat": "-22.9306000",
+    "minlon": "-43.2803000",
+    "maxlat": "-22.7673000",
+    "maxlon": "-43.1481000"
+  },
+  "origin": [
+    -22.84895,
+    -43.2142
+  ],
+  "height": -0.02,
+  "material": "GRASS_0",
+  "purpose": "Fallback only; existing geometry/depth defines the land/water appearance",
+  "obj_sha256": "d9556a572322416212de6ea2c757326d274d7b8002f2e4c6bf7c47bd5195effa"
+}

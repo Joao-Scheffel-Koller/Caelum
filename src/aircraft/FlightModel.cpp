@@ -1,5 +1,5 @@
-#include "FlightModel.hpp"
-#include "Aircraft.hpp"
+#include "aircraft/FlightModel.hpp"
+#include "aircraft/Aircraft.hpp"
 #include <stdio.h>
 
 FlightModel :: FlightModel(){

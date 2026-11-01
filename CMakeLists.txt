@@ -7,15 +7,21 @@
 # ser compilados.
 set(SOURCES
   src/main.cpp
-  src/correcao.cpp
-  src/textrendering.cpp
-  src/tiny_obj_loader.cpp
-  src/stb_image.cpp
-  src/glad.c
-  src/Aircraft.cpp
-  src/FlightModel.cpp
-  src/ModelRenderer.cpp
-  src/GameScene.cpp
+  src/course/correcao.cpp
+  src/ui/textrendering.cpp
+  src/third_party/tiny_obj_loader.cpp
+  src/third_party/stb_image.cpp
+  src/third_party/glad.c
+  src/aircraft/Aircraft.cpp
+  src/aircraft/FlightModel.cpp
+  src/render/ModelRenderer.cpp
+  src/render/GameScene.cpp
+  src/camera/CameraController.cpp
+  src/camera/CameraInput.cpp
+  src/platform/FrameLimiter.cpp
+  src/render/MaterialPolicy.cpp
+  src/camera/MouseCapture.cpp
+  src/render/RenderInspection.cpp
 )
 
 cmake_minimum_required(VERSION 3.5.0)
@@ -61,7 +67,28 @@ endforeach()
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src)
+
+# AI-assisted CPU regression checks: no window, graphics driver or assets needed.
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(camera_controller_test tests/CameraControllerTest.cpp src/camera/CameraController.cpp)
+  target_include_directories(camera_controller_test PRIVATE include src)
+  add_test(NAME camera_controller COMMAND camera_controller_test)
+  add_executable(camera_input_test tests/CameraInputTest.cpp src/camera/CameraInput.cpp src/camera/CameraController.cpp)
+  target_include_directories(camera_input_test PRIVATE include src)
+  add_test(NAME camera_input COMMAND camera_input_test)
+  add_executable(material_policy_test tests/MaterialPolicyTest.cpp src/render/MaterialPolicy.cpp)
+  target_include_directories(material_policy_test PRIVATE src)
+  add_test(NAME material_policy COMMAND material_policy_test)
+  add_executable(material_loading_test tests/MaterialLoadingTest.cpp src/third_party/tiny_obj_loader.cpp)
+  target_include_directories(material_loading_test PRIVATE include)
+  add_test(NAME material_loading COMMAND material_loading_test)
+  find_program(CAELUM_TEST_PYTHON NAMES python3 python)
+  if(CAELUM_TEST_PYTHON)
+    add_test(NAME base_terrain COMMAND ${CAELUM_TEST_PYTHON} ${PROJECT_SOURCE_DIR}/data/rio/tools/test_base_terrain.py)
+  endif()
+endif()
 
 if(WIN32)
 

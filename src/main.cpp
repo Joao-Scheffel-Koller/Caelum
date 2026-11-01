@@ -50,9 +50,12 @@
 #include "matrices.h"
 
 //Newly definied classes
-#include "Aircraft.hpp"
-#include "FlightModel.hpp"
-#include "GameScene.hpp"
+#include "aircraft/Aircraft.hpp"
+#include "aircraft/FlightModel.hpp"
+#include "render/GameScene.hpp"
+#include "camera/CameraInput.hpp"
+#include "platform/FrameLimiter.hpp"
+#include "render/RenderInspection.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -113,15 +116,6 @@ struct ObjModel
     }
 };
 
-//Tipo de câmera ativa
-enum class CameraType
-{
-    FREE,      // Câmera livre (a implementar)
-    LOOK_AT,   // Orbita o avião
-    COCKPIT    // Visão do piloto (a implementar)
-};
-
-
 // Declaração de funções utilizadas para pilha de matrizes de modelagem.
 void PushMatrix(glm::mat4 M);
 void PopMatrix(glm::mat4& M);
@@ -166,6 +160,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void FocusCallback(GLFWwindow* window, int focused);
 
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
@@ -199,27 +194,10 @@ float g_AngleX = 0.0f;
 float g_AngleY = 0.0f;
 float g_AngleZ = 0.0f;
 
-// "g_LeftMouseButtonPressed = true" se o usuário está com o botão esquerdo do mouse
-// pressionado no momento atual. Veja função MouseButtonCallback().
-bool g_LeftMouseButtonPressed = false;
-bool g_RightMouseButtonPressed = false; // Análogo para botão direito do mouse
-bool g_MiddleMouseButtonPressed = false; // Análogo para botão do meio do mouse
-
-// Variáveis que definem a câmera em coordenadas esféricas, controladas pelo
-// usuário através do mouse (veja função CursorPosCallback()). A posição
-// efetiva da câmera é calculada dentro da função main(), dentro do loop de
-// renderização.
-float g_CameraTheta = -3.08256f; // Ângulo no plano ZX em relação ao eixo Z
-float g_CameraPhi = 0.25f;   // Ângulo em relação ao eixo Y
-float g_CameraDistance = 70.0f; // Distância da câmera para a origem
-
-// Variáveis que controlam rotação do antebraço
-float g_ForearmAngleZ = 0.0f;
-float g_ForearmAngleX = 0.0f;
-
-// Variáveis que controlam translação do torso
-float g_TorsoPositionX = 0.0f;
-float g_TorsoPositionY = 0.0f;
+// Camera math/state and its GLFW input adapter are independent of flight physics.
+CameraController g_Camera;
+CameraFrame g_CameraFrame;
+std::unique_ptr<CameraInput> g_CameraInput;
 
 // Variável que controla o tipo de projeção utilizada: perspectiva ou ortográfica.
 bool g_UsePerspectiveProjection = true;
@@ -246,13 +224,14 @@ glm::vec3 velocity = glm::vec3(0.00000008f, 0.00000008f, 0.00000008f);
 
 FlightModel MainModel;
 
-//tipo de câmera ativo começa em look-at
-CameraType current_camera_type = CameraType::LOOK_AT;
 
 int main(int argc, char* argv[])
 {
     // Optional developer check: load the real scene, render 60 frames, then exit.
     const bool smoke_test = argc > 1 && std::string(argv[1]) == "--smoke-test";
+    const bool texture_check=argc>2 && std::string(argv[1])=="--texture-check";
+    RenderInspection inspection(texture_check?argv[2]:"");
+    const bool keep_open = smoke_test && argc > 4 && std::string(argv[4]) == "--keep-open";
     int rendered_frames = 0;
     int exit_code = EXIT_SUCCESS;
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -278,10 +257,11 @@ int main(int argc, char* argv[])
     // Pedimos para utilizar o perfil "core", isto é, utilizaremos somente as
     // funções modernas de OpenGL.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES,4);
 
-    // Janela da cena do Rio, com 800 colunas e 600 linhas de pixels.
+    // Start in a resizable 720p window.
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "Caelum - Rio de Janeiro", NULL, NULL);
+    window = glfwCreateWindow(1280, 720, "Caelum - Rio de Janeiro", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -298,9 +278,12 @@ int main(int argc, char* argv[])
     glfwSetCursorPosCallback(window, CursorPosCallback);
     // ... ou rolar a "rodinha" do mouse.
     glfwSetScrollCallback(window, ScrollCallback);
+    glfwSetWindowFocusCallback(window, FocusCallback);
 
     // Indicamos que as chamadas OpenGL deverão renderizar nesta janela
     glfwMakeContextCurrent(window);
+    // Software pacing below caps at60 even on 120/144/165Hz monitors.
+    glfwSwapInterval(0);
 
     // Carregamento de todas funções definidas por OpenGL 3.3, utilizando a
     // biblioteca GLAD.
@@ -310,7 +293,9 @@ int main(int argc, char* argv[])
     // redimensionada, por consequência alterando o tamanho do "framebuffer"
     // (região de memória onde são armazenados os pixels da imagem).
     glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
-    FramebufferSizeCallback(window, 800, 600); // Forçamos a chamada do callback acima, para definir g_ScreenRatio.
+    int initialWidth,initialHeight;
+    glfwGetFramebufferSize(window,&initialWidth,&initialHeight);
+    FramebufferSizeCallback(window,initialWidth,initialHeight);
 
     // Imprimimos no terminal informações sobre a GPU do sistema
     const GLubyte *vendor      = glGetString(GL_VENDOR);
@@ -337,6 +322,19 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    g_CameraFrame=scene->Cameras(MainAircraft);
+    g_CameraInput.reset(new CameraInput(window,g_Camera,g_CameraFrame));
+    // Optional initial mode for repeatable GPU smoke checks.
+    if(smoke_test && argc>3) {
+        const std::string mode=argv[3];
+        if(mode=="cockpit")g_Camera.SetMode(CameraType::COCKPIT,g_CameraFrame);
+        else if(mode=="free") {
+            g_Camera.SetMode(CameraType::FREE,g_CameraFrame);
+            CameraMovement movement;movement.vertical=1;
+            g_Camera.Update(movement,2.0f,g_CameraFrame);
+        }
+    }
+
     // Inicializamos o código para renderização de texto.
     TextRendering_Init();
 
@@ -349,10 +347,23 @@ int main(int argc, char* argv[])
     glFrontFace(GL_CCW);
     
     float previous_time = (float)glfwGetTime();
+    const double smoke_start=glfwGetTime();
+    FrameLimiter frameLimiter(60.0);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
+        frameLimiter.Wait();
+        // Read the latest mouse events immediately before computing this view.
+        glfwPollEvents();
+        if(glfwWindowShouldClose(window))break;
+        int framebufferWidth,framebufferHeight;
+        glfwGetFramebufferSize(window,&framebufferWidth,&framebufferHeight);
+        if(framebufferWidth<=0 || framebufferHeight<=0) {
+            glfwWaitEventsTimeout(.1);
+            previous_time=(float)glfwGetTime();
+            continue;
+        }
         // Aqui executamos as operações de renderização
 
         // Definimos a cor do "fundo" do framebuffer como branco.  Tal cor é
@@ -373,41 +384,16 @@ int main(int argc, char* argv[])
 
         //calculammos o estado do avião
         float current_time = (float)glfwGetTime();
-        float dt = std::min(current_time - previous_time,0.05f);
-        MainModel.update(&MainAircraft, dt);
-        glm::vec3 aircraft_position = MainAircraft.get_position() + glm::vec3(0,4,0);
+        float dt = std::max(current_time - previous_time,0.0f);
+        // Keep the existing physics step limit; camera travel uses real elapsed time.
+        MainModel.update(&MainAircraft, std::min(dt,0.05f));
         previous_time = current_time;
-
-        // Computamos a posição da câmera utilizando coordenadas esféricas.  As
-        // variáveis g_CameraDistance, g_CameraPhi, e g_CameraTheta são
-        // controladas pelo mouse do usuário. Veja as funções CursorPosCallback()
-        // e ScrollCallback().
-        float r = g_CameraDistance;
-        float y = r*sin(g_CameraPhi);
-        float z = r*cos(g_CameraPhi)*cos(g_CameraTheta);
-        float x = r*cos(g_CameraPhi)*sin(g_CameraTheta);
-
-        // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
-        // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 camera_position_c;
-        if(current_camera_type == CameraType::LOOK_AT)
-        {
-            camera_position_c  = glm::vec4(aircraft_position.x+x,aircraft_position.y+y,aircraft_position.z+z,1.0f); // Ponto "c", centro da câmera
-        }
-        else
-        {
-            camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        }
-        glm::vec4 camera_lookat_l    = glm::vec4(aircraft_position.x,aircraft_position.y,aircraft_position.z,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
-
-        // Computamos a matriz "View" utilizando os parâmetros da câmera para
-        // definir o sistema de coordenadas da câmera.  Veja slides 2-14, 184-190 e 236-242 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        
-        
-        
-        glm::mat4 view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
+        g_CameraFrame=scene->Cameras(MainAircraft);
+        g_CameraInput->Update(dt);
+        const CameraPose camera=texture_check?inspection.Camera(g_CameraFrame):g_Camera.Pose(g_CameraFrame);
+        const bool cockpit=texture_check?inspection.Cockpit():g_Camera.Mode()==CameraType::COCKPIT;
+        glm::mat4 view=Matrix_Camera_View(glm::vec4(camera.position,1),
+            glm::vec4(camera.forward,0),glm::vec4(camera.up,0));
 
         // Agora computamos a matriz de Projeção.
         glm::mat4 projection;
@@ -415,13 +401,13 @@ int main(int argc, char* argv[])
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
         float nearplane = -0.5f;  // Posição do "near plane"
-        float farplane  = -30000.0f; // Posição do "far plane"
+        float farplane  = -camera.farPlane; // Posição do "far plane"
 
-        if (g_UsePerspectiveProjection)
+        if (g_UsePerspectiveProjection || cockpit)
         {
             // Projeção Perspectiva.
             // Para definição do field of view (FOV), veja slides 205-215 do documento Aula_09_Projecoes.pdf.
-            float field_of_view = 3.141592 / 3.0f;
+            float field_of_view = camera.fieldOfView;
             projection = Matrix_Perspective(field_of_view, g_ScreenRatio, nearplane, farplane);
         }
         else
@@ -430,8 +416,8 @@ int main(int argc, char* argv[])
             // Para definição dos valores l, r, b, t ("left", "right", "bottom", "top"),
             // PARA PROJEÇÃO ORTOGRÁFICA veja slides 219-224 do documento Aula_09_Projecoes.pdf.
             // Para simular um "zoom" ortográfico, computamos o valor de "t"
-            // utilizando a variável g_CameraDistance.
-            float t = 1.5f*g_CameraDistance/2.5f;
+            // utilizando a distancia guardada no controlador de cameras.
+            float t = 1.5f*g_Camera.OrbitDistance()/2.5f;
             float b = -t;
             float r = t*g_ScreenRatio;
             float l = -r;
@@ -444,18 +430,33 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
 
-        scene->Draw(g_GpuProgramID,MainAircraft,projection*view,glm::vec3(camera_position_c));
+        // Keep map depth precision while allowing the cockpit panel very close.
+        if(cockpit) {
+            scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position,SceneLayer::WORLD);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glm::mat4 interior=Matrix_Perspective(camera.fieldOfView,g_ScreenRatio,-camera.nearPlane,-100.0f);
+            glUniformMatrix4fv(g_projection_uniform,1,GL_FALSE,glm::value_ptr(interior));
+            scene->Draw(g_GpuProgramID,MainAircraft,interior*view,camera.position,SceneLayer::AIRCRAFT);
+        } else {
+            scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position);
+        }
 
-        // Imprimimos na tela os ângulos de Euler que controlam a rotação do
-        // terceiro cubo.
-        TextRendering_ShowEulerAngles(window);
-
-        // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
-        TextRendering_ShowProjection(window);
-
-        // Imprimimos na tela informação sobre o número de quadros renderizados
-        // por segundo (frames per second).
+        if(g_ShowInfoText) {
+            const char* mode=cockpit?"cockpit":g_Camera.Mode()==CameraType::FREE?"livre":"externa";
+            char label[160];
+            snprintf(label,sizeof(label),"Camera: %s | C: cockpit  F: livre  L: externa",mode);
+            TextRendering_PrintString(window,label,-.98f,.94f,.8f);
+            const char* controls=cockpit?"Botao direito: olhar | Setas/PgUp/PgDn: cabeca | Home: centralizar":
+                g_Camera.Mode()==CameraType::FREE?"WASD: mover | Q/E: descer/subir | Shift: acelerar | Botao direito: olhar":
+                "Botao direito: orbitar | Rodinha: distancia | Home: restaurar";
+            TextRendering_PrintString(window,controls,-.98f,-.92f,.7f);
+            if(g_Camera.Mode()==CameraType::FREE) {
+                snprintf(label,sizeof(label),"Velocidade: %.0f m/s | Rodinha: ajustar",g_Camera.FreeSpeed());
+                TextRendering_PrintString(window,label,-.98f,.87f,.75f);
+            }
+        }
         TextRendering_ShowFramesPerSecond(window);
+        if(texture_check && inspection.Capture(window))glfwSetWindowShouldClose(window,GL_TRUE);
 
         if (smoke_test)
         {
@@ -480,7 +481,9 @@ int main(int argc, char* argv[])
                 }
                 const glm::vec3 p=MainAircraft.get_position();
                 printf("Smoke test: 60 frames, position (%.3f, %.3f, %.3f), status %d\n",p.x,p.y,p.z,exit_code);
-                glfwSetWindowShouldClose(window,GL_TRUE);
+                const double elapsed=glfwGetTime()-smoke_start;
+                printf("Frame pacing: %.3f s for 59 intervals, %.1f fps\n",elapsed,59.0/elapsed);
+                if(!keep_open)glfwSetWindowShouldClose(window,GL_TRUE);
             }
         }
 
@@ -492,14 +495,10 @@ int main(int argc, char* argv[])
         // Veja o link: https://en.wikipedia.org/w/index.php?title=Multiple_buffering&oldid=793452829#Double_buffering_in_computer_graphics
         glfwSwapBuffers(window);
 
-        // Verificamos com o sistema operacional se houve alguma interação do
-        // usuário (teclado, mouse, ...). Caso positivo, as funções de callback
-        // definidas anteriormente usando glfwSet*Callback() serão chamadas
-        // pela biblioteca GLFW.
-        glfwPollEvents();
     }
 
     // Finalizamos o uso dos recursos do sistema operacional
+    g_CameraInput.reset();
     scene.reset();
     glfwTerminate();
 
@@ -601,7 +600,7 @@ void LoadShadersFromFiles()
     // "shader_fragment.glsl" estão fixados, sendo que assumimos a existência
     // da seguinte estrutura no sistema de arquivos:
     //
-    //    + FCG_Lab_01/
+    //    + Caelum/
     //    |
     //    +--+ bin/
     //    |  |
@@ -611,12 +610,14 @@ void LoadShadersFromFiles()
     //    |
     //    +--+ src/
     //       |
-    //       o-- shader_vertex.glsl
-    //       |
-    //       o-- shader_fragment.glsl
+    //       +--+ render/shaders/
+    //          |
+    //          o-- shader_vertex.glsl
+    //          |
+    //          o-- shader_fragment.glsl
     //
-    GLuint vertex_shader_id = LoadShader_Vertex("../../src/shader_vertex.glsl");
-    GLuint fragment_shader_id = LoadShader_Fragment("../../src/shader_fragment.glsl");
+    GLuint vertex_shader_id = LoadShader_Vertex("../../src/render/shaders/shader_vertex.glsl");
+    GLuint fragment_shader_id = LoadShader_Fragment("../../src/render/shaders/shader_fragment.glsl");
 
     // Deletamos o programa de GPU anterior, caso ele exista.
     if ( g_GpuProgramID != 0 )
@@ -1084,6 +1085,7 @@ GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id)
 // "framebuffer" (região de memória onde são armazenados os pixels da imagem).
 void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
+    if(width<=0 || height<=0)return;
     // Indicamos que queremos renderizar em toda região do framebuffer. A
     // função "glViewport" define o mapeamento das "normalized device
     // coordinates" (NDC) para "pixel coordinates".  Essa é a operação de
@@ -1100,142 +1102,22 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
     g_ScreenRatio = (float)width / height;
 }
 
-// Variáveis globais que armazenam a última posição do cursor do mouse, para
-// que possamos calcular quanto que o mouse se movimentou entre dois instantes
-// de tempo. Utilizadas no callback CursorPosCallback() abaixo.
-double g_LastCursorPosX, g_LastCursorPosY;
-
-// Função callback chamada sempre que o usuário aperta algum dos botões do mouse
-void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+// Callbacks only forward events; CameraInput handles capture and control routing.
+void MouseButtonCallback(GLFWwindow* window,int button,int action,int mods)
 {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-        // Se o usuário pressionou o botão esquerdo do mouse, guardamos a
-        // posição atual do cursor nas variáveis g_LastCursorPosX e
-        // g_LastCursorPosY.  Também, setamos a variável
-        // g_LeftMouseButtonPressed como true, para saber que o usuário está
-        // com o botão esquerdo pressionado.
-        glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
-        g_LeftMouseButtonPressed = true;
-    }
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-    {
-        // Quando o usuário soltar o botão esquerdo do mouse, atualizamos a
-        // variável abaixo para false.
-        g_LeftMouseButtonPressed = false;
-    }
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-    {
-        // Se o usuário pressionou o botão esquerdo do mouse, guardamos a
-        // posição atual do cursor nas variáveis g_LastCursorPosX e
-        // g_LastCursorPosY.  Também, setamos a variável
-        // g_RightMouseButtonPressed como true, para saber que o usuário está
-        // com o botão esquerdo pressionado.
-        glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
-        g_RightMouseButtonPressed = true;
-    }
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
-    {
-        // Quando o usuário soltar o botão esquerdo do mouse, atualizamos a
-        // variável abaixo para false.
-        g_RightMouseButtonPressed = false;
-    }
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS)
-    {
-        // Se o usuário pressionou o botão esquerdo do mouse, guardamos a
-        // posição atual do cursor nas variáveis g_LastCursorPosX e
-        // g_LastCursorPosY.  Também, setamos a variável
-        // g_MiddleMouseButtonPressed como true, para saber que o usuário está
-        // com o botão esquerdo pressionado.
-        glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
-        g_MiddleMouseButtonPressed = true;
-    }
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
-    {
-        // Quando o usuário soltar o botão esquerdo do mouse, atualizamos a
-        // variável abaixo para false.
-        g_MiddleMouseButtonPressed = false;
-    }
+    if(g_CameraInput)g_CameraInput->MouseButton(button,action);
 }
-
-// Função callback chamada sempre que o usuário movimentar o cursor do mouse em
-// cima da janela OpenGL.
-void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
+void CursorPosCallback(GLFWwindow* window,double x,double y)
 {
-    // Abaixo executamos o seguinte: caso o botão esquerdo do mouse esteja
-    // pressionado, computamos quanto que o mouse se movimento desde o último
-    // instante de tempo, e usamos esta movimentação para atualizar os
-    // parâmetros que definem a posição da câmera dentro da cena virtual.
-    // Assim, temos que o usuário consegue controlar a câmera.
-
-    if (g_LeftMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da câmera com os deslocamentos
-        g_CameraTheta -= 0.01f*dx;
-        g_CameraPhi   += 0.01f*dy;
-    
-        // Em coordenadas esféricas, o ângulo phi deve ficar entre -pi/2 e +pi/2.
-        float phimax = 3.141592f/2;
-        float phimin = -phimax;
-    
-        if (g_CameraPhi > phimax)
-            g_CameraPhi = phimax;
-    
-        if (g_CameraPhi < phimin)
-            g_CameraPhi = phimin;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
-
-    if (g_RightMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da antebraço com os deslocamentos
-        g_ForearmAngleZ -= 0.01f*dx;
-        g_ForearmAngleX += 0.01f*dy;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
-
-    if (g_MiddleMouseButtonPressed)
-    {
-        // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
-        float dx = xpos - g_LastCursorPosX;
-        float dy = ypos - g_LastCursorPosY;
-    
-        // Atualizamos parâmetros da antebraço com os deslocamentos
-        g_TorsoPositionX += 0.01f*dx;
-        g_TorsoPositionY -= 0.01f*dy;
-    
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
-    }
+    if(g_CameraInput)g_CameraInput->Cursor(x,y);
 }
-
-// Função callback chamada sempre que o usuário movimenta a "rodinha" do mouse.
-void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void ScrollCallback(GLFWwindow* window,double xoffset,double yoffset)
 {
-    // Atualizamos a distância da câmera para a origem utilizando a
-    // movimentação da "rodinha", simulando um ZOOM.
-    g_CameraDistance *= std::exp(-0.1f*float(yoffset));
-
-    // Limites em metros para o aviao real e para a extensao do mapa.
-    g_CameraDistance = std::max(5.0f,std::min(g_CameraDistance,15000.0f));
+    if(g_CameraInput)g_CameraInput->Scroll(yoffset);
+}
+void FocusCallback(GLFWwindow* window,int focused)
+{
+    if(g_CameraInput)g_CameraInput->Focus(focused==GLFW_TRUE);
 }
 
 void Correcao_KeyCallback(int key, int action, int mod);
@@ -1249,6 +1131,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     // laboratórios. Deve ser sempre o primeiro comando desta função KeyCallback().
     Correcao_KeyCallback(key, action, mod);
     // =======================
+
+    if(g_CameraInput && g_CameraInput->Key(key,action))return;
 
     // Se o usuário pressionar a tecla ESC, fechamos a janela.
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -1284,10 +1168,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         g_AngleX = 0.0f;
         g_AngleY = 0.0f;
         g_AngleZ = 0.0f;
-        g_ForearmAngleX = 0.0f;
-        g_ForearmAngleZ = 0.0f;
-        g_TorsoPositionX = 0.0f;
-        g_TorsoPositionY = 0.0f;
     }
 
     // Se o usuário apertar a tecla P, utilizamos projeção perspectiva.
@@ -1324,18 +1204,6 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     if (key == GLFW_KEY_S && action == GLFW_PRESS)
     {
         MainModel.decrease_throttle(&MainAircraft);
-    }
-    if (key == GLFW_KEY_L && action == GLFW_PRESS)
-    {
-        current_camera_type = CameraType::LOOK_AT;
-    }
-    if (key == GLFW_KEY_C && action == GLFW_PRESS)
-    {
-        current_camera_type = CameraType::COCKPIT;
-    }
-        if (key == GLFW_KEY_F && action == GLFW_PRESS)
-    {
-        current_camera_type = CameraType::FREE;
     }
 }
 

@@ -6,6 +6,9 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include "render/MaterialPolicy.hpp"
+
+enum class RenderPass { Solid, Decal, Transparent };
 
 // AI-assisted renderer for OBJ/MTL assets. Coordinates are never normalized.
 struct RenderMaterial {
@@ -13,6 +16,7 @@ struct RenderMaterial {
     float opacity=1.0f;
     GLuint texture=0;
     bool clamp=false;
+    MaterialPolicy policy;
 };
 struct RenderBatch {
     GLuint vao=0, vbo=0;
@@ -28,25 +32,27 @@ struct MapChunk {
     std::string file;
     glm::vec3 min, max;
     RenderModel model;
+    bool foundation=false;
 };
 
 class ModelRenderer {
 public:
     ~ModelRenderer();
-    RenderModel Load(const std::string& path);
+    RenderModel Load(const std::string& path,bool map=false);
     std::vector<MapChunk> LoadMap(const std::string& manifest,
         const std::function<void(size_t)>& progress = {});
     // Call after loading/reloading the shader program (R remains supported).
     void SetProgram(GLuint program);
     void Draw(const RenderModel& model, const glm::mat4& transform,
-              const glm::vec3& camera, bool transparent);
+              const glm::vec3& camera, RenderPass pass);
     bool Visible(const MapChunk& chunk,const glm::mat4& viewProjection) const;
     void Release(RenderModel& model);
 private:
     std::map<std::string,GLuint> textures;
     GLuint samplers[2]={0,0};
     GLint modelUniform=-1, colorUniform=-1, opacityUniform=-1,
-          textureUniform=-1, hasTextureUniform=-1;
+          textureUniform=-1, hasTextureUniform=-1, cameraUniform=-1,
+          proceduralUniform=-1, alphaCutoffUniform=-1;
     GLuint LoadTexture(const std::string& file);
 };
 #endif

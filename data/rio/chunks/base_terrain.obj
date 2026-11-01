@@ -1,0 +1,17 @@
+# Bounded background from the original OSM extract; not new land classification.
+# OpenStreetMap contributors, ODbL: https://www.openstreetmap.org/copyright
+# AI-assisted offline preparation; existing water/streets cover this low surface.
+mtllib rio.obj.mtl
+o base_terrain
+usemtl GRASS_0
+v -6780.83179311 -0.02 -9086.51166542
+v -6780.83179311 -0.02 9091.96951899
+v 6780.83179311 -0.02 9091.96951899
+v 6780.83179311 -0.02 -9086.51166542
+vt -6780.83179311 9086.51166542
+vt -6780.83179311 -9091.96951899
+vt 6780.83179311 -9091.96951899
+vt 6780.83179311 9086.51166542
+vn 0 1 0
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 3/3/1 4/4/1

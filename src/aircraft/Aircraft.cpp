@@ -1,4 +1,4 @@
-#include "Aircraft.hpp" 
+#include "aircraft/Aircraft.hpp"
  
 Aircraft :: Aircraft()
     {
@@ -63,8 +63,3 @@ Aircraft :: Aircraft()
         glm::vec3 Aircraft::get_forward(){return forward;}
         glm::vec3 Aircraft::get_right(){return right;}
         glm::vec3 Aircraft::get_up(){return up;}
-        
-        
-
-
-        

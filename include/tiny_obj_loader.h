@@ -2108,6 +2108,9 @@ void LoadMtl(std::map<std::string, int> *material_map,
 
       has_d = false;
       has_tr = false;
+      // AI-assisted local fix: Kd presence belongs to this material only.
+      // FONTE: tinyobjloader parser below; https://github.com/tinyobjloader/tinyobjloader
+      has_kd = false;
 
       // set new mtl name
       token += 7;

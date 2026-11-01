@@ -1,4 +1,4 @@
-#include "ModelRenderer.hpp"
+#include "render/ModelRenderer.hpp"
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -9,6 +9,7 @@
 #include <limits>
 #include <cstdio>
 #include <cmath>
+#include <cstring>
 
 namespace {
 std::string Directory(const std::string& path) {
@@ -20,6 +21,18 @@ std::string Join(const std::string& base,const std::string& file) {
     return base+file;
 }
 struct Vertex { glm::vec3 position,normal; glm::vec2 uv; };
+float MaxAnisotropy() {
+    GLint count=0;glGetIntegerv(GL_NUM_EXTENSIONS,&count);
+    for(GLint i=0;i<count;++i) {
+        const char* extension=reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS,GLuint(i)));
+        if(std::strcmp(extension,"GL_EXT_texture_filter_anisotropic")==0 ||
+           std::strcmp(extension,"GL_ARB_texture_filter_anisotropic")==0) {
+            GLfloat maximum=1;glGetFloatv(0x84FF,&maximum);
+            return std::min(maximum,8.0f);
+        }
+    }
+    return 1.0f;
+}
 // Manifest schema is deliberately fixed: no general-purpose JSON parser needed.
 std::string StringValue(const std::string& line) {
     const auto start=line.find('"',line.find(':')+1);
@@ -44,7 +57,7 @@ GLuint ModelRenderer::LoadTexture(const std::string& path) {
     textures[path]=texture;return texture;
 }
 
-RenderModel ModelRenderer::Load(const std::string& path) {
+RenderModel ModelRenderer::Load(const std::string& path,bool map) {
     tinyobj::attrib_t attributes;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -73,6 +86,12 @@ RenderModel ModelRenderer::Load(const std::string& path) {
             }
             glm::vec3 normal=glm::cross(triangle[1].position-triangle[0].position,triangle[2].position-triangle[0].position);
             normal=glm::dot(normal,normal)>1e-12f?glm::normalize(normal):glm::vec3(0,1,0);
+            // Repeating textures are invariant under a shared integer UV shift.
+            // Keep the original span/derivatives while avoiding huge world UVs.
+            if(id>=0 && size_t(id)<materials.size() && !materials[id].diffuse_texopt.clamp) {
+                const glm::vec2 origin(std::floor(triangle[0].uv.x),std::floor(triangle[0].uv.y));
+                for(auto& v:triangle)v.uv-=origin;
+            }
             for(auto& v:triangle) {if(glm::dot(v.normal,v.normal)<1e-12f)v.normal=normal;grouped[id].push_back(v);}
             offset+=3;
         }
@@ -85,6 +104,9 @@ RenderModel ModelRenderer::Load(const std::string& path) {
             batch.material.opacity=m.dissolve;
             batch.material.clamp=m.diffuse_texopt.clamp;
             if(!m.diffuse_texname.empty())batch.material.texture=LoadTexture(Join(base,m.diffuse_texname));
+            batch.material.policy=ClassifyMaterial(m.name,m.diffuse_texname,batch.material.texture!=0,map);
+        } else {
+            batch.material.policy=ClassifyMaterial("","",false,map);
         }
         batch.count=GLsizei(group.second.size());
         glm::vec3 low(std::numeric_limits<float>::max()),high(std::numeric_limits<float>::lowest());
@@ -117,7 +139,7 @@ std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const s
         if(chunks&&line.find("\"file\"")!=std::string::npos) {
             MapChunk chunk;chunk.file=StringValue(line);
             if(chunk.file.size()<4||chunk.file.substr(chunk.file.size()-4)!=".obj")throw std::runtime_error("Invalid map chunk");
-            chunk.model=Load(Join(Directory(manifest),chunk.file));
+            chunk.model=Load(Join(Directory(manifest),chunk.file),true);
             chunk.min=chunk.model.min;chunk.max=chunk.model.max;
             result.push_back(chunk);
             std::printf("Map chunk %zu: %s\n",result.size(),chunk.file.c_str());std::fflush(stdout);
@@ -134,24 +156,36 @@ void ModelRenderer::SetProgram(GLuint program) {
     opacityUniform=glGetUniformLocation(program,"material_opacity");
     hasTextureUniform=glGetUniformLocation(program,"has_diffuse_texture");
     textureUniform=glGetUniformLocation(program,"diffuse_texture");
+    cameraUniform=glGetUniformLocation(program,"camera_position");
+    proceduralUniform=glGetUniformLocation(program,"procedural_surface");
+    alphaCutoffUniform=glGetUniformLocation(program,"alpha_cutoff");
     if(!samplers[0]) {
         glGenSamplers(2,samplers);
+        const float anisotropy=MaxAnisotropy();
         for(int i=0;i<2;++i) {
             glSamplerParameteri(samplers[i],GL_TEXTURE_WRAP_S,i?GL_CLAMP_TO_EDGE:GL_REPEAT);
             glSamplerParameteri(samplers[i],GL_TEXTURE_WRAP_T,i?GL_CLAMP_TO_EDGE:GL_REPEAT);
             glSamplerParameteri(samplers[i],GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR);
             glSamplerParameteri(samplers[i],GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+            // FONTE: https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_filter_anisotropic.txt
+            if(anisotropy>1)glSamplerParameterf(samplers[i],0x84FE,anisotropy);
         }
     }
 }
 
-void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,bool transparent) {
+void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,RenderPass pass) {
     glUniformMatrix4fv(modelUniform,1,GL_FALSE,glm::value_ptr(transform));
+    glUniform3fv(cameraUniform,1,glm::value_ptr(camera));
+    glUniform1f(alphaCutoffUniform,pass==RenderPass::Solid?.2f:.001f);
     glUniform1i(textureUniform,0);glActiveTexture(GL_TEXTURE0);
     std::vector<const RenderBatch*> batches;
-    for(const auto& batch:model.batches)if((batch.material.opacity<.999f)==transparent)batches.push_back(&batch);
+    for(const auto& batch:model.batches) {
+        const RenderPass batchPass=batch.material.policy.layer==MaterialLayer::DECAL?RenderPass::Decal:
+            batch.material.opacity<.999f?RenderPass::Transparent:RenderPass::Solid;
+        if(batchPass==pass)batches.push_back(&batch);
+    }
     // Bounds-center sorting is approximate for intersecting glass surfaces.
-    if(transparent)std::sort(batches.begin(),batches.end(),[&](const RenderBatch* a,const RenderBatch* b){
+    if(pass==RenderPass::Transparent)std::sort(batches.begin(),batches.end(),[&](const RenderBatch* a,const RenderBatch* b){
         glm::vec3 da=glm::vec3(transform*glm::vec4(a->center,1))-camera;
         glm::vec3 db=glm::vec3(transform*glm::vec4(b->center,1))-camera;
         return glm::dot(da,da)>glm::dot(db,db);
@@ -161,6 +195,7 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
         glUniform3fv(colorUniform,1,glm::value_ptr(material.diffuse));
         glUniform1f(opacityUniform,material.opacity);
         glUniform1i(hasTextureUniform,material.texture!=0);
+        glUniform1i(proceduralUniform,static_cast<int>(material.policy.procedural));
         glBindTexture(GL_TEXTURE_2D,material.texture);glBindSampler(0,samplers[material.clamp?1:0]);
         glBindVertexArray(batch->vao);glDrawArrays(GL_TRIANGLES,0,batch->count);
     }
