@@ -14,6 +14,8 @@ set(SOURCES
   src/third_party/glad.c
   src/aircraft/Aircraft.cpp
   src/aircraft/FlightModel.cpp
+  src/animation/BezierPath.cpp
+  src/aircraft/BezierFlight.cpp
   src/render/ModelRenderer.cpp
   src/render/GameScene.cpp
   src/camera/CameraController.cpp
@@ -72,6 +74,9 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(bezier_flight_test tests/BezierFlightTest.cpp src/animation/BezierPath.cpp src/aircraft/BezierFlight.cpp)
+  target_include_directories(bezier_flight_test PRIVATE include src)
+  add_test(NAME bezier_flight COMMAND bezier_flight_test)
   add_executable(camera_controller_test tests/CameraControllerTest.cpp src/camera/CameraController.cpp)
   target_include_directories(camera_controller_test PRIVATE include src)
   add_test(NAME camera_controller COMMAND camera_controller_test)
