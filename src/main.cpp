@@ -56,6 +56,8 @@
 #include "camera/CameraInput.hpp"
 #include "platform/FrameLimiter.hpp"
 #include "render/RenderInspection.hpp"
+#include "ui/FlightHud.hpp"
+#include "ui/HudInspection.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -230,7 +232,9 @@ int main(int argc, char* argv[])
     // Optional developer check: load the real scene, render 60 frames, then exit.
     const bool smoke_test = argc > 1 && std::string(argv[1]) == "--smoke-test";
     const bool texture_check=argc>2 && std::string(argv[1])=="--texture-check";
+    const bool hud_check=argc>2 && std::string(argv[1])=="--hud-check";
     RenderInspection inspection(texture_check?argv[2]:"");
+    HudInspection hudInspection(hud_check?argv[2]:"");
     const bool keep_open = smoke_test && argc > 4 && std::string(argv[4]) == "--keep-open";
     int rendered_frames = 0;
     int exit_code = EXIT_SUCCESS;
@@ -337,6 +341,7 @@ int main(int argc, char* argv[])
 
     // Inicializamos o código para renderização de texto.
     TextRendering_Init();
+    std::unique_ptr<FlightHud> hud(new FlightHud);
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);
@@ -354,6 +359,7 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window))
     {
         frameLimiter.Wait();
+        if(hud_check)hudInspection.Prepare(window,g_Camera,g_CameraFrame);
         // Read the latest mouse events immediately before computing this view.
         glfwPollEvents();
         if(glfwWindowShouldClose(window))break;
@@ -443,22 +449,53 @@ int main(int argc, char* argv[])
             scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position);
         }
 
+        FlightTelemetry readings=CalculateFlightTelemetry(MainAircraft.get_position(),MainAircraft.get_velocity(),
+            MainAircraft.get_forward(),MainAircraft.get_up(),MainAircraft.get_throttle());
+        if(hud_check)readings=hudInspection.Telemetry(readings);
+        hud->Update(readings,elapsed);
         if(g_ShowInfoText) {
+            hud->Draw(window,readings);
             const char* mode=cockpit?"cockpit":g_Camera.Mode()==CameraType::FREE?"livre":"externa";
             char label[160];
-            snprintf(label,sizeof(label),"Camera: %s | C: cockpit  F: livre  L: externa",mode);
-            TextRendering_PrintString(window,label,-.98f,.94f,.8f);
+            int logicalWidth,logicalHeight;glfwGetWindowSize(window,&logicalWidth,&logicalHeight);
+            // Corner help has independent scales from the instruments and FPS.
+            const float headerScale=1.2f,controlsScale=1.05f,speedScale=1.125f;
+            const float margin=12.0f;
+            const float charPixels=TextRendering_CharWidth(window)*logicalWidth*.5f;
+            const auto fits=[&](const std::string& text,float scale,float reserve) {
+                return text.size()*charPixels*scale<=logicalWidth-2*margin-reserve;
+            };
+            const float firstBaseline=std::max(26.0f,.04f*logicalHeight);
+            const float lineStep=std::max(28.0f,TextRendering_LineHeight(window)*logicalHeight*.5f*headerScale);
+            const float textX=-1+2*margin/logicalWidth;
+            const auto printHelp=[&](const std::string& text,float baseline,float scale) {
+                TextRendering_PrintString(window,text,textX,1-2*baseline/logicalHeight,scale);
+            };
+            snprintf(label,sizeof(label),"Camera: %s | C: cockpit  F: livre  L: externa | H: HUD",mode);
+            if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L: cameras",mode);
+            if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L",mode);
+            printHelp(label,firstBaseline,headerScale);
             const char* controls=cockpit?"Botao direito: olhar | Setas/PgUp/PgDn: cabeca | Home: centralizar":
                 g_Camera.Mode()==CameraType::FREE?"WASD: mover | Q/E: descer/subir | Shift: acelerar | Botao direito: olhar":
                 "Botao direito: orbitar | Rodinha: distancia | Home: restaurar";
-            TextRendering_PrintString(window,controls,-.98f,-.92f,.7f);
+            if(!fits(controls,controlsScale,0))controls=cockpit?
+                "Dir.: olhar | Setas/Pg: cabeca | Home: reset":g_Camera.Mode()==CameraType::FREE?
+                "WASD: mover | Q/E: altura | Dir.: olhar":
+                "Dir.: orbitar | Roda: distancia | Home: reset";
+            if(logicalWidth>=650)printHelp(controls,firstBaseline+lineStep,controlsScale);
             if(g_Camera.Mode()==CameraType::FREE) {
-                snprintf(label,sizeof(label),"Velocidade: %.0f m/s | Rodinha: ajustar",g_Camera.FreeSpeed());
-                TextRendering_PrintString(window,label,-.98f,.87f,.75f);
+                snprintf(label,sizeof(label),"Camera livre: %.0f m/s | Rodinha: ajustar",g_Camera.FreeSpeed());
+                if(!fits(label,speedScale,0))snprintf(label,sizeof(label),"Livre: %.0f m/s",g_Camera.FreeSpeed());
+                float instrumentsTop=static_cast<float>(logicalHeight);
+                for(const auto& dial:CalculateHudLayout(logicalWidth,logicalHeight).dials)
+                    instrumentsTop=std::min(instrumentsTop,dial.y-dial.radius);
+                const float baseline=firstBaseline+lineStep*(logicalWidth>=650?2:1);
+                if(baseline<instrumentsTop-4)printHelp(label,baseline,speedScale);
             }
         }
         TextRendering_ShowFramesPerSecond(window);
         if(texture_check && inspection.Capture(window))glfwSetWindowShouldClose(window,GL_TRUE);
+        if(hud_check && hudInspection.Capture(window))glfwSetWindowShouldClose(window,GL_TRUE);
 
         if (smoke_test)
         {
@@ -501,6 +538,7 @@ int main(int argc, char* argv[])
 
     // Finalizamos o uso dos recursos do sistema operacional
     g_CameraInput.reset();
+    hud.reset();
     scene.reset();
     glfwTerminate();
 
