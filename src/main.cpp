@@ -58,6 +58,7 @@
 #include "render/RenderInspection.hpp"
 #include "ui/FlightHud.hpp"
 #include "ui/HudInspection.hpp"
+#include "collision/CollisionDebug.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -206,6 +207,7 @@ bool g_UsePerspectiveProjection = true;
 
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
+bool g_ShowCollisionVolumes=false,g_ResetFlightRequested=false,g_PlayerCrashed=false;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint g_GpuProgramID = 0;
@@ -230,7 +232,8 @@ FlightModel MainModel;
 int main(int argc, char* argv[])
 {
     // Optional developer check: load the real scene, render 60 frames, then exit.
-    const bool smoke_test = argc > 1 && std::string(argv[1]) == "--smoke-test";
+    const bool collision_check=argc>2&&std::string(argv[1])=="--collision-check";
+    const bool smoke_test = collision_check||(argc > 1 && std::string(argv[1]) == "--smoke-test");
     const bool texture_check=argc>2 && std::string(argv[1])=="--texture-check";
     const bool hud_check=argc>2 && std::string(argv[1])=="--hud-check";
     RenderInspection inspection(texture_check?argv[2]:"");
@@ -318,7 +321,12 @@ int main(int argc, char* argv[])
     std::unique_ptr<GameScene> scene(new GameScene);
     try {
         scene->Load(window);
-        scene->Spawn(MainAircraft);
+        scene->ResetPlayer(MainAircraft);
+        if(collision_check) {
+            if(!scene->InspectCollisions(MainAircraft,std::string(argv[2])+".txt"))
+                throw std::runtime_error("Collision integration inspection failed");
+            g_ShowCollisionVolumes=true;
+        }
     } catch(const std::exception& error) {
         fprintf(stderr,"Scene loading failed: %s\n",error.what());
         scene.reset();
@@ -342,6 +350,7 @@ int main(int argc, char* argv[])
     // Inicializamos o código para renderização de texto.
     TextRendering_Init();
     std::unique_ptr<FlightHud> hud(new FlightHud);
+    std::unique_ptr<CollisionDebug> collisionDebug(new CollisionDebug);
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);
@@ -392,8 +401,18 @@ int main(int argc, char* argv[])
         double current_time = glfwGetTime();
         const double elapsed = std::max(current_time - previous_time,0.0);
         float dt = static_cast<float>(elapsed);
+        if(g_ResetFlightRequested) {
+            scene->ResetPlayer(MainAircraft);g_ResetFlightRequested=false;g_PlayerCrashed=false;
+            g_CameraFrame=scene->Cameras(MainAircraft);g_Camera.Reset(g_CameraFrame);
+        }
+        const auto previousPose=GameScene::PhysicalPose(MainAircraft);
         // Keep the existing physics step limit; camera travel uses real elapsed time.
-        MainModel.update(&MainAircraft, std::min(dt,0.05f));
+        if(!g_PlayerCrashed) {
+            const double physicsStep=std::min(dt,0.05f);
+            MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
+            scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
+            g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
+        }
         previous_time = current_time;
         scene->Update(elapsed); // Euler advances traffic once, outside all draw passes.
         g_CameraFrame=scene->Cameras(MainAircraft);
@@ -449,6 +468,8 @@ int main(int argc, char* argv[])
             scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position);
         }
 
+        if(g_ShowCollisionVolumes)collisionDebug->Draw(scene->PlayerProbes(MainAircraft),view,projection,camera.position);
+
         FlightTelemetry readings=CalculateFlightTelemetry(MainAircraft.get_position(),MainAircraft.get_velocity(),
             MainAircraft.get_forward(),MainAircraft.get_up(),MainAircraft.get_throttle());
         if(hud_check)readings=hudInspection.Telemetry(readings);
@@ -491,6 +512,19 @@ int main(int argc, char* argv[])
                     instrumentsTop=std::min(instrumentsTop,dial.y-dial.radius);
                 const float baseline=firstBaseline+lineStep*(logicalWidth>=650?2:1);
                 if(baseline<instrumentsTop-4)printHelp(label,baseline,speedScale);
+            }
+        }
+        if(g_ShowInfoText||g_PlayerCrashed) {
+            char status[180];
+            const auto& contact=scene->PlayerContact();
+            const char* state=contact.state==collision::AircraftState::Grounded?"No solo":
+                              contact.state==collision::AircraftState::Crashed?"Acidente":"Em voo";
+            if(g_PlayerCrashed)snprintf(status,sizeof(status),"%s: %s | Enter: reiniciar",state,collision::CrashReasonText(contact.reason));
+            else snprintf(status,sizeof(status),"%s | Enter: reiniciar | B: volumes de colisao",state);
+            int w,h;glfwGetWindowSize(window,&w,&h);
+            if(w>=650||g_PlayerCrashed) {
+                const float baseline=std::max(26.0f,.04f*h)+84.0f;
+                TextRendering_PrintString(window,status,-1+24.0f/w,1-2*baseline/h,w<650?.85f:1.0f);
             }
         }
         TextRendering_ShowFramesPerSecond(window);
@@ -538,6 +572,7 @@ int main(int argc, char* argv[])
 
     // Finalizamos o uso dos recursos do sistema operacional
     g_CameraInput.reset();
+    collisionDebug.reset();
     hud.reset();
     scene.reset();
     glfwTerminate();
@@ -1173,6 +1208,10 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     // =======================
 
     if(g_CameraInput && g_CameraInput->Key(key,action))return;
+
+    if(key==GLFW_KEY_ENTER&&action==GLFW_PRESS)g_ResetFlightRequested=true;
+    if(key==GLFW_KEY_B&&action==GLFW_PRESS)g_ShowCollisionVolumes=!g_ShowCollisionVolumes;
+    if(g_PlayerCrashed&&(key==GLFW_KEY_W||key==GLFW_KEY_S))return;
 
     // Se o usuário pressionar a tecla ESC, fechamos a janela.
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)

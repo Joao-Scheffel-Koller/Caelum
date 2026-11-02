@@ -17,6 +17,7 @@ set(SOURCES
   src/collision/collisions.cpp
   src/collision/CollisionWorld.cpp
   src/collision/AircraftContacts.cpp
+  src/collision/CollisionDebug.cpp
   src/third_party/tiny_obj_loader.cpp
   src/third_party/stb_image.cpp
   src/third_party/glad.c

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <stdexcept>
+#include <fstream>
 
 // FONTE: codigo base do professor, include/matrices.h (definido em main.cpp).
 // Forward declaration avoids duplicating the header's non-inline definitions.
@@ -9,6 +10,7 @@ glm::mat4 Matrix_Translate(float tx,float ty,float tz);
 
 void GameScene::Load(GLFWwindow* window) {
     aircraftModel=renderer.Load("../../data/aircraft/aircraft.obj");
+    contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
     chunks=renderer.LoadMap("../../data/rio/chunks/manifest.json",[window](size_t loaded){
         std::string title="Caelum - carregando Rio ("+std::to_string(loaded)+" partes)";
         glfwSetWindowTitle(window,title.c_str());
@@ -17,18 +19,97 @@ void GameScene::Load(GLFWwindow* window) {
         glClearColor(.60f,.76f,.90f,1);
         glClear(GL_COLOR_BUFFER_BIT);
         glfwSwapBuffers(window);
-    });
+    },&physicalWorld);
     for(const char* file:{"base_terrain.obj"}) {
         MapChunk repairs;
         repairs.file=file;
-        repairs.model=renderer.Load(std::string("../../data/rio/chunks/")+file,true);
+        // Finite support matching the visible repair surface. Real water at Y=0
+        // is reached before this Y=-0.02 fallback and remains a water accident.
+        repairs.model=renderer.Load(std::string("../../data/rio/chunks/")+file,true,&physicalWorld);
         repairs.min=repairs.model.min;repairs.max=repairs.model.max;
         repairs.foundation=true;
         chunks.push_back(repairs);
     }
     glfwSetWindowTitle(window,"Caelum - Rio de Janeiro");
     std::printf("Scene ready: A320 and %zu Rio chunks.\n",chunks.size());
+    std::printf("Collision world: %zu physical triangles in %zu indexed chunks.\n",
+                physicalWorld.TriangleCount(),physicalWorld.ChunkCount());
     std::fflush(stdout);
+}
+
+collision::AircraftPose GameScene::PhysicalPose(Aircraft& aircraft) {
+    collision::AircraftPose pose;
+    pose.position=aircraft.get_position();pose.forward=aircraft.get_forward();pose.up=aircraft.get_up();
+    return pose;
+}
+void GameScene::ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& previous,double dt) {
+    playerContact=contacts.Resolve(physicalWorld,previous,PhysicalPose(aircraft),glm::dvec3(aircraft.get_velocity()),dt);
+    aircraft.set_position(glm::vec3(playerContact.position));
+    aircraft.set_velocity(glm::vec3(playerContact.velocity));
+    aircraft.set_forward(glm::vec3(playerContact.forward));aircraft.set_up(glm::vec3(playerContact.up));
+    aircraft.set_right(glm::normalize(glm::cross(aircraft.get_forward(),aircraft.get_up())));
+    if(playerContact.state==collision::AircraftState::Crashed) {
+        aircraft.set_acceleration(glm::vec3(0));aircraft.set_throttle(0);
+    }
+}
+void GameScene::ResetPlayer(Aircraft& aircraft) {
+    Spawn(aircraft);contacts.Reset();ResolvePlayer(aircraft,PhysicalPose(aircraft),0);
+}
+std::vector<collision::ProbeSphere> GameScene::PlayerProbes(Aircraft& aircraft) const {
+    return contacts.DebugSpheres(PhysicalPose(aircraft));
+}
+bool GameScene::InspectCollisions(Aircraft& aircraft,const std::string& report) const {
+    // Developer-only integration checks against the complete, actually loaded
+    // Rio geometry. Local checker never replaces normal gameplay state/data.
+    std::ofstream output(report);
+    if(!output)throw std::runtime_error("Cannot create collision report: "+report);
+    bool passed=true;
+    const auto check=[&](bool condition,const char* name) {
+        output<<(condition?"PASS ":"FAIL ")<<name<<'\n';
+        std::printf("Collision inspection: %s %s\n",condition?"PASS":"FAIL",name);
+        passed=passed&&condition;
+    };
+    collision::AircraftContacts checker;
+    checker.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+    const auto start=PhysicalPose(aircraft);
+    auto result=checker.Resolve(physicalWorld,start,start,glm::dvec3(0),0);
+    check(result.state==collision::AircraftState::Grounded,"Santos Dumont spawn supported by runway");
+    check(result.gearContacts>=2,"multiple landing gear probes contact real asphalt");
+    auto moved=start;moved.position+=start.forward*10.0;
+    result=checker.Resolve(physicalWorld,start,moved,start.forward*25.0,.4);
+    check(result.state==collision::AircraftState::Grounded&&glm::length(result.position-moved.position)<.1,
+          "taxi advances without tangential ground lock");
+    checker.Reset();
+    moved=start;moved.position.y+=5;
+    result=checker.Resolve(physicalWorld,start,moved,glm::dvec3(0,10,0),.5);
+    check(result.state==collision::AircraftState::Flying,"upward departure releases ground support");
+    checker.Reset();
+    auto falling=start;falling.position.y=10;
+    moved=start;moved.position.y=-2;
+    result=checker.Resolve(physicalWorld,falling,moved,glm::dvec3(0,-30,0),.4);
+    check(result.state==collision::AircraftState::Crashed&&result.reason==collision::CrashReason::HardLanding,
+          "hard landing measured before any vertical clamp");
+    result=checker.Resolve(physicalWorld,start,start,glm::dvec3(5,0,0),.1);
+    check(result.state==collision::AircraftState::Crashed&&glm::length(result.velocity)==0,
+          "accident remains stopped until reset");
+    checker.Reset();result=checker.Resolve(physicalWorld,start,start,glm::dvec3(0),0);
+    check(result.state==collision::AircraftState::Grounded,"reset restores normal runway support");
+    for(auto surface:{collision::Surface::Water,collision::Surface::Solid}) {
+        collision::Triangle triangle;
+        const bool found=physicalWorld.SampleSurface(surface,triangle);
+        check(found,surface==collision::Surface::Water?"water geometry retained":"solid obstacle geometry retained");
+        if(found) {
+            const auto center=(triangle.a+triangle.b+triangle.c)/3.0;
+            std::size_t tested=0;
+            const auto hit=physicalWorld.SweepSphere(center,center,.02,&tested);
+            check(hit.hit&&hit.surface==surface,surface==collision::Surface::Water?
+                  "actual water is not classified as fallback grass":"actual obstacle contact reaches solid geometry");
+            check(tested<physicalWorld.TriangleCount()/10,"BVH rejects distant map geometry");
+            output<<"candidate triangle tests: "<<tested<<" / "<<physicalWorld.TriangleCount()<<'\n';
+        }
+    }
+    output<<"RESULT "<<(passed?"PASS":"FAIL")<<'\n';output.flush();std::fflush(stdout);
+    return passed&&bool(output);
 }
 
 void GameScene::Spawn(Aircraft& aircraft) const {

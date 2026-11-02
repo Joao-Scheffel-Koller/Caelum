@@ -5,7 +5,7 @@ SOURCES := src/main.cpp src/course/correcao.cpp src/ui/textrendering.cpp \
            src/third_party/glad.c src/third_party/tiny_obj_loader.cpp src/third_party/stb_image.cpp \
            src/aircraft/Aircraft.cpp src/aircraft/FlightModel.cpp \
            src/animation/BezierPath.cpp src/aircraft/BezierFlight.cpp \
-           src/collision/collisions.cpp src/collision/CollisionWorld.cpp src/collision/AircraftContacts.cpp \
+           src/collision/collisions.cpp src/collision/CollisionWorld.cpp src/collision/AircraftContacts.cpp src/collision/CollisionDebug.cpp \
            src/ui/FlightHud.cpp src/ui/HudLayout.cpp src/ui/HudNeedleMotion.cpp src/ui/HudInspection.cpp src/aircraft/FlightTelemetry.cpp \
            src/camera/CameraController.cpp src/camera/CameraInput.cpp src/camera/MouseCapture.cpp \
            src/platform/FrameLimiter.cpp src/render/GameScene.cpp src/render/ModelRenderer.cpp \

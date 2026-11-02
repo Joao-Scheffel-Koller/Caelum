@@ -69,14 +69,8 @@ void FlightModel::update( Aircraft* aircraft, float dt)
     // 9. Atualiza posição
     glm::vec3 position = aircraft->get_position();
     position += velocity * dt;
-    //ajusta colisão com o solo
-    if (position.y < 0.0f){
-        position.y = 0.0f;
-        // AI-assisted fix: the runway cancels downward velocity on contact.
-        // Otherwise speed/lift would include accumulated falling through the floor.
-        if (velocity.y < 0.0f) velocity.y = 0.0f;
-        aircraft->set_velocity(velocity);
-    }
+    // AI-assisted: AircraftContacts resolves real-map contacts after this
+    // prediction. Preserve the impact velocity until that classification.
     aircraft->set_position(position);
 }
 
