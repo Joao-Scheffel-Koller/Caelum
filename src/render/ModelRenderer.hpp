@@ -7,6 +7,7 @@
 #include <map>
 #include <functional>
 #include "render/MaterialPolicy.hpp"
+namespace collision {class CollisionWorld;}
 
 enum class RenderPass { Solid, Decal, Transparent };
 
@@ -38,9 +39,9 @@ struct MapChunk {
 class ModelRenderer {
 public:
     ~ModelRenderer();
-    RenderModel Load(const std::string& path,bool map=false);
+    RenderModel Load(const std::string& path,bool map=false,collision::CollisionWorld* physicalWorld=nullptr);
     std::vector<MapChunk> LoadMap(const std::string& manifest,
-        const std::function<void(size_t)>& progress = {});
+        const std::function<void(size_t)>& progress = {},collision::CollisionWorld* physicalWorld=nullptr);
     // Call after loading/reloading the shader program (R remains supported).
     void SetProgram(GLuint program);
     void Draw(const RenderModel& model, const glm::mat4& transform,

@@ -1,4 +1,5 @@
 #include "render/ModelRenderer.hpp"
+#include "collision/CollisionWorld.hpp"
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,6 +11,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <tuple>
 
 namespace {
 std::string Directory(const std::string& path) {
@@ -57,7 +59,7 @@ GLuint ModelRenderer::LoadTexture(const std::string& path) {
     textures[path]=texture;return texture;
 }
 
-RenderModel ModelRenderer::Load(const std::string& path,bool map) {
+RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::CollisionWorld* physicalWorld) {
     tinyobj::attrib_t attributes;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -68,6 +70,17 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map) {
     result.min=glm::vec3(std::numeric_limits<float>::max());
     result.max=glm::vec3(std::numeric_limits<float>::lowest());
     std::map<int,std::vector<Vertex>> grouped;
+    // Reuse the OBJ read: the physical world retains positions/material kinds,
+    // while GPU batches retain normals/UVs. Neither depends on camera visibility.
+    std::vector<collision::WorldTriangle> physical;
+    std::vector<collision::GeometryKind> kinds;
+    if(physicalWorld)for(const auto& material:materials) {
+        const auto policy=ClassifyMaterial(material.name,material.diffuse_texname,!material.diffuse_texname.empty(),map);
+        kinds.push_back(collision::ClassifyCollisionMaterial(material.name,material.diffuse_texname,
+                                                            policy.layer==MaterialLayer::DECAL));
+    }
+    struct Tree {glm::dvec3 base{0};double height=0,width=0;};
+    std::map<std::tuple<long long,long long,long long,long long>,Tree> trees;
     for(const auto& shape:shapes) {
         size_t offset=0;
         for(size_t face=0;face<shape.mesh.num_face_vertices.size();++face) {
@@ -86,6 +99,35 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map) {
             }
             glm::vec3 normal=glm::cross(triangle[1].position-triangle[0].position,triangle[2].position-triangle[0].position);
             normal=glm::dot(normal,normal)>1e-12f?glm::normalize(normal):glm::vec3(0,1,0);
+            if(physicalWorld) {
+                auto kind=id>=0&&size_t(id)<kinds.size()?kinds[id]:collision::GeometryKind::Solid;
+                // CONCRETE also appears in buildings: only a horizontal apron
+                // at the map's ground level is support, not an elevated roof.
+                if(kind==collision::GeometryKind::Solid&&id>=0&&size_t(id)<materials.size()&&
+                   materials[id].name.compare(0,8,"CONCRETE")==0&&std::abs(normal.y)>.95f&&
+                   std::abs(triangle[0].position.y)<.05f&&std::abs(triangle[1].position.y)<.05f&&
+                   std::abs(triangle[2].position.y)<.05f)kind=collision::GeometryKind::Ground;
+                if(kind==collision::GeometryKind::Tree) {
+                    // Each triangle of an OSM tree billboard spans the quad's
+                    // bounds. Crossed quads share a center and become one proxy.
+                    const glm::dvec3 low=glm::min(glm::dvec3(triangle[0].position),glm::min(glm::dvec3(triangle[1].position),glm::dvec3(triangle[2].position)));
+                    const glm::dvec3 high=glm::max(glm::dvec3(triangle[0].position),glm::max(glm::dvec3(triangle[1].position),glm::dvec3(triangle[2].position)));
+                    const auto center=(low+high)*.5;
+                    const double height=high.y-low.y,width=std::max(high.x-low.x,high.z-low.z);
+                    if(height>.1&&width>.1) {
+                        const auto key=std::make_tuple(std::llround(center.x*10),std::llround(center.z*10),
+                                                      std::llround(low.y*10),std::llround(height*10));
+                        auto& tree=trees[key];tree.base=glm::dvec3(center.x,low.y,center.z);
+                        tree.height=std::max(tree.height,height);tree.width=std::max(tree.width,width);
+                    }
+                } else if(kind!=collision::GeometryKind::Ignore) {
+                    collision::WorldTriangle face;
+                    face.a=triangle[0].position;face.b=triangle[1].position;face.c=triangle[2].position;
+                    face.surface=kind==collision::GeometryKind::Ground?collision::Surface::Ground:
+                                 kind==collision::GeometryKind::Water?collision::Surface::Water:collision::Surface::Solid;
+                    physical.push_back(face);
+                }
+            }
             // Repeating textures are invariant under a shared integer UV shift.
             // Keep the original span/derivatives while avoiding huge world UVs.
             if(id>=0 && size_t(id)<materials.size() && !materials[id].diffuse_texopt.clamp) {
@@ -124,10 +166,15 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map) {
     }
     glBindVertexArray(0);
     if(result.batches.empty())throw std::runtime_error("Empty OBJ: "+path);
+    if(physicalWorld) {
+        for(const auto& entry:trees)collision::AppendTreeProxy(physical,entry.second.base,entry.second.height,entry.second.width);
+        physicalWorld->AddChunk(path,std::move(physical));
+    }
     return result;
 }
 
-std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const std::function<void(size_t)>& progress) {
+std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const std::function<void(size_t)>& progress,
+                                          collision::CollisionWorld* physicalWorld) {
     std::ifstream input(manifest);
     if(!input)throw std::runtime_error("Cannot open map manifest: "+manifest);
     std::vector<MapChunk> result;
@@ -139,7 +186,7 @@ std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const s
         if(chunks&&line.find("\"file\"")!=std::string::npos) {
             MapChunk chunk;chunk.file=StringValue(line);
             if(chunk.file.size()<4||chunk.file.substr(chunk.file.size()-4)!=".obj")throw std::runtime_error("Invalid map chunk");
-            chunk.model=Load(Join(Directory(manifest),chunk.file),true);
+            chunk.model=Load(Join(Directory(manifest),chunk.file),true,physicalWorld);
             chunk.min=chunk.model.min;chunk.max=chunk.model.max;
             result.push_back(chunk);
             std::printf("Map chunk %zu: %s\n",result.size(),chunk.file.c_str());std::fflush(stdout);

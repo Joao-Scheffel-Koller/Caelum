@@ -1,5 +1,31 @@
 ## File used to store ai prompts
 
+25. Codex (2026-11-02): "Resolva oq esta pendente". Concluir a implementacao
+    de colisoes autorizada no pedido 24, depois da publicacao de implementation.md
+    em d5f0d57. Gerados: src/collision/collisions.*, CollisionWorld.*,
+    AircraftContacts.*, CollisionDebug.*, shaders e tres suites CPU.
+    Extrair dados fisicos na mesma leitura OBJ do renderer, indexar BVH,
+    excluir decals, gerar proxies de arvores e diferenciar chao/agua/solidos.
+    Integrar resposta apos predicao da fisica, preservar velocidade de impacto,
+    permitir apoio/pouso/acidente/reinicio e inspecao com B/Enter/--collision-check.
+    Corrigir regressao de rodas em obstaculos baixos, movimento apos toque e
+    decolagem com contato inicial. Documentar docs/collisions.md e verificar
+    testes/GPU com mapa real. Preservar README.md e SPEC.md.
+
+24. Codex (2026-11-02): "pode ser, começe a implementar ent. mas antes crie um
+    arquivo chamado implementation.md explicando tudo q implementamos nesse
+    projeto nesta conversa, eu quero um resumo ultra detalhado, começe com uma
+    visão em alto nivel do q foi feito e depois va para o codigo mostrando ele
+    e como funciona. ent faça implementation.md -> commit e push -> e
+    implementação das colisões"; "lembre-se q implementamos tb a parte de
+    texturas, eu gostaria q o resumo sobre isso tb"; "sobre o avião e o chão".
+    Produzir primeiro um guia tecnico detalhado do snapshot e2917d8, cobrindo
+    arquitetura, assets, texturas/UVs/correcoes do A320 e chao, mapa/split,
+    renderizacao, cameras, animacao Bezier, HUD, testes, build e historico.
+    Incluir trechos reais do codigo e limitacoes, sem alterar README/SPEC.
+    Publicar implementation.md e este prompt na branch colisions antes de
+    iniciar a implementacao modular das colisoes ja discutida.
+
 23. Codex (2026-11-02): "1.5 vezes e roda". Aumentar as escalas atuais dos
     textos de ajuda em 1.5 vezes: 0.8->1.2, 0.7->1.05 e 0.75->1.125.
     Atualizar docs/hud.md, recompilar e abrir o executavel atualizado de

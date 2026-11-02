@@ -14,6 +14,10 @@ set(SOURCES
   src/ui/HudNeedleMotion.cpp
   src/ui/HudInspection.cpp
   src/aircraft/FlightTelemetry.cpp
+  src/collision/collisions.cpp
+  src/collision/CollisionWorld.cpp
+  src/collision/AircraftContacts.cpp
+  src/collision/CollisionDebug.cpp
   src/third_party/tiny_obj_loader.cpp
   src/third_party/stb_image.cpp
   src/third_party/glad.c
@@ -79,6 +83,15 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(collisions_test tests/CollisionsTest.cpp src/collision/collisions.cpp)
+  target_include_directories(collisions_test PRIVATE include src)
+  add_test(NAME collisions COMMAND collisions_test)
+  add_executable(collision_world_test tests/CollisionWorldTest.cpp src/collision/CollisionWorld.cpp src/collision/collisions.cpp)
+  target_include_directories(collision_world_test PRIVATE include src)
+  add_test(NAME collision_world COMMAND collision_world_test)
+  add_executable(aircraft_contacts_test tests/AircraftContactsTest.cpp src/collision/AircraftContacts.cpp src/collision/CollisionWorld.cpp src/collision/collisions.cpp)
+  target_include_directories(aircraft_contacts_test PRIVATE include src)
+  add_test(NAME aircraft_contacts COMMAND aircraft_contacts_test)
   add_executable(hud_needle_motion_test tests/HudNeedleMotionTest.cpp src/ui/HudNeedleMotion.cpp)
   target_include_directories(hud_needle_motion_test PRIVATE include src)
   add_test(NAME hud_needle_motion COMMAND hud_needle_motion_test)

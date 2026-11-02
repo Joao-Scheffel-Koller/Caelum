@@ -50,8 +50,9 @@ prejudicar a profundidade do mapa, há dois passes com a mesma view/FOV:
 
 As camadas `WORLD` e `AIRCRAFT` evitam desenhar o cenário duas vezes. Esse
 tratamento de primeiro plano vale somente no cockpit; oclusão normal em passe
-único é mantida nas outras câmeras. Colisão do avião com edifícios continua
-pendente; entrar em um prédio pode sobrepor a cabine ao cenário.
+único é mantida nas outras câmeras. Os contatos do avião com o cenário são
+resolvidos antes da câmera por `AircraftContacts`, usando volumes aproximados
+(ver `docs/collisions.md`). A câmera livre e a cabeça não têm colisão própria.
 
 ## Livre: observador independente
 
