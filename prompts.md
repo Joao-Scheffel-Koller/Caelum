@@ -1,5 +1,17 @@
 ## File used to store ai prompts
 
+25. Codex (2026-11-02): "Resolva oq esta pendente". Concluir a implementacao
+    de colisoes autorizada no pedido 24, depois da publicacao de implementation.md
+    em d5f0d57. Gerados: src/collision/collisions.*, CollisionWorld.*,
+    AircraftContacts.*, CollisionDebug.*, shaders e tres suites CPU.
+    Extrair dados fisicos na mesma leitura OBJ do renderer, indexar BVH,
+    excluir decals, gerar proxies de arvores e diferenciar chao/agua/solidos.
+    Integrar resposta apos predicao da fisica, preservar velocidade de impacto,
+    permitir apoio/pouso/acidente/reinicio e inspecao com B/Enter/--collision-check.
+    Corrigir regressao de rodas em obstaculos baixos, movimento apos toque e
+    decolagem com contato inicial. Documentar docs/collisions.md e verificar
+    testes/GPU com mapa real. Preservar README.md e SPEC.md.
+
 24. Codex (2026-11-02): "pode ser, começe a implementar ent. mas antes crie um
     arquivo chamado implementation.md explicando tudo q implementamos nesse
     projeto nesta conversa, eu quero um resumo ultra detalhado, começe com uma
