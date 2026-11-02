@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
             char label[160];
             int logicalWidth,logicalHeight;glfwGetWindowSize(window,&logicalWidth,&logicalHeight);
             // Corner help has independent scales from the instruments and FPS.
-            const float headerScale=.8f,controlsScale=.7f,speedScale=.75f;
+            const float headerScale=1.2f,controlsScale=1.05f,speedScale=1.125f;
             const float margin=12.0f;
             const float charPixels=TextRendering_CharWidth(window)*logicalWidth*.5f;
             const auto fits=[&](const std::string& text,float scale,float reserve) {

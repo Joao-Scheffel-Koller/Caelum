@@ -68,7 +68,7 @@ os círculos proporcionais e acompanha o escalonamento do monitor.
 As câmeras C/F/L continuam independentes dos sensores: na câmera livre, o painel
 continua exibindo o avião do jogador. A velocidade adicional da câmera fica
 identificada nos textos de ajuda. Os controles foram movidos para a parte superior.
-Os textos de ajuda usam as escalas 0,8 no cabeçalho, 0,7 nos controles e 0,75
+Os textos de ajuda usam as escalas 1,2 no cabeçalho, 1,05 nos controles e 1,125
 na velocidade da câmera, com margens e espaçamento em pixels.
 Sua largura é medida para escolher versões compactas em janelas menores e
 reservar espaço ao FPS; informações adicionais cedem espaço aos instrumentos.

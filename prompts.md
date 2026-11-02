@@ -1,5 +1,24 @@
 ## File used to store ai prompts
 
+23. Codex (2026-11-02): "1.5 vezes e roda". Aumentar as escalas atuais dos
+    textos de ajuda em 1.5 vezes: 0.8->1.2, 0.7->1.05 e 0.75->1.125.
+    Atualizar docs/hud.md, recompilar e abrir o executavel atualizado de
+    bin/Debug. Preservar SPEC.md e README.md.
+
+22. Codex (2026-11-02): "acho que eu tinha rodado uma versão antiga, diminui na
+    metade e roda de novo". Reduzir pela metade as escalas atuais dos textos
+    de ajuda: 1.6->0.8, 1.4->0.7 e 1.5->0.75. Manter ajuste responsivo,
+    recompilar e abrir o binario atualizado de bin/Debug para teste. Atualizar
+    docs/hud.md; preservar SPEC.md e README.md.
+
+21. Codex (2026-11-02): "da pra aumentar mais um pouco a fonte, dobrar acho q
+    ficaria bom". Dobrar as escalas dos textos de ajuda no canto em main.cpp:
+    cabecalho 0.8->1.6, controles 0.7->1.4 e velocidade da camera 0.75->1.5.
+    Ajustar margens e espacamento em pixels, medir textos para selecionar
+    versoes compactas sem colidir com FPS e evitar sobrepor os instrumentos
+    em janelas pequenas. Preservar tamanho das fontes dos instrumentos/FPS,
+    SPEC.md e README.md. Atualizar docs/hud.md e conferir compilacao/capturas.
+
 20. Codex (2026-11-02): "n teria como fazer as setas serem mais dinamicas? usar
     o angulo de 360 graus e fazer uma escala para que os ponteiros fiquem sendo
     movidos junto do negocio de forma mais real, n só em intervalos fixos".
