@@ -1,0 +1,197 @@
+{
+  "source": "OpenStreetMap rio.osm used by the OSM2World Rio conversion",
+  "source_sha256": "0dd75b824eb1eb11345ac4c5fc6834b090ea1123204db2eb21706aa0519730e4",
+  "license": "ODbL",
+  "attribution": "OpenStreetMap contributors",
+  "copyright_url": "https://www.openstreetmap.org/copyright",
+  "origin_lat_lon": [
+    -22.84895,
+    -43.2142
+  ],
+  "coordinates": "World meters, +Y up, north=-Z; local Mercator scale=40075016.686*cos(origin latitude)",
+  "height_note": "Y=0 is the flat exported map reference, not surveyed MSL elevation. Runtime mission checks wheel-contact elevation separately.",
+  "landing_zone_rule": "Rectangles from runway centerline endpoints and OSM width; excludes displaced-threshold ways 1356281630 and 1356281631. Endpoints retain OSM pavement limits, not a survey of touchdown thresholds.",
+  "runtime_source": "src/mission/Airports.cpp contains the same projected values; JSON is audit metadata, not parsed at runtime.",
+  "airports": [
+    {
+      "id": "SBRJ",
+      "name": "Santos Dumont",
+      "runways": [
+        {
+          "id": "SBRJ-20L-02R",
+          "name": "20L/02R",
+          "osm_way_id": 510811286,
+          "osm_tags": {
+            "aeroway": "runway",
+            "heading": "18;198",
+            "length": "1323",
+            "ref": "20L/02R",
+            "surface": "asphalt",
+            "width": "42"
+          },
+          "osm_endpoint_node_ids": [
+            "111408834",
+            "111408814"
+          ],
+          "start_lat_lon": [
+            -22.9045972,
+            -43.163205
+          ],
+          "end_lat_lon": [
+            -22.9164863,
+            -43.1624422
+          ],
+          "start_world": [
+            5231.29375627029,
+            0.0,
+            6195.886840177295
+          ],
+          "end_world": [
+            5309.545170669083,
+            0.0,
+            7519.975926467563
+          ],
+          "width_m": 42.0,
+          "projected_length_m": 1326.3993336429298,
+          "maximum_centerline_deviation_m": 1.385879281060383
+        },
+        {
+          "id": "SBRJ-20R-02L",
+          "name": "20R/02L",
+          "osm_way_id": 12292143,
+          "osm_tags": {
+            "aeroway": "runway",
+            "heading": "18;198",
+            "length": "1260",
+            "ref": "20R/02L",
+            "surface": "asphalt",
+            "width": "30"
+          },
+          "osm_endpoint_node_ids": [
+            "111408858",
+            "2316614627"
+          ],
+          "start_lat_lon": [
+            -22.9046335,
+            -43.163955
+          ],
+          "end_lat_lon": [
+            -22.9159835,
+            -43.1632225
+          ],
+          "start_world": [
+            5154.355422762664,
+            0.0,
+            6199.92939452656
+          ],
+          "end_world": [
+            5229.498528487885,
+            0.0,
+            7463.976737845704
+          ],
+          "width_m": 30.0,
+          "projected_length_m": 1266.2788683738731,
+          "maximum_centerline_deviation_m": 0.4103763659865942
+        }
+      ],
+      "osm_airport_features": [
+        {
+          "type": "way",
+          "id": 383711861,
+          "name": "Aeroporto Santos Dumont"
+        }
+      ]
+    },
+    {
+      "id": "SBGL",
+      "name": "Galeao",
+      "runways": [
+        {
+          "id": "SBGL-15-33",
+          "name": "15/33",
+          "osm_way_id": 12291116,
+          "osm_tags": {
+            "aeroway": "runway",
+            "heading": "148;328",
+            "length": "3180",
+            "ref": "15/33",
+            "surface": "asphalt",
+            "width": "47"
+          },
+          "osm_endpoint_node_ids": [
+            "12552607854",
+            "12552607852"
+          ],
+          "start_lat_lon": [
+            -22.8284833,
+            -43.2394575
+          ],
+          "end_lat_lon": [
+            -22.8130971,
+            -43.2626605
+          ],
+          "start_world": [
+            -2591.0266114130254,
+            0.0,
+            -2278.171223196737
+          ],
+          "end_world": [
+            -4971.293481238514,
+            0.0,
+            -3990.6007524690267
+          ],
+          "width_m": 47.0,
+          "projected_length_m": 2932.249181824857,
+          "maximum_centerline_deviation_m": 1.6598455589158903
+        },
+        {
+          "id": "SBGL-10-28",
+          "name": "10/28",
+          "osm_way_id": 12291112,
+          "osm_tags": {
+            "aeroway": "runway",
+            "heading": "097;277",
+            "length": "4000",
+            "ref": "10/28",
+            "surface": "concrete",
+            "width": "45"
+          },
+          "osm_endpoint_node_ids": [
+            "111395574",
+            "4245408429"
+          ],
+          "start_lat_lon": [
+            -22.8018403,
+            -43.255189
+          ],
+          "end_lat_lon": [
+            -22.7921764,
+            -43.2176453
+          ],
+          "start_world": [
+            -4204.833802839074,
+            0.0,
+            -5243.320168585817
+          ],
+          "end_world": [
+            -353.4341872436974,
+            0.0,
+            -6318.690257219407
+          ],
+          "width_m": 45.0,
+          "projected_length_m": 3998.7122710362687,
+          "maximum_centerline_deviation_m": 0.8586656001375275
+        }
+      ],
+      "osm_airport_features": [
+        {
+          "type": "relation",
+          "id": 3896781,
+          "name": "RIOgaleão - Aeroporto Internacional Tom Jobim"
+        }
+      ]
+    }
+  ],
+  "recommended_mission_inset_m": 2,
+  "geometry_note": "Runway rectangles approximate the source centerline polylines by their endpoints. The maximum lateral deviation is recorded per runway; a 2 m internal margin exceeds all observed deviations."
+}

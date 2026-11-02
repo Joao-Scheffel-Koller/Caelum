@@ -1,5 +1,32 @@
 ## File used to store ai prompts
 
+27. Codex (2026-11-02): "tem como colocara um ponto de exclamação gigante
+    encima do aeroporto para o jogador saber onde ir? deixe ele oculto com
+    uma tecla para ser desocultado". Implementar MissionMarker modular,
+    exclamacao procedural amarela com contorno acima do Galeao, ancorada no
+    mundo e voltada para a camera, legivel a distancia. Comecar oculto;
+    M alterna visibilidade por pressionamento, independente de H. Desenhar
+    apos cenario/cockpit usando projecao de mundo e coordenadas relativas a
+    camera; preservar estado OpenGL. Atualizar build, ajuda e documentacao
+    tecnica; conferir capturas proxima/distante, testes e registro do prompt.
+    Preservar README.md e SPEC.md.
+
+26. Codex (2026-11-02): "vamos criar a branch mission pela main e trabalhar na
+    parte da missão de ir para o outro aeroporto"; "termine oq restou".
+    Criar mission da main atualizada (2da34fd), preservar README.md/SPEC.md.
+    Implementar geometria de pistas Santos Dumont/Galeao a partir do mesmo
+    extrato OSM, metadados auditaveis em data/rio/airports.json e modulo CPU
+    FlightMission. Confirmar decolagem real da origem, aproximacao, toque
+    fisico dentro da pista do destino, velocidade/alinhamento/apoio e 2 s
+    estaveis; impedir conclusao por proximidade, camera livre, taxiamento
+    desde fora da pista ou ausencia de partida. Ligar apos resposta de colisao,
+    reiniciar com Enter e mostrar orientacoes responsivas via MissionOverlay.
+    Preservar indicacao correta de alinhar/reduzir/manter em janelas pequenas.
+    Validar altura pelos fundos das rodas, aceitando primeiro toque inclinado
+    sem aceitar telhados. Testes CPU, replay contra geometria real e inspecao
+    OpenGL explicita de estados de interface. Documentar docs/mission.md e
+    limitacao atual dos controles de atitude, sem reescrever a fisica do colega.
+
 25. Codex (2026-11-02): "Resolva oq esta pendente". Concluir a implementacao
     de colisoes autorizada no pedido 24, depois da publicacao de implementation.md
     em d5f0d57. Gerados: src/collision/collisions.*, CollisionWorld.*,
