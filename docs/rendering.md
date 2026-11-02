@@ -84,8 +84,9 @@ A partir de `bin/Debug`, para inspecionar com os assets reais:
 .\main.exe --texture-check ../../build/textures-check
 ```
 
-O modo captura 13 vistas em arquivos PPM e encerra: pista próxima/distante,
+O modo captura 15 vistas em arquivos PPM e encerra: pista próxima/distante,
 vista superior do aeroporto, três regiões de parques, cidade, Galeão, avião,
-três posições sobre a pista e cockpit. Cada captura consulta erros OpenGL.
+três posições sobre a pista, cockpit e duas vistas do tráfego Bézier.
+Cada captura consulta erros OpenGL. A animação está descrita em `docs/bezier.md`.
 As vistas são uma amostra de inspeção; não cobrem cada material ou cada ponto
 da cidade. Sem o argumento, a aplicação abre normalmente para interação.

@@ -4,6 +4,7 @@
 SOURCES := src/main.cpp src/course/correcao.cpp src/ui/textrendering.cpp \
            src/third_party/glad.c src/third_party/tiny_obj_loader.cpp src/third_party/stb_image.cpp \
            src/aircraft/Aircraft.cpp src/aircraft/FlightModel.cpp \
+           src/animation/BezierPath.cpp src/aircraft/BezierFlight.cpp \
            src/camera/CameraController.cpp src/camera/CameraInput.cpp src/camera/MouseCapture.cpp \
            src/platform/FrameLimiter.cpp src/render/GameScene.cpp src/render/ModelRenderer.cpp \
            src/render/MaterialPolicy.cpp src/render/RenderInspection.cpp

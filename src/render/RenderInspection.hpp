@@ -1,6 +1,7 @@
 #ifndef CAELUM_RENDER_INSPECTION_HPP
 #define CAELUM_RENDER_INSPECTION_HPP
 #include "camera/CameraController.hpp"
+#include "aircraft/BezierFlight.hpp"
 #include <string>
 struct GLFWwindow;
 
@@ -8,7 +9,7 @@ struct GLFWwindow;
 class RenderInspection {
 public:
     explicit RenderInspection(const std::string& prefix):prefix(prefix) {}
-    CameraPose Camera(const CameraFrame& aircraft) const;
+    CameraPose Camera(const CameraFrame& aircraft,const FlightPose& traffic) const;
     bool Cockpit() const;
     bool Capture(GLFWwindow* window);
 private:

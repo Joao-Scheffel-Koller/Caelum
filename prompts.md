@@ -1,5 +1,25 @@
 ## File used to store ai prompts
 
+18. Codex (2026-11-02): "pode continuar a resolver as curvas de bezier".
+    Retomar e concluir a validacao da implementacao na branch bezier. Revisar
+    matematica, reutilizacao da malha e passes do cockpit; explicitar a operacao
+    de Euler em BezierFlight.cpp. Acrescentar regressoes de continuidade da pose
+    nas quatro juncoes e de evolucao ao longo de varias voltas. Manter SPEC.md
+    e README.md intactos; compilar, executar os testes e abrir a versao normal.
+
+17. Codex (2026-11-01): "vamos para a curva de bezier, crie uma branch chamada
+    bezier e começar a pensar na implementação"; "acho q é bom usar um desses
+    metodos do slide, integração numerica pelo menos, ta nos planos ja?";
+    "pode implementar ent". Usar Aula_24_Animacao.pdf do professor como referencia
+    para Euler explicito com dt real. Implementar quatro cubicas fechadas,
+    consulta por comprimento aproximado e seguidor autonomo com orientacao pela
+    tangente/inclinacao moderada. Reutilizar a malha GPU do A320 como segunda
+    instancia, com NPC no passe WORLD e atualizacao unica por quadro.
+    Gerados com IA: src/animation/BezierPath.*, src/aircraft/BezierFlight.*,
+    tests/BezierFlightTest.cpp e docs/bezier.md. Integracao em GameScene,
+    main.cpp, RenderInspection, CMake, Makefile.macOS e docs/rendering.md.
+    Branch criada a partir da main apos merge da camera; preservar SPEC/README.
+
 16. Codex (2026-11-01): "justo, faça um AI_README.md para guardar o seu readme
     e apague oq esta no readme atual"; "perfeito, pode dar commit e push na
     branch". Preservar as notas geradas por IA e creditos em AI_README.md,

@@ -10,6 +10,7 @@
 namespace {
 struct View {const char* name;glm::vec3 eye,target,up;};
 const View Views[]={
+    {"bezier-start",{0,0,0},{0,0,0},{0,1,0}},
     {"runway-low",{5237,7,6220},{5240,0,6470},{0,1,0}},
     {"runway-high",{5237,140,6200},{5240,0,6500},{0,1,0}},
     {"airport-top",{5300,800,7000},{5300,0,7000},{0,0,-1}},
@@ -22,7 +23,8 @@ const View Views[]={
     {"runway-move-a",{5237,12,6250},{5240,0,6500},{0,1,0}},
     {"runway-move-b",{5237,12,6260},{5240,0,6510},{0,1,0}},
     {"runway-move-c",{5237,12,6270},{5240,0,6520},{0,1,0}},
-    {"cockpit",{0,0,0},{0,0,0},{0,1,0}}
+    {"cockpit",{0,0,0},{0,0,0},{0,1,0}},
+    {"bezier-later",{0,0,0},{0,0,0},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;
@@ -32,9 +34,18 @@ bool RenderInspection::Cockpit() const {
     return std::strcmp(Views[frame/FramesPerView].name,"cockpit")==0;
 }
 
-CameraPose RenderInspection::Camera(const CameraFrame& aircraft) const {
+CameraPose RenderInspection::Camera(const CameraFrame& aircraft,const FlightPose& traffic) const {
     const auto& view=Views[frame/FramesPerView];
     CameraPose pose;
+    if(std::strncmp(view.name,"bezier-",7)==0) {
+        pose.position=traffic.position-traffic.forward*90.0f+traffic.right*65.0f+glm::vec3(0,25,0);
+        pose.forward=glm::normalize(traffic.position-pose.position);
+        if(frame%FramesPerView==0) {
+            std::printf("Traffic %s: (%.3f, %.3f, %.3f)\n",view.name,traffic.position.x,traffic.position.y,traffic.position.z);
+            std::fflush(stdout);
+        }
+        return pose;
+    }
     if(Cockpit()) {
         pose.position=glm::vec3(aircraft.aircraftModel*glm::vec4(aircraft.cockpitEyeLocal,1));
         pose.forward=glm::normalize(glm::vec3(aircraft.aircraftModel[0]));
