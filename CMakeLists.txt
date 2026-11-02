@@ -18,6 +18,11 @@ set(SOURCES
   src/collision/CollisionWorld.cpp
   src/collision/AircraftContacts.cpp
   src/collision/CollisionDebug.cpp
+  src/mission/Airports.cpp
+  src/mission/FlightMission.cpp
+  src/mission/MissionInspection.cpp
+  src/ui/MissionOverlay.cpp
+  src/ui/MissionMarker.cpp
   src/third_party/tiny_obj_loader.cpp
   src/third_party/stb_image.cpp
   src/third_party/glad.c
@@ -83,6 +88,12 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(airports_test tests/AirportsTest.cpp src/mission/Airports.cpp)
+  target_include_directories(airports_test PRIVATE include src)
+  add_test(NAME airports COMMAND airports_test)
+  add_executable(flight_mission_test tests/FlightMissionTest.cpp src/mission/FlightMission.cpp src/mission/Airports.cpp)
+  target_include_directories(flight_mission_test PRIVATE include src)
+  add_test(NAME flight_mission COMMAND flight_mission_test)
   add_executable(collisions_test tests/CollisionsTest.cpp src/collision/collisions.cpp)
   target_include_directories(collisions_test PRIVATE include src)
   add_test(NAME collisions COMMAND collisions_test)

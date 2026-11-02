@@ -6,6 +6,7 @@
 #include "aircraft/BezierFlight.hpp"
 #include "collision/CollisionWorld.hpp"
 #include "collision/AircraftContacts.hpp"
+#include "mission/FlightMission.hpp"
 
 enum class SceneLayer { ALL, WORLD, AIRCRAFT };
 
@@ -21,6 +22,8 @@ public:
     std::vector<collision::ProbeSphere> PlayerProbes(Aircraft& aircraft) const;
     const collision::CollisionWorld& PhysicalWorld() const {return physicalWorld;}
     bool InspectCollisions(Aircraft& aircraft,const std::string& report) const;
+    mission::MissionSample PlayerMissionSample(Aircraft& aircraft) const;
+    bool InspectMission(Aircraft& aircraft,const std::string& report) const;
     static collision::AircraftPose PhysicalPose(Aircraft& aircraft);
     void Update(double dt) {traffic.Update(dt);}
     FlightPose TrafficPose() const {return traffic.Pose();}

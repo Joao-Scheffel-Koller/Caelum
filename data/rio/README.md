@@ -57,6 +57,14 @@ XZ=(5237.1933, 6295.7127), direcao XZ=(0.05899537, 0.99825826). A altura foi
 conferida nos triangulos `ASPHALT_0` de `rio_x+002_z+003.obj`: Y=0. O modelo do
 aviao e posicionado pela base das rodas, mantendo a escala original em metros.
 
+## Pistas para a missao
+
+`airports.json` registra os eixos e larguras das duas pistas do Santos Dumont e
+das duas do Galeao, extraidos do mesmo OSM da conversao. Inclui IDs, tags,
+coordenadas geograficas/projetadas, origem Mercator, hash do extrato e creditos.
+Os valores de execucao ficam em `src/mission/Airports.cpp`; o JSON e metadado
+de auditoria. As regras de partida e chegada estao em `docs/mission.md`.
+
 ## Regra de divisao
 
 - Grade XZ de 2000 metros, ancorada em (0, 0).

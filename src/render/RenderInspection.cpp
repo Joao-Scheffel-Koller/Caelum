@@ -1,4 +1,5 @@
 #include "render/RenderInspection.hpp"
+#include "mission/Airports.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <vector>
@@ -18,7 +19,8 @@ const View Views[]={
     {"park-center",{4470,450,7100},{4470,0,7100},{0,0,-1}},
     {"park-south",{4300,650,7700},{4300,0,7700},{0,0,-1}},
     {"city",{3700,500,5900},{4200,0,5700},{0,1,0}},
-    {"galeao",{1400,600,-4200},{1800,0,-4000},{0,1,0}},
+    {"galeao",{0,0,0},{0,0,0},{0,1,0}},
+    {"destination-far",{0,0,0},{0,0,0},{0,1,0}},
     {"aircraft",{5190,14,6295},{5237,6,6295},{0,1,0}},
     {"runway-move-a",{5237,12,6250},{5240,0,6500},{0,1,0}},
     {"runway-move-b",{5237,12,6260},{5240,0,6510},{0,1,0}},
@@ -37,6 +39,17 @@ bool RenderInspection::Cockpit() const {
 CameraPose RenderInspection::Camera(const CameraFrame& aircraft,const FlightPose& traffic) const {
     const auto& view=Views[frame/FramesPerView];
     CameraPose pose;
+    if(std::strcmp(view.name,"galeao")==0||std::strcmp(view.name,"destination-far")==0) {
+        const auto& runways=mission::Galeao().runways;
+        glm::dvec3 center(0);
+        for(const auto& runway:runways)center+=(runway.start+runway.end)*.5;
+        center/=double(runways.size());
+        const bool distant=std::strcmp(view.name,"destination-far")==0;
+        pose.position=distant?aircraft.orbitTarget+glm::vec3(0,150,0):
+                              glm::vec3(center)+glm::vec3(1200,1000,2200);
+        pose.forward=glm::normalize(glm::vec3(center)+glm::vec3(0,distant?450.0f:225.0f,0)-pose.position);
+        return pose;
+    }
     if(std::strncmp(view.name,"bezier-",7)==0) {
         pose.position=traffic.position-traffic.forward*90.0f+traffic.right*65.0f+glm::vec3(0,25,0);
         pose.forward=glm::normalize(traffic.position-pose.position);
