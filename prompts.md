@@ -1,5 +1,30 @@
 ## File used to store ai prompts
 
+20. Codex (2026-11-02): "n teria como fazer as setas serem mais dinamicas? usar
+    o angulo de 360 graus e fazer uma escala para que os ponteiros fiquem sendo
+    movidos junto do negocio de forma mais real, n só em intervalos fixos".
+    Suavizar os ponteiros com resposta exponencial baseada em dt sem alterar
+    a fisica ou as leituras numericas. Modulo CPU HudNeedleMotion.* com testes
+    de FPS, menor arco da bussola, altitude antes do modulo e validade dos dados.
+    Usar 300 graus para velocidade/potencia, distinguindo zero de maximo, e
+    manter 360 graus em bussola/altimetro. Unificar marcas/ponteiros pela mesma
+    funcao de escala e testar movimento entre valores fracionarios. Integrar
+    ao FlightHud/main/build e documentar em docs/hud.md. Preservar SPEC/README.
+
+19. Codex (2026-11-02): "vamos no hud ent, como poderiamos fazer?";
+    "pode implementar todos da hud"; "pode terminar oq falta".
+    Criar branch hud a partir da main atualizada.
+    Implementar altimetro, velocimetro, potencia/throttle, bussola e horizonte
+    artificial com ponteiros/indicadores dinamicos, usando dados reais do jogador.
+    Separar telemetria pura, layout responsivo e desenho OpenGL 2D, usando fonte
+    existente e shaders proprios sem construtores de matrizes de bibliotecas.
+    Gerados com IA: FlightTelemetry.*, FlightHud.*, HudLayout.*, HudInspection.*,
+    shaders em src/ui/shaders/, testes de telemetria/layout e docs/hud.md.
+    Integrar ao main/CMake/Makefile, preservar estado OpenGL e recursos, testar
+    as tres cameras, resolucoes e atitudes por --hud-check com fixtures somente
+    no modo de desenvolvimento. Verificar continuidade do altimetro em 1000 m
+    e legibilidade na janela 320x240. Manter SPEC.md e README.md intactos.
+
 18. Codex (2026-11-02): "pode continuar a resolver as curvas de bezier".
     Retomar e concluir a validacao da implementacao na branch bezier. Revisar
     matematica, reutilizacao da malha e passes do cockpit; explicitar a operacao

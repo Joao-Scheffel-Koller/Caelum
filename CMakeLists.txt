@@ -9,6 +9,9 @@ set(SOURCES
   src/main.cpp
   src/course/correcao.cpp
   src/ui/textrendering.cpp
+  src/ui/HudLayout.cpp
+  src/ui/HudNeedleMotion.cpp
+  src/aircraft/FlightTelemetry.cpp
   src/third_party/tiny_obj_loader.cpp
   src/third_party/stb_image.cpp
   src/third_party/glad.c
@@ -74,6 +77,15 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(hud_needle_motion_test tests/HudNeedleMotionTest.cpp src/ui/HudNeedleMotion.cpp)
+  target_include_directories(hud_needle_motion_test PRIVATE include src)
+  add_test(NAME hud_needle_motion COMMAND hud_needle_motion_test)
+  add_executable(flight_telemetry_test tests/FlightTelemetryTest.cpp src/aircraft/FlightTelemetry.cpp)
+  target_include_directories(flight_telemetry_test PRIVATE include src)
+  add_test(NAME flight_telemetry COMMAND flight_telemetry_test)
+  add_executable(hud_layout_test tests/HudLayoutTest.cpp src/ui/HudLayout.cpp)
+  target_include_directories(hud_layout_test PRIVATE src)
+  add_test(NAME hud_layout COMMAND hud_layout_test)
   add_executable(bezier_flight_test tests/BezierFlightTest.cpp src/animation/BezierPath.cpp src/aircraft/BezierFlight.cpp)
   target_include_directories(bezier_flight_test PRIVATE include src)
   add_test(NAME bezier_flight COMMAND bezier_flight_test)
