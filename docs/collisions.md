@@ -188,7 +188,8 @@ identifica automaticamente aeroportos só por encontrar asfalto.
 
 `Grounded` significa apoio geométrico, inclusive em terra firme fora da pista;
 não significa que a missão foi concluída. As zonas explícitas das pistas e o
-objetivo Santos Dumont→Galeão continuam na etapa de lógica da missão. O avião
+objetivo Santos Dumont→Galeão são tratados pelo módulo `FlightMission`, descrito
+em [mission.md](mission.md). O avião
 autônomo permanece uma instância visual animada, sem colisão entre aeronaves.
 O controle completo da atitude do jogador também continua a cargo da evolução
 do modelo de voo; as colisões já aceitam essas orientações pela interface vetorial.

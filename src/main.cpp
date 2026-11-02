@@ -59,6 +59,10 @@
 #include "ui/FlightHud.hpp"
 #include "ui/HudInspection.hpp"
 #include "collision/CollisionDebug.hpp"
+#include "mission/FlightMission.hpp"
+#include "mission/MissionInspection.hpp"
+#include "ui/MissionOverlay.hpp"
+#include "ui/MissionMarker.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -208,6 +212,7 @@ bool g_UsePerspectiveProjection = true;
 // Variável que controla se o texto informativo será mostrado na tela.
 bool g_ShowInfoText = true;
 bool g_ShowCollisionVolumes=false,g_ResetFlightRequested=false,g_PlayerCrashed=false;
+bool g_ShowMissionMarker=false;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint g_GpuProgramID = 0;
@@ -233,12 +238,20 @@ int main(int argc, char* argv[])
 {
     // Optional developer check: load the real scene, render 60 frames, then exit.
     const bool collision_check=argc>2&&std::string(argv[1])=="--collision-check";
+    const bool mission_check=argc>2&&std::string(argv[1])=="--mission-check";
+    bool missionInspectionActive=mission_check;
+    MissionInspection missionInspection(mission_check?argv[2]:"");
     const bool smoke_test = collision_check||(argc > 1 && std::string(argv[1]) == "--smoke-test");
     const bool texture_check=argc>2 && std::string(argv[1])=="--texture-check";
     const bool hud_check=argc>2 && std::string(argv[1])=="--hud-check";
     RenderInspection inspection(texture_check?argv[2]:"");
     HudInspection hudInspection(hud_check?argv[2]:"");
-    const bool keep_open = smoke_test && argc > 4 && std::string(argv[4]) == "--keep-open";
+    bool keep_open=false;
+    for(int i=3;i<argc;++i) {
+        if(std::string(argv[i])=="--keep-open")keep_open=true;
+        // Explicit opt-in for repeatable GPU inspections. Normal play starts hidden.
+        if(std::string(argv[i])=="--show-mission-marker")g_ShowMissionMarker=true;
+    }
     int rendered_frames = 0;
     int exit_code = EXIT_SUCCESS;
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -319,6 +332,8 @@ int main(int argc, char* argv[])
 
     // AI-assisted scene integration. Release GPU resources before destroying GLFW.
     std::unique_ptr<GameScene> scene(new GameScene);
+    mission::FlightMission flightMission;
+    MissionOverlay missionOverlay;
     try {
         scene->Load(window);
         scene->ResetPlayer(MainAircraft);
@@ -327,6 +342,9 @@ int main(int argc, char* argv[])
                 throw std::runtime_error("Collision integration inspection failed");
             g_ShowCollisionVolumes=true;
         }
+        if(mission_check&&!scene->InspectMission(MainAircraft,std::string(argv[2])+".txt"))
+            throw std::runtime_error("Mission integration inspection failed");
+        flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
     } catch(const std::exception& error) {
         fprintf(stderr,"Scene loading failed: %s\n",error.what());
         scene.reset();
@@ -351,6 +369,7 @@ int main(int argc, char* argv[])
     TextRendering_Init();
     std::unique_ptr<FlightHud> hud(new FlightHud);
     std::unique_ptr<CollisionDebug> collisionDebug(new CollisionDebug);
+    std::unique_ptr<MissionMarker> missionMarker(new MissionMarker);
 
     // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
     glEnable(GL_DEPTH_TEST);
@@ -369,6 +388,7 @@ int main(int argc, char* argv[])
     {
         frameLimiter.Wait();
         if(hud_check)hudInspection.Prepare(window,g_Camera,g_CameraFrame);
+        if(missionInspectionActive)missionInspection.Prepare(window);
         // Read the latest mouse events immediately before computing this view.
         glfwPollEvents();
         if(glfwWindowShouldClose(window))break;
@@ -403,16 +423,18 @@ int main(int argc, char* argv[])
         float dt = static_cast<float>(elapsed);
         if(g_ResetFlightRequested) {
             scene->ResetPlayer(MainAircraft);g_ResetFlightRequested=false;g_PlayerCrashed=false;
+            flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
             g_CameraFrame=scene->Cameras(MainAircraft);g_Camera.Reset(g_CameraFrame);
         }
         const auto previousPose=GameScene::PhysicalPose(MainAircraft);
+        const double physicsStep=std::min(dt,0.05f);
         // Keep the existing physics step limit; camera travel uses real elapsed time.
         if(!g_PlayerCrashed) {
-            const double physicsStep=std::min(dt,0.05f);
             MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
             scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
             g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
         }
+        flightMission.Update(scene->PlayerMissionSample(MainAircraft),physicsStep);
         previous_time = current_time;
         scene->Update(elapsed); // Euler advances traffic once, outside all draw passes.
         g_CameraFrame=scene->Cameras(MainAircraft);
@@ -469,6 +491,7 @@ int main(int argc, char* argv[])
         }
 
         if(g_ShowCollisionVolumes)collisionDebug->Draw(scene->PlayerProbes(MainAircraft),view,projection,camera.position);
+        if(g_ShowMissionMarker)missionMarker->Draw(window,view,projection,camera.position);
 
         FlightTelemetry readings=CalculateFlightTelemetry(MainAircraft.get_position(),MainAircraft.get_velocity(),
             MainAircraft.get_forward(),MainAircraft.get_up(),MainAircraft.get_throttle());
@@ -476,42 +499,45 @@ int main(int argc, char* argv[])
         hud->Update(readings,elapsed);
         if(g_ShowInfoText) {
             hud->Draw(window,readings);
-            const char* mode=cockpit?"cockpit":g_Camera.Mode()==CameraType::FREE?"livre":"externa";
-            char label[160];
-            int logicalWidth,logicalHeight;glfwGetWindowSize(window,&logicalWidth,&logicalHeight);
-            // Corner help has independent scales from the instruments and FPS.
-            const float headerScale=1.2f,controlsScale=1.05f,speedScale=1.125f;
-            const float margin=12.0f;
-            const float charPixels=TextRendering_CharWidth(window)*logicalWidth*.5f;
-            const auto fits=[&](const std::string& text,float scale,float reserve) {
-                return text.size()*charPixels*scale<=logicalWidth-2*margin-reserve;
-            };
-            const float firstBaseline=std::max(26.0f,.04f*logicalHeight);
-            const float lineStep=std::max(28.0f,TextRendering_LineHeight(window)*logicalHeight*.5f*headerScale);
-            const float textX=-1+2*margin/logicalWidth;
-            const auto printHelp=[&](const std::string& text,float baseline,float scale) {
-                TextRendering_PrintString(window,text,textX,1-2*baseline/logicalHeight,scale);
-            };
-            snprintf(label,sizeof(label),"Camera: %s | C: cockpit  F: livre  L: externa | H: HUD",mode);
-            if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L: cameras",mode);
-            if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L",mode);
-            printHelp(label,firstBaseline,headerScale);
-            const char* controls=cockpit?"Botao direito: olhar | Setas/PgUp/PgDn: cabeca | Home: centralizar":
-                g_Camera.Mode()==CameraType::FREE?"WASD: mover | Q/E: descer/subir | Shift: acelerar | Botao direito: olhar":
-                "Botao direito: orbitar | Rodinha: distancia | Home: restaurar";
-            if(!fits(controls,controlsScale,0))controls=cockpit?
-                "Dir.: olhar | Setas/Pg: cabeca | Home: reset":g_Camera.Mode()==CameraType::FREE?
-                "WASD: mover | Q/E: altura | Dir.: olhar":
-                "Dir.: orbitar | Roda: distancia | Home: reset";
-            if(logicalWidth>=650)printHelp(controls,firstBaseline+lineStep,controlsScale);
-            if(g_Camera.Mode()==CameraType::FREE) {
-                snprintf(label,sizeof(label),"Camera livre: %.0f m/s | Rodinha: ajustar",g_Camera.FreeSpeed());
-                if(!fits(label,speedScale,0))snprintf(label,sizeof(label),"Livre: %.0f m/s",g_Camera.FreeSpeed());
-                float instrumentsTop=static_cast<float>(logicalHeight);
-                for(const auto& dial:CalculateHudLayout(logicalWidth,logicalHeight).dials)
-                    instrumentsTop=std::min(instrumentsTop,dial.y-dial.radius);
-                const float baseline=firstBaseline+lineStep*(logicalWidth>=650?2:1);
-                if(baseline<instrumentsTop-4)printHelp(label,baseline,speedScale);
+            int helpWidth,helpHeight;glfwGetWindowSize(window,&helpWidth,&helpHeight);
+            if(helpWidth>=650||helpHeight>=360) {
+                const char* mode=cockpit?"cockpit":g_Camera.Mode()==CameraType::FREE?"livre":"externa";
+                char label[160];
+                int logicalWidth,logicalHeight;glfwGetWindowSize(window,&logicalWidth,&logicalHeight);
+                // Corner help has independent scales from the instruments and FPS.
+                const float headerScale=1.2f,controlsScale=1.05f,speedScale=1.125f;
+                const float margin=12.0f;
+                const float charPixels=TextRendering_CharWidth(window)*logicalWidth*.5f;
+                const auto fits=[&](const std::string& text,float scale,float reserve) {
+                    return text.size()*charPixels*scale<=logicalWidth-2*margin-reserve;
+                };
+                const float firstBaseline=std::max(26.0f,.04f*logicalHeight);
+                const float lineStep=std::max(28.0f,TextRendering_LineHeight(window)*logicalHeight*.5f*headerScale);
+                const float textX=-1+2*margin/logicalWidth;
+                const auto printHelp=[&](const std::string& text,float baseline,float scale) {
+                    TextRendering_PrintString(window,text,textX,1-2*baseline/logicalHeight,scale);
+                };
+                snprintf(label,sizeof(label),"Camera: %s | C: cockpit  F: livre  L: externa | H: HUD",mode);
+                if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L: cameras",mode);
+                if(!fits(label,headerScale,96))snprintf(label,sizeof(label),"%s | C/F/L",mode);
+                printHelp(label,firstBaseline,headerScale);
+                const char* controls=cockpit?"Botao direito: olhar | Setas/PgUp/PgDn: cabeca | Home: centralizar":
+                    g_Camera.Mode()==CameraType::FREE?"WASD: mover | Q/E: descer/subir | Shift: acelerar | Botao direito: olhar":
+                    "Botao direito: orbitar | Rodinha: distancia | Home: restaurar";
+                if(!fits(controls,controlsScale,0))controls=cockpit?
+                    "Dir.: olhar | Setas/Pg: cabeca | Home: reset":g_Camera.Mode()==CameraType::FREE?
+                    "WASD: mover | Q/E: altura | Dir.: olhar":
+                    "Dir.: orbitar | Roda: distancia | Home: reset";
+                if(logicalWidth>=650)printHelp(controls,firstBaseline+lineStep,controlsScale);
+                if(g_Camera.Mode()==CameraType::FREE) {
+                    snprintf(label,sizeof(label),"Camera livre: %.0f m/s | Rodinha: ajustar",g_Camera.FreeSpeed());
+                    if(!fits(label,speedScale,0))snprintf(label,sizeof(label),"Livre: %.0f m/s",g_Camera.FreeSpeed());
+                    float instrumentsTop=static_cast<float>(logicalHeight);
+                    for(const auto& dial:CalculateHudLayout(logicalWidth,logicalHeight).dials)
+                        instrumentsTop=std::min(instrumentsTop,dial.y-dial.radius);
+                    const float baseline=firstBaseline+lineStep*(logicalWidth>=650?2:1);
+                    if(baseline<instrumentsTop-4)printHelp(label,baseline,speedScale);
+                }
             }
         }
         if(g_ShowInfoText||g_PlayerCrashed) {
@@ -520,16 +546,25 @@ int main(int argc, char* argv[])
             const char* state=contact.state==collision::AircraftState::Grounded?"No solo":
                               contact.state==collision::AircraftState::Crashed?"Acidente":"Em voo";
             if(g_PlayerCrashed)snprintf(status,sizeof(status),"%s: %s | Enter: reiniciar",state,collision::CrashReasonText(contact.reason));
-            else snprintf(status,sizeof(status),"%s | Enter: reiniciar | B: volumes de colisao",state);
+            else snprintf(status,sizeof(status),"%s | Enter: reiniciar | B: colisoes | M: destino %s",state,
+                          g_ShowMissionMarker?"visivel":"oculto");
             int w,h;glfwGetWindowSize(window,&w,&h);
-            if(w>=650||g_PlayerCrashed) {
+            if(w>=650) {
                 const float baseline=std::max(26.0f,.04f*h)+84.0f;
                 TextRendering_PrintString(window,status,-1+24.0f/w,1-2*baseline/h,w<650?.85f:1.0f);
             }
         }
+        const auto& missionState=flightMission.Snapshot();
+        const auto visibleMission=missionInspectionActive?missionInspection.Preview(missionState):missionState;
+        if(g_ShowInfoText||visibleMission.stage==mission::Stage::Completed||visibleMission.stage==mission::Stage::Failed)
+            missionOverlay.Draw(window,visibleMission);
         TextRendering_ShowFramesPerSecond(window);
         if(texture_check && inspection.Capture(window))glfwSetWindowShouldClose(window,GL_TRUE);
         if(hud_check && hudInspection.Capture(window))glfwSetWindowShouldClose(window,GL_TRUE);
+        if(missionInspectionActive&&missionInspection.Capture(window)) {
+            if(keep_open) {missionInspectionActive=false;glfwSetWindowSize(window,1280,720);}
+            else glfwSetWindowShouldClose(window,GL_TRUE);
+        }
 
         if (smoke_test)
         {
@@ -573,6 +608,7 @@ int main(int argc, char* argv[])
     // Finalizamos o uso dos recursos do sistema operacional
     g_CameraInput.reset();
     collisionDebug.reset();
+    missionMarker.reset();
     hud.reset();
     scene.reset();
     glfwTerminate();
@@ -1211,6 +1247,7 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
 
     if(key==GLFW_KEY_ENTER&&action==GLFW_PRESS)g_ResetFlightRequested=true;
     if(key==GLFW_KEY_B&&action==GLFW_PRESS)g_ShowCollisionVolumes=!g_ShowCollisionVolumes;
+    if(key==GLFW_KEY_M&&action==GLFW_PRESS)g_ShowMissionMarker=!g_ShowMissionMarker;
     if(g_PlayerCrashed&&(key==GLFW_KEY_W||key==GLFW_KEY_S))return;
 
     // Se o usuário pressionar a tecla ESC, fechamos a janela.

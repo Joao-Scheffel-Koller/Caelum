@@ -8,6 +8,19 @@
 // Forward declaration avoids duplicating the header's non-inline definitions.
 glm::mat4 Matrix_Translate(float tx,float ty,float tz);
 
+namespace {
+mission::MissionSample MissionInput(const collision::ContactResult& contact,
+                                    const std::vector<collision::ProbeSphere>& probes) {
+    mission::MissionSample sample;
+    sample.position=contact.position;sample.velocity=contact.velocity;sample.forward=contact.forward;
+    sample.aircraftState=contact.state;sample.gearContacts=contact.gearContacts;
+    for(const auto& probe:probes)if(probe.gear) {
+        sample.gearCenters.push_back(probe.center);sample.gearRadii.push_back(probe.radius);
+    }
+    return sample;
+}
+}
+
 void GameScene::Load(GLFWwindow* window) {
     aircraftModel=renderer.Load("../../data/aircraft/aircraft.obj");
     contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
@@ -57,6 +70,102 @@ void GameScene::ResetPlayer(Aircraft& aircraft) {
 }
 std::vector<collision::ProbeSphere> GameScene::PlayerProbes(Aircraft& aircraft) const {
     return contacts.DebugSpheres(PhysicalPose(aircraft));
+}
+mission::MissionSample GameScene::PlayerMissionSample(Aircraft& aircraft) const {
+    return MissionInput(playerContact,PlayerProbes(aircraft));
+}
+bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) const {
+    // Developer-only deterministic replay. Uses actual runway coordinates,
+    // loaded map geometry and the same contact resolver; never moves the player.
+    std::ofstream output(report);
+    if(!output)throw std::runtime_error("Cannot create mission report: "+report);
+    bool passed=true;
+    const auto check=[&](bool condition,const std::string& name) {
+        output<<(condition?"PASS ":"FAIL ")<<name<<'\n';
+        std::printf("Mission integration: %s %s\n",condition?"PASS":"FAIL",name.c_str());
+        passed=passed&&condition;
+    };
+    for(const auto* airport:{&mission::SantosDumont(),&mission::Galeao()})for(const auto& runway:airport->runways) {
+        for(double fraction:{.2,.5,.8}) {
+            const auto center=runway.start*(1-fraction)+runway.end*fraction;
+            const auto hit=physicalWorld.SweepSphere(center+glm::dvec3(0,5,0),center-glm::dvec3(0,2,0),.1);
+            check(hit.hit&&hit.surface==collision::Surface::Ground&&hit.normal.y>.95&&std::abs(hit.point.y-center.y)<.005,
+                  runway.id+" centerline matches the actual exported ground");
+        }
+    }
+    const auto origin=PlayerMissionSample(aircraft);
+    check(origin.aircraftState==collision::AircraftState::Grounded&&origin.gearContacts==3,
+          "real player begins supported at Santos Dumont");
+    for(const auto& runway:mission::Galeao().runways) {
+        mission::FlightMission replay;
+        replay.Update(origin,0);
+        auto airborne=origin;
+        airborne.aircraftState=collision::AircraftState::Flying;airborne.gearContacts=0;
+        airborne.position.y+=20;airborne.velocity=origin.forward*60.0;
+        for(auto& gear:airborne.gearCenters)gear.y+=20;
+        replay.Update(airborne,0);
+        for(int i=0;i<60;++i)replay.Update(airborne,1.0/60);
+        check(replay.Snapshot().departed,"origin support and actual liftoff arm the mission");
+        const auto center=(runway.start+runway.end)*.5;
+        const auto direction=glm::normalize(runway.end-runway.start);
+        auto approach=airborne;
+        const auto offset=center+glm::dvec3(0,100,0)-approach.position;
+        approach.position+=offset;approach.forward=direction;approach.velocity=direction*60.0;
+        for(auto& gear:approach.gearCenters)gear+=offset;
+        replay.Update(approach,1.0/60);
+        check(replay.Snapshot().stage==mission::Stage::Approach,"arrival guidance uses the actual destination runway area");
+        auto inclinedArrival=replay;
+        const double pitch=-5.0*std::acos(-1.0)/180.0;
+        collision::AircraftPose inclinedHigh,inclinedLow;
+        inclinedHigh.position=center+glm::dvec3(0,4,0);
+        inclinedHigh.forward=direction*std::cos(pitch)+glm::dvec3(0,std::sin(pitch),0);
+        inclinedHigh.up=-direction*std::sin(pitch)+glm::dvec3(0,std::cos(pitch),0);
+        inclinedLow=inclinedHigh;inclinedLow.position=center;
+        collision::AircraftContacts inclinedContacts;
+        inclinedContacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        const auto inclined=inclinedContacts.Resolve(physicalWorld,inclinedHigh,inclinedLow,
+                                                   direction*3.0+glm::dvec3(0,-1,0),4.0);
+        collision::AircraftPose inclinedSettled;
+        inclinedSettled.position=inclined.position;inclinedSettled.forward=inclined.forward;inclinedSettled.up=inclined.up;
+        check(inclined.state==collision::AircraftState::Grounded&&inclined.gearContacts==1&&inclined.position.y>1,
+              runway.id+" safe inclined first-wheel touchdown has an elevated pivot");
+        inclinedArrival.Update(MissionInput(inclined,inclinedContacts.DebugSpheres(inclinedSettled)),4.0);
+        collision::AircraftPose high,low;
+        high.position=center+glm::dvec3(0,1,0);high.forward=direction;
+        low=high;low.position=center-glm::dvec3(0,.01,0);
+        collision::AircraftContacts arrival;
+        arrival.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        const auto contact=arrival.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-1,0),1.01);
+        check(contact.state==collision::AircraftState::Grounded&&contact.gearContacts==3,
+              runway.id+" supports the A320 landing gear at arrival");
+        collision::AircraftPose settled;
+        settled.position=contact.position;settled.forward=contact.forward;settled.up=contact.up;
+        const auto sample=MissionInput(contact,arrival.DebugSpheres(settled));
+        auto failedArrival=replay;
+        collision::AircraftContacts impact;
+        impact.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        const auto crash=impact.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-30,0),1.01);
+        collision::AircraftPose stopped;stopped.position=crash.position;stopped.forward=crash.forward;stopped.up=crash.up;
+        failedArrival.Update(MissionInput(crash,impact.DebugSpheres(stopped)),1.01);
+        check(crash.state==collision::AircraftState::Crashed&&failedArrival.Snapshot().stage==mission::Stage::Failed,
+              runway.id+" actual hard impact fails the mission");
+        replay.Update(sample,1.01);
+        check(replay.Snapshot().stage==mission::Stage::Landing&&replay.Snapshot().landingSeconds==0,
+              "touchdown does not credit the previous airborne interval");
+        for(int i=0;i<130;++i)replay.Update(sample,1.0/60);
+        check(replay.Snapshot().stage==mission::Stage::Completed,
+              runway.id+" completes after a stable safe arrival");
+        inclinedArrival.Update(sample,1.0/60);
+        for(int i=0;i<130;++i)inclinedArrival.Update(sample,1.0/60);
+        check(inclinedArrival.Snapshot().stage==mission::Stage::Completed,
+              runway.id+" completes after a safe one-wheel touchdown and leveling");
+        mission::FlightMission skippedDeparture;
+        for(int i=0;i<180;++i)skippedDeparture.Update(sample,1.0/60);
+        check(skippedDeparture.Snapshot().stage!=mission::Stage::Completed,
+              "being on the destination runway alone cannot complete the route");
+    }
+    output<<"RESULT "<<(passed?"PASS":"FAIL")<<'\n';output.flush();std::fflush(stdout);
+    return passed&&bool(output);
 }
 bool GameScene::InspectCollisions(Aircraft& aircraft,const std::string& report) const {
     // Developer-only integration checks against the complete, actually loaded
