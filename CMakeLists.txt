@@ -9,8 +9,10 @@ set(SOURCES
   src/main.cpp
   src/course/correcao.cpp
   src/ui/textrendering.cpp
+  src/ui/FlightHud.cpp
   src/ui/HudLayout.cpp
   src/ui/HudNeedleMotion.cpp
+  src/ui/HudInspection.cpp
   src/aircraft/FlightTelemetry.cpp
   src/third_party/tiny_obj_loader.cpp
   src/third_party/stb_image.cpp
