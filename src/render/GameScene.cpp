@@ -76,6 +76,10 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
     glDepthMask(GL_TRUE);
     glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     const glm::mat4 identity(1), transform=AircraftTransform(aircraft);
+    const FlightPose npc=traffic.Pose();
+    const glm::vec3 pivot=(aircraftModel.min+aircraftModel.max)*.5f;
+    const glm::mat4 npcTransform=Matrix_Translate(npc.position.x,npc.position.y,npc.position.z)*
+        npc.Orientation()*Matrix_Translate(-pivot.x,-pivot.y,-pivot.z);
     std::vector<const MapChunk*> visible;
     if(layer!=SceneLayer::AIRCRAFT)for(const auto& chunk:chunks)if(renderer.Visible(chunk,viewProjection)) {
         visible.push_back(&chunk);
@@ -84,6 +88,8 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
         if(chunk.foundation)glDisable(GL_POLYGON_OFFSET_FILL);
     }
     if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
+    // Traffic belongs to the world even in cockpit; the near pass is player-only.
+    if(layer!=SceneLayer::AIRCRAFT)renderer.Draw(aircraftModel,npcTransform,camera,RenderPass::Solid);
 
     // Draw all opaque geometry first, then glass from far to near.
     struct Instance {const RenderModel* model;glm::mat4 transform;glm::vec3 center;};
@@ -91,6 +97,7 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
     for(const auto* chunk:visible)
         transparent.push_back({&chunk->model,identity,(chunk->min+chunk->max)*.5f});
     if(layer!=SceneLayer::WORLD)transparent.push_back({&aircraftModel,transform,aircraft.get_position()});
+    if(layer!=SceneLayer::AIRCRAFT)transparent.push_back({&aircraftModel,npcTransform,npc.position});
     std::sort(transparent.begin(),transparent.end(),[&](const Instance& a,const Instance& b){
         glm::vec3 da=a.center-camera,db=b.center-camera;
         return glm::dot(da,da)>glm::dot(db,db);

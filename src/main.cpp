@@ -346,7 +346,7 @@ int main(int argc, char* argv[])
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     
-    float previous_time = (float)glfwGetTime();
+    double previous_time = glfwGetTime();
     const double smoke_start=glfwGetTime();
     FrameLimiter frameLimiter(60.0);
 
@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
         glfwGetFramebufferSize(window,&framebufferWidth,&framebufferHeight);
         if(framebufferWidth<=0 || framebufferHeight<=0) {
             glfwWaitEventsTimeout(.1);
-            previous_time=(float)glfwGetTime();
+            previous_time=glfwGetTime();
             continue;
         }
         // Aqui executamos as operações de renderização
@@ -383,14 +383,16 @@ int main(int argc, char* argv[])
         glUseProgram(g_GpuProgramID);
 
         //calculammos o estado do avião
-        float current_time = (float)glfwGetTime();
-        float dt = std::max(current_time - previous_time,0.0f);
+        double current_time = glfwGetTime();
+        const double elapsed = std::max(current_time - previous_time,0.0);
+        float dt = static_cast<float>(elapsed);
         // Keep the existing physics step limit; camera travel uses real elapsed time.
         MainModel.update(&MainAircraft, std::min(dt,0.05f));
         previous_time = current_time;
+        scene->Update(elapsed); // Euler advances traffic once, outside all draw passes.
         g_CameraFrame=scene->Cameras(MainAircraft);
         g_CameraInput->Update(dt);
-        const CameraPose camera=texture_check?inspection.Camera(g_CameraFrame):g_Camera.Pose(g_CameraFrame);
+        const CameraPose camera=texture_check?inspection.Camera(g_CameraFrame,scene->TrafficPose()):g_Camera.Pose(g_CameraFrame);
         const bool cockpit=texture_check?inspection.Cockpit():g_Camera.Mode()==CameraType::COCKPIT;
         glm::mat4 view=Matrix_Camera_View(glm::vec4(camera.position,1),
             glm::vec4(camera.forward,0),glm::vec4(camera.up,0));
