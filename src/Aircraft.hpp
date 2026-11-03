@@ -20,6 +20,7 @@ class Aircraft{
         glm::vec3 forward;
         glm::vec3 up;
         glm::vec3 right;
+        glm::quat orientation;
 
 
         float mass;
@@ -54,6 +55,7 @@ class Aircraft{
         void set_forward(glm::vec3 v);
         void set_right(glm::vec3 v);
         void set_up(glm::vec3 v);
+        void set_orientation(glm::quat q);
 
         //getters
         float get_pitch();
@@ -73,7 +75,9 @@ class Aircraft{
         glm::vec3 get_acceleration();
         glm::vec3 get_forward();
         glm::vec3 get_right();
-        glm::vec3 get_up();  
+        glm::vec3 get_up();
+        glm::quat get_orientation();
+        glm::mat4 get_rotation_matrix();
 
 };
 #endif

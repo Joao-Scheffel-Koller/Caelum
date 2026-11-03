@@ -9,78 +9,34 @@ FlightModel :: FlightModel(){
     gravity = -1.0f;
 }
 
-void FlightModel:: update_orientation(Aircraft* aircraft, float mouse_delta_x, float mouse_delta_y)
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+void FlightModel::update_orientation(Aircraft* aircraft, float mouse_delta_x, float mouse_delta_y)
 {
-    float sense = 0.01f;
-    float roll = aircraft->get_roll();
-    float yaw = 0.0f;
-    float pitch = aircraft->get_pitch();
+    const float sense = 0.003f;
 
-    roll += mouse_delta_x * sense;
-    pitch -= mouse_delta_y * sense;
+    // Ângulos incrementais deste frame
+    float d_roll  = -mouse_delta_x * sense;  // ajuste o sinal conforme preferir
+    float d_pitch = -mouse_delta_y * sense;
 
-    aircraft->set_roll(roll);
-    aircraft->set_yaw(yaw);
-    aircraft->set_pitch(pitch);
+    glm::quat q = aircraft->get_orientation();
 
-    glm::vec3 local_forward(0.0f, 0.0f, -1.0f);
-    glm::vec3 local_up     (0.0f, 1.0f,  0.0f);
-    glm::vec3 local_right  (1.0f, 0.0f,  0.0f);
+    // Eixos LOCAIS do avião (forward = -Z, right = +X, up = +Y)
+    glm::quat q_pitch = glm::angleAxis(d_pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::quat q_roll  = glm::angleAxis(d_roll,  glm::vec3(0.0f, 0.0f, -1.0f));
 
+    // Multiplicar à DIREITA = rotação no referencial local
+    q = q * q_pitch * q_roll;
+    q = glm::normalize(q); // evita deriva numérica
 
-    glm::mat4 rotation = glm::mat4(1.0f);
+    aircraft->set_orientation(q);
 
-    rotation = glm::rotate(
-            rotation,
-            yaw,
-            glm::vec3(0.0f, 1.0f, 0.0f)
-        );
-
-    rotation = glm::rotate(
-            rotation,
-            pitch,
-            glm::vec3(1.0f, 0.0f, 0.0f)
-        );
-
-    rotation = glm::rotate(
-            rotation,
-            roll,
-            glm::vec3(0.0f, 0.0f, 1.0f)
-        );
-
-
-        glm::vec3 new_forward =
-        glm::vec3(
-            rotation *
-            glm::vec4(local_forward, 0.0f)
-        );
-
-    glm::vec3 new_up =
-        glm::vec3(
-            rotation *
-            glm::vec4(local_up, 0.0f)
-        );
-
-    glm::vec3 new_right =
-        glm::vec3(
-            rotation *
-            glm::vec4(local_right, 0.0f)
-        );
-    
-        aircraft->set_forward(
-        glm::normalize(new_forward)
-    );
-
-    aircraft->set_up(
-        glm::normalize(new_up)
-    );
-
-    aircraft->set_right(
-        glm::normalize(new_right)
-    );
-
+    // Vetores da base derivados do quaternion
+    aircraft->set_forward(glm::normalize(q * glm::vec3(0.0f, 0.0f, -1.0f)));
+    aircraft->set_up     (glm::normalize(q * glm::vec3(0.0f, 1.0f,  0.0f)));
+    aircraft->set_right  (glm::normalize(q * glm::vec3(1.0f, 0.0f,  0.0f)));
 }
-
 void FlightModel::update( Aircraft* aircraft, float dt, float mouse_delta_x, float mouse_delta_y)
 {
 

@@ -477,9 +477,7 @@ int main(int argc, char* argv[])
 
         // Desenhamos o modelo do coelho
         model = Matrix_Translate(aircraft_position.x, aircraft_position.y, aircraft_position.z)
-        * Matrix_Rotate_X(MainAircraft.get_roll())
-        * Matrix_Rotate_Y(MainAircraft.get_yaw())
-        * Matrix_Rotate_Z(MainAircraft.get_pitch());
+      * MainAircraft.get_rotation_matrix();
 
         glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
         glUniform1i(g_object_id_uniform, BUNNY);

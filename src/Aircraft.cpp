@@ -8,6 +8,7 @@ Aircraft :: Aircraft()
         forward = glm::vec3(-1.0f, 0.0f, 0.0f);
         up = glm::vec3(0.0f, 1.0f, 0.0f);
         right = glm::vec3(0.0f, 0.0f, -1.0f);
+        orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
         throttle = 0.0f;
         roll = 0.0f;
@@ -42,6 +43,7 @@ Aircraft :: Aircraft()
         void Aircraft::set_forward(glm::vec3 v){forward = v;}
         void Aircraft::set_right(glm::vec3 v){right = v;}
         void Aircraft::set_up(glm::vec3 v){up = v;}
+        void Aircraft::set_orientation(glm::quat q) { orientation = q; }
 
 
         //getters
@@ -63,6 +65,8 @@ Aircraft :: Aircraft()
         glm::vec3 Aircraft::get_forward(){return forward;}
         glm::vec3 Aircraft::get_right(){return right;}
         glm::vec3 Aircraft::get_up(){return up;}
+        glm::quat Aircraft::get_orientation() { return orientation; }
+        glm::mat4 Aircraft::get_rotation_matrix() { return glm::mat4_cast(orientation); }
         
         
 
