@@ -57,6 +57,7 @@
 #include "camera/CameraInput.hpp"
 #include "platform/FrameLimiter.hpp"
 #include "render/RenderInspection.hpp"
+#include "render/AircraftLightsInspection.hpp"
 #include "ui/FlightHud.hpp"
 #include "ui/HudInspection.hpp"
 #include "collision/CollisionDebug.hpp"
@@ -246,6 +247,7 @@ int main(int argc, char* argv[])
     const bool collision_check=argc>2&&std::string(argv[1])=="--collision-check";
     const bool mission_check=argc>2&&std::string(argv[1])=="--mission-check";
     const bool menu_check=argc>2&&std::string(argv[1])=="--menu-check";
+    const bool lights_check=argc>2&&std::string(argv[1])=="--lights-check";
     bool menuInspectionActive=menu_check;
     FrontendInspection frontendInspection(menu_check?argv[2]:"");
     bool missionInspectionActive=mission_check;
@@ -256,10 +258,12 @@ int main(int argc, char* argv[])
     RenderInspection inspection(texture_check?argv[2]:"");
     HudInspection hudInspection(hud_check?argv[2]:"");
     bool keep_open=false;
+    bool hiddenWindow=lights_check;
     std::size_t initialAircraft=0;
     std::string loadingCapturePrefix;
     for(int i=1;i<argc;++i) {
         if(std::string(argv[i])=="--keep-open")keep_open=true;
+        if(std::string(argv[i])=="--hidden")hiddenWindow=true;
         // Explicit opt-in for repeatable GPU inspections. Normal play starts hidden.
         if(std::string(argv[i])=="--show-mission-marker")g_ShowMissionMarker=true;
         if(std::string(argv[i])=="--aircraft=light")initialAircraft=1;
@@ -292,6 +296,7 @@ int main(int argc, char* argv[])
     // funções modernas de OpenGL.
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES,4);
+    if(hiddenWindow)glfwWindowHint(GLFW_VISIBLE,GL_FALSE);
 
     // Start in a resizable 720p window.
     GLFWwindow* window;
@@ -343,6 +348,18 @@ int main(int argc, char* argv[])
     // para renderização. Veja slides 180-200 do documento Aula_03_Rendering_Pipeline_Grafico.pdf.
     //
     LoadShadersFromFiles();
+
+    // Isolated GPU check: both real aircraft, without reading the entire city.
+    // The function releases all of its GL objects before this context ends.
+    if(lights_check) {
+        int result=EXIT_SUCCESS;
+        try {InspectAircraftLights(window,g_GpuProgramID,argv[2]);}
+        catch(const std::exception& error) {
+            std::fprintf(stderr,"Aircraft lights inspection failed: %s\n",error.what());result=EXIT_FAILURE;
+        }
+        glDeleteProgram(g_GpuProgramID);g_GpuProgramID=0;
+        glfwDestroyWindow(window);glfwTerminate();return result;
+    }
 
     // The front end owns no scene data: the menu appears before any OBJ loads.
     TextRendering_Init();
@@ -411,6 +428,7 @@ int main(int argc, char* argv[])
             }
             loadedAircraft=spec.id;
             scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
+            scene->SetLightProfile(spec.id);
             scene->ResetPlayer(MainAircraft);g_PlayerCrashed=false;g_ResetFlightRequested=false;
             flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
             std::printf("Flight ready: %s state=%d gear=%u origin_armed=%d reused_scene=%d\n",spec.id.c_str(),
@@ -553,7 +571,7 @@ int main(int argc, char* argv[])
         }
         flightMission.Update(scene->PlayerMissionSample(MainAircraft),physicsStep);
         previous_time = current_time;
-        scene->Update(elapsed); // Euler advances traffic once, outside all draw passes.
+        scene->Update(elapsed); // Advance traffic/lights once; cockpit draw passes only read them.
         g_CameraFrame=scene->Cameras(MainAircraft);
         g_CameraInput->Update(dt);
         const CameraPose camera=texture_check?inspection.Camera(g_CameraFrame,scene->TrafficPose()):g_Camera.Pose(g_CameraFrame);
@@ -598,13 +616,13 @@ int main(int argc, char* argv[])
 
         // Keep map depth precision while allowing the cockpit panel very close.
         if(cockpit) {
-            scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position,SceneLayer::WORLD);
+            scene->Draw(g_GpuProgramID,MainAircraft,view,projection,camera.position,SceneLayer::WORLD);
             glClear(GL_DEPTH_BUFFER_BIT);
             glm::mat4 interior=Matrix_Perspective(camera.fieldOfView,g_ScreenRatio,-camera.nearPlane,-100.0f);
             glUniformMatrix4fv(g_projection_uniform,1,GL_FALSE,glm::value_ptr(interior));
-            scene->Draw(g_GpuProgramID,MainAircraft,interior*view,camera.position,SceneLayer::AIRCRAFT);
+            scene->Draw(g_GpuProgramID,MainAircraft,view,interior,camera.position,SceneLayer::AIRCRAFT);
         } else {
-            scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position);
+            scene->Draw(g_GpuProgramID,MainAircraft,view,projection,camera.position);
         }
 
         if(g_ShowCollisionVolumes)collisionDebug->Draw(scene->PlayerProbes(MainAircraft),view,projection,camera.position);

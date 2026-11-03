@@ -15,6 +15,9 @@ set(SOURCES
   src/ui/HudInspection.cpp
   src/aircraft/FlightTelemetry.cpp
   src/aircraft/AircraftCatalog.cpp
+  src/aircraft/AircraftLights.cpp
+  src/render/AircraftLightRenderer.cpp
+  src/render/AircraftLightsInspection.cpp
   src/ui/FrontendModel.cpp
   src/ui/FrontendScreen.cpp
   src/ui/FrontendInspection.cpp
@@ -96,6 +99,9 @@ target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DI
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(aircraft_lights_test tests/AircraftLightsTest.cpp src/aircraft/AircraftLights.cpp)
+  target_include_directories(aircraft_lights_test PRIVATE include src)
+  add_test(NAME aircraft_lights COMMAND aircraft_lights_test)
   add_executable(responsive_loading_test tests/ResponsiveLoadingTest.cpp)
   target_include_directories(responsive_loading_test PRIVATE src)
   target_link_libraries(responsive_loading_test Threads::Threads)

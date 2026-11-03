@@ -2,7 +2,7 @@
 
 Documento técnico produzido com auxílio de IA (Codex), a pedido dos integrantes. Este arquivo serve para estudar, revisar e manter o código. Não substitui o relatório final de autoria dos alunos em `README.md`, nem altera a especificação `SPEC.md`.
 
-**Estado documentado em 2 de novembro de 2026:** código da branch `menu`, criada da `main` em `3ab3bea`, com as etapas locais de menu, carregamento e monomotor descritas aqui. A `main` desse ponto já inclui colisões e missão. A primeira edição deste guia registrava o snapshot `e2917d8`, anterior às colisões; esta revisão atualiza esse conteúdo, preservando os detalhes das etapas de preparação e implementação. Os commits locais de `menu` não devem ser interpretados como já mesclados na `main`.
+**Estado documentado em 3 de novembro de 2026:** código da branch `light`, criada da `main` em `5594f68`, após o merge do menu. Essa base inclui colisões, missão, menu, carregamento e monomotor; a etapa atual acrescenta luzes nas duas aeronaves. A primeira edição deste guia registrava o snapshot `e2917d8`, anterior às colisões. Esta revisão preserva os detalhes das etapas de preparação e implementação; as alterações locais de `light` ainda não representam um novo merge na `main`.
 
 Os trechos C++/GLSL/Python abaixo foram extraídos ou conferidos contra os arquivos desse recorte. Cada trecho mostra uma parte da implementação; assinaturas, includes e detalhes omitidos continuam nos arquivos indicados. Explicações de algoritmos e fórmulas complementam os trechos, sem apresentar pseudocódigo como se fosse código já executado.
 
@@ -32,6 +32,7 @@ Os trechos C++/GLSL/Python abaixo foram extraídos ou conferidos contra os arqui
 - [Marcador opcional do aeroporto de destino](#marcador-opcional-do-aeroporto-de-destino)
 - [Menu, seleção de aeronave e tela de carregamento](#menu-seleção-de-aeronave-e-tela-de-carregamento)
 - [Monomotor leve: segundo modelo, catálogo e adaptações](#monomotor-leve-segundo-modelo-catálogo-e-adaptações)
+- [Luzes das aeronaves: perfis, piscadas e desenho](#luzes-das-aeronaves-perfis-piscadas-e-desenho)
 - [Compilação, execução e diagnóstico da versão carregada](#compilação-execução-e-diagnóstico-da-versão-carregada)
 - [Estratégia de testes: matemática, arquivos e GPU](#estratégia-de-testes-matemática-arquivos-e-gpu)
 - [Controles consolidados no estado atual](#controles-consolidados-no-estado-atual)
@@ -63,7 +64,8 @@ O código novo foi separado em módulos. Câmeras, entrada de mouse, renderizaç
 | Missão | Santos Dumont → Galeão, com histórico de decolagem e pouso confirmado | `Airports`, `FlightMission`, `MissionOverlay` |
 | Destino | Marcador “!” acima do Galeão, oculto por padrão e alternado por M | `MissionMarker` |
 | Menu e carregamento | Seleção, controles, pausa, progresso real, cancelamento e preparação CPU responsiva | `FrontendModel`, `FrontendScreen`, `LoadProgress` |
-| Validação | Dezesseis suítes CTest e inspeções CPU/GPU, distinguindo replay físico e fixtures de interface | `tests/`, `RenderInspection`, `HudInspection`, `MissionInspection`, `FrontendInspection` |
+| Luzes | Navegação contínua, beacons e strobes nas duas instâncias, com tempo de simulação e profundidade | `AircraftLights`, `AircraftLightRenderer` |
+| Validação | Dezessete suítes CTest e inspeções CPU/GPU, distinguindo replay físico e fixtures de interface | `tests/`, `RenderInspection`, `HudInspection`, `MissionInspection`, `FrontendInspection`, `AircraftLightsInspection` |
 
 Isso ainda é um simulador em desenvolvimento. Colisões, critérios da missão e menu estão implementados, mas os controles completos de atitude do jogador continuam pendentes. Os testes da missão usam amostras controladas e o resolvedor sobre o mapa real; eles não demonstram um trajeto manual completo. A execução do monomotor chegou ao estado de apoio com três rodas e partida armada no Santos Dumont, sem apresentar esse teste inicial como prova de decolagem, manobra e pouso manual completos.
 
@@ -78,6 +80,7 @@ src/
     Aircraft.*                estado mutável do jogador
     FlightModel.*             forças e integração preditiva do jogador
     AircraftCatalog.*         IDs, modelos e olhos locais das aeronaves selecionáveis
+    AircraftLights.*          âncoras locais, padrões de piscadas e relógio sem OpenGL
     BezierFlight.*            estado e pose do avião autônomo
     FlightTelemetry.*         medições somente de leitura
   animation/
@@ -98,6 +101,8 @@ src/
     MissionInspection.*       fixtures e capturas da missão
   render/
     ModelRenderer.*           preparação CPU, uploads e desenho dos modelos
+    AircraftLightRenderer.*   lentes emissivas e halos com profundidade
+    AircraftLightsInspection.* verificações GPU e capturas das luzes nos assets
     GameScene.*               mapa, contatos, jogador e tráfego
     MaterialPolicy.*          interpretação dos materiais visuais
     RenderInspection.*        vistas repetíveis para inspeção gráfica
@@ -480,11 +485,21 @@ float alpha = texel.a * material_opacity;
 if(alpha < alpha_cutoff) discard;
 ```
 
-O detalhe usa posição local, para acompanhar o objeto, e `fwidth` para atenuar frequências menores que um pixel. A iluminação combina ambiente, difusão e um brilho especular calculado com o vetor intermediário entre sol e observador; tecnicamente, esse termo usa a forma Blinn–Phong. A expressão real é:
+O detalhe usa posição local, para acompanhar o objeto, e `fwidth` para atenuar frequências menores que um pixel. A iluminação combina ambiente, difusão e reflexão especular de Phong, conforme o `SPEC.md`. O shader compara a reflexão da luz incidente com a direção do observador. Como `sun` aponta da superfície para o sol, a direção incidente é `-sun`:
 
 ```glsl
+vec3 reflected = reflect(-sun,n);
+float specular = diffuse > 0.0 ? pow(max(dot(reflected,v),0.0),8.0) : 0.0;
 vec3 lit = material_diffuse * texel.rgb * (0.35+0.65*diffuse) + 0.04*specular;
 ```
+
+Na etapa das luzes, o termo anterior de Blinn–Phong foi substituído nos dois
+fragment shaders. O expoente geral passou de 32 para 8 e o das lentes de 36
+para 9: uma aproximação da largura do brilho perto do pico, sem afirmar
+equivalência global entre os dois modelos. O teste `diffuse > 0` impede brilho
+especular no lado que não recebe a luz. A emissão das lâmpadas e o halo
+procedural são contribuições separadas da reflexão. A fórmula tem referência
+`FONTE` nos shaders, e o prompt dessa alteração está no item 32.
 
 Há correção de exibição com expoente `1/2.2` e névoa entre 8 km e 28 km, misturando a cor à cor do céu. Não foram acrescentados mapas de normal, pipeline PBR ou sombras.
 
@@ -657,11 +672,11 @@ O olhar lateral fica limitado a ±120°, o vertical a 70° para baixo e 80° par
 O cockpit também exigiu uma solução para a precisão do depth buffer. Uma projeção com near de cinco centímetros e far de trinta quilômetros reduziria muito a precisão das superfícies distantes. Por isso, `main.cpp` desenha duas camadas com a mesma view e FOV:
 
 ```cpp
-scene->Draw(g_GpuProgramID,MainAircraft,projection*view,camera.position,SceneLayer::WORLD);
+scene->Draw(g_GpuProgramID,MainAircraft,view,projection,camera.position,SceneLayer::WORLD);
 glClear(GL_DEPTH_BUFFER_BIT);
 glm::mat4 interior=Matrix_Perspective(camera.fieldOfView,g_ScreenRatio,-camera.nearPlane,-100.0f);
 glUniformMatrix4fv(g_projection_uniform,1,GL_FALSE,glm::value_ptr(interior));
-scene->Draw(g_GpuProgramID,MainAircraft,interior*view,camera.position,SceneLayer::AIRCRAFT);
+scene->Draw(g_GpuProgramID,MainAircraft,view,interior,camera.position,SceneLayer::AIRCRAFT);
 ```
 
 O mundo usa near de `0.5 m` e far de `30000 m`; o interior do jogador usa near de `0.05 m` e far de `100 m`. A limpeza intermediária afeta somente profundidade. O tráfego pertence à camada WORLD, inclusive no cockpit; externa e livre usam o desenho normal dos passes. Essa separação visual não decide contato: a resposta física já consulta a geometria do mundo para o avião. O deslocamento da cabeça segue limitado por uma caixa local, sem colisão contra cada peça do interior.
@@ -1798,6 +1813,82 @@ Os volumes físicos continuam sendo aproximações, sem simulação detalhada da
 
 A inspeção da integração registrou o pequeno apoiado por três rodas e a partida armada no Santos Dumont. Isso demonstra o encaixe entre asset, perfil e missão inicial, sem afirmar que um trajeto manual completo já foi concluído. O controle de atitude pelo mouse continua pendente em `CommandInterface::process_input()`, que permanece vazio: o botão direito move a câmera, e o menu não introduz por si só comandos de direção no modelo de voo.
 
+## Luzes das aeronaves: perfis, piscadas e desenho
+
+`AircraftLights` acrescenta três grupos de luzes à aeronave escolhida: navegação
+contínua vermelha/esquerda, verde/direita e branca/traseira; beacons vermelhos;
+strobes brancos nas asas. O A320 tem sete emissores, e o monomotor, seis.
+`AircraftSpec.id` escolhe um perfil próprio, sem tratar os dois modelos como
+se tivessem as mesmas dimensões. A pintura e os OBJ/MTL permanecem iguais.
+
+As posições foram medidas nas malhas versionadas. As pontas da asa principal
+do jato ficam em torno de X=−11 m, Y=0,7 m e Z=±17,18 m; o extremo traseiro
+X=−27,425 m pertence à cauda, não à asa. No monomotor, os bordos dianteiro e
+traseiro da ponta têm posições diferentes, embora ambos estejam em Z=±5,5 m.
+`Profile()` desloca as lâmpadas alguns centímetros para fora da geometria e
+registra essas medições nos comentários. Um ID não cadastrado lança exceção.
+
+O módulo CPU define `Light` com posição/cor, raios da lente/halo, padrão e
+deslocamento temporal. `Intensity` transforma segundos em uma fase cíclica:
+
+```cpp
+double phase=std::fmod(std::fmod(time,Period)+std::fmod(phaseOffset,Period),Period);
+if(phase<0)phase+=Period;
+if(pattern==Pattern::Beacon)return Pulse(phase,0,.16,.02);
+if(pattern==Pattern::Strobe)
+    return std::max(Pulse(phase,0,.065,.008),Pulse(phase,.16,.065,.008));
+```
+
+`Period` vale 1,2 s. O beacon tem um pulso de 0,16 s; o strobe tem dois pulsos
+de 0,065 s, separados pelo início do segundo em 0,16 s. `Pulse` combina duas
+bordas suaves, sem transformar o brilho em uma contagem de quadros. São tempos
+visuais simplificados; não se afirma reproduzir o padrão de um equipamento real.
+O tráfego recebe mais 0,43 s de fase para diferenciar as piscadas do jogador.
+
+`GameScene::Update(dt)` agora chama `traffic.Update(dt)` e `lightClock.Update(dt)`.
+O menu e a minimização já interrompem essas atualizações, portanto também
+congelam as luzes. `ResetPlayer` reinicia o relógio. Desenhar o mundo e depois
+a cabine não avança a animação: os dois passes leem o mesmo `Time()`.
+
+`AircraftLightRenderer` mantém uma esfera de 240 vértices para todas as lentes
+e um quad de seis vértices para todos os halos. A esfera tem uma textura
+procedural de pequenas ranhuras, iluminação e emissão; o halo usa queda radial
+e blending aditivo. Seu raio é físico e não é inflado a um mínimo em pixels.
+O renderer inicializa os recursos apenas no primeiro desenho e os libera
+durante a destruição da cena, antes de o contexto OpenGL terminar.
+
+A transformação usa os mesmos `transform` e `npcTransform` da aeronave, incluindo
+seus pivôs distintos. No renderer, a posição pequena da lâmpada é calculada
+em precisão dupla e subtraída da câmera antes de virar um vetor `float`:
+
+```cpp
+const glm::dmat4 preciseModel(model);
+const glm::vec3 center(glm::dvec3(preciseModel*glm::dvec4(light.position,1))
+                       -glm::dvec3(camera));
+```
+
+`GameScene::Draw` passa `view` e `projection` separadamente. Isso permite que o
+shader das luzes use somente a rotação de view após essa subtração, preservando
+o desenho em coordenadas quilométricas do Rio. As lentes vêm depois dos sólidos,
+com escrita de profundidade; os halos vêm depois dos vidros, sem escrever
+profundidade. Ambos mantêm o teste de profundidade. Na câmera de cockpit, o NPC
+segue `WORLD` e o jogador segue `AIRCRAFT`, usando a projeção de cada passe.
+Programa, VAO/VBO, blending, profundidade e estados de cobertura são restaurados
+para o restante da cena e o HUD.
+
+O teste CPU `aircraft_lights` verifica os perfis, as cores, os pulsos e as bordas,
+offsets, repetição, 30/60/144 FPS, pausa, reset e passos inválidos. A inspeção
+`--lights-check prefix` usa um contexto oculto sem ler a cidade: confere emissão,
+halo desligado, oclusão por profundidade, estado GL e transformação a 6 km,
+além de dez capturas com os dois assets reais. `docs/lights.md` contém os comandos
+e a referência visual adotada. `--hidden` também permite executar outras
+inspeções sem mostrar sua janela de teste.
+
+Os halos não simulam atenuação física pelos vidros, e as luzes de navegação não
+possuem setores angulares regulamentares. A oclusão vem das malhas opacas. O
+brilho representa a fonte emissiva, sem adicionar iluminação dinâmica do terreno
+ou bloom. As luzes funcionam automaticamente, sem um painel elétrico novo.
+
 ## Compilação, execução e diagnóstico da versão carregada
 
 A lista `SOURCES` em `CMakeLists.txt` contém os arquivos efetivamente compilados. Acrescentar um `.cpp` em `src` não basta nesse fluxo: ele precisa estar nessa lista. O Makefile do macOS também recebeu os arquivos novos. O padrão C++ exigido no CMake é C++11. Os headers de módulos próprios são procurados em `src` e os de bibliotecas e matrizes em `include`.
@@ -1834,6 +1925,7 @@ O CTest executa **16 alvos** no ambiente configurado. As nove suítes anteriores
 | `material_loading` | Independência do estado de cor/material ao ler materiais consecutivos |
 | `base_terrain` | Geração reproduzível da base limitada e uso das coordenadas do mapa |
 | `bezier_flight` | Avaliação da curva, comprimento aproximado, evolução temporal, junções e orientação |
+| `aircraft_lights` | Perfis locais, cores, pulsos, fases, relógio e independência de FPS |
 | `flight_telemetry` | Unidades, sinais, cardinais, normalização de base e leituras inválidas |
 | `hud_layout` | Limites, círculos sem sobreposição, troca entre linhas e ângulos entre graduações |
 | `hud_needle_motion` | Resposta contínua, equivalência a 30/60/144 FPS, recuperação e passagem pelo norte |
@@ -1935,8 +2027,9 @@ Alguns marcos do histórico ajudam a localizar as alterações. A tabela inclui 
 | `3ab3bea` | Merge da missão na main, base da branch menu |
 | `f323647` | Asset licenciado do monomotor, catálogo, contatos e enquadramento |
 | `75a8e6d` | Menu, seleção, pausa e carregamento responsivo |
+| `5594f68` | Merge do menu na main, base da branch light |
 
-O `README.md` foi deixado vazio a pedido do usuário, para o relatório de autoria da dupla. As notas anteriores foram preservadas em `AI_README.md`; por isso esse arquivo é uma cópia histórica e pode descrever uma etapa anterior do jogo. `SPEC.md` não foi alterado pelo desenvolvimento documentado aqui. As explicações específicas estão em `docs/rendering.md`, `docs/cameras.md`, `docs/bezier.md`, `docs/hud.md`, `docs/collisions.md`, `docs/mission.md` e `docs/menu.md`. `data/ASSETS.md` reúne a proveniência do Rio e das duas aeronaves, com guias detalhados dentro de `data/`.
+O `README.md` foi deixado vazio a pedido do usuário, para o relatório de autoria da dupla. As notas anteriores foram preservadas em `AI_README.md`; por isso esse arquivo é uma cópia histórica e pode descrever uma etapa anterior do jogo. `SPEC.md` não foi alterado pelo desenvolvimento documentado aqui. As explicações específicas estão em `docs/rendering.md`, `docs/cameras.md`, `docs/bezier.md`, `docs/hud.md`, `docs/collisions.md`, `docs/mission.md`, `docs/menu.md` e `docs/lights.md`. `data/ASSETS.md` reúne a proveniência do Rio e das duas aeronaves, com guias detalhados dentro de `data/`.
 
 Os OBJ/MTL gerados têm hashes no manifesto. Para que a troca de plataforma não altere seus bytes apenas pela conversão de fim de linha, `.gitattributes` preserva LF nos chunks:
 
@@ -1953,10 +2046,10 @@ O uso de GLM neste projeto serve a vetores, produtos e armazenamento de matrizes
 
 ## Estado atual e trabalho restante
 
-A versão documentada combina menu inicial, escolha entre duas aeronaves, carregamento com progresso/cancelamento, pausa, três câmeras, cenário do Rio, tráfego Bézier e cinco instrumentos. O jogador usa contatos contínuos contra o mapa, com apoio seguro, água, obstáculos e acidente. A máquina de estados reconhece a partida no Santos Dumont, guia ao Galeão e exige chegada válida na pista. O “!” é uma ajuda opcional, separada desses critérios.
+A versão documentada combina menu inicial, escolha entre duas aeronaves, carregamento com progresso/cancelamento, pausa, três câmeras, cenário do Rio, tráfego Bézier, luzes de navegação/beacon/strobe e cinco instrumentos. O jogador usa contatos contínuos contra o mapa, com apoio seguro, água, obstáculos e acidente. A máquina de estados reconhece a partida no Santos Dumont, guia ao Galeão e exige chegada válida na pista. O “!” é uma ajuda opcional, separada desses critérios.
 
 Essas funcionalidades não tornam o simulador completo. O mouse sem botão direito ainda não controla a atitude do jogador; `CommandInterface::process_input()` continua vazio, e os ângulos legados não constituem essa ligação. Falta calibrar os controles e verificar um trajeto manual completo, incluindo manobra e redução de velocidade. Contatos, missão e HUD já recebem os vetores/velocidades do avião, mas o replay de amostras não substitui o teste de pilotagem.
 
-Continuam pendentes a animação das árvores pelo vento e as luzes piscantes previstas na especificação. A hélice do monomotor é estática e sua cabine é simples; os parâmetros físicos são compartilhados, sem calibração real de cada aeronave. O cenário mantém limitações dos dados OSM, sem DEM; a base é um preenchimento genérico e finito. Não há streaming espacial, sombras, PBR ou colisão entre jogador e avião autônomo.
+Continua pendente a animação das árvores pelo vento prevista na especificação. As luzes piscantes já foram implementadas nos dois modelos, com os limites descritos acima. A hélice do monomotor é estática e sua cabine é simples; os parâmetros físicos são compartilhados, sem calibração real de cada aeronave. O cenário mantém limitações dos dados OSM, sem DEM; a base é um preenchimento genérico e finito. Não há streaming espacial, sombras, PBR ou colisão entre jogador e avião autônomo.
 
 A entrega final exige o relatório em `README.md` escrito pelos alunos, imagens, vídeo e metadados. Este guia e os documentos de proveniência identificados como assistidos por IA servem à manutenção e ao estudo; não devem ser apresentados como o relatório de autoria exigida da dupla. `SPEC.md` permanece sem alteração.
