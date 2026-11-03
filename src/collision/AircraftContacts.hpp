@@ -11,6 +11,7 @@ struct AircraftPose {
     glm::dvec3 position{0},forward{1,0,0},up{0,1,0};
 };
 enum class AircraftState { Grounded, Flying, Crashed };
+enum class AirframeType { Airliner, LightTaildragger };
 enum class CrashReason { None, HardLanding, UnsafeAttitude, Obstacle, Water,
                          AirframeContact, InvalidPose };
 const char* CrashReasonText(CrashReason reason);
@@ -33,7 +34,8 @@ struct ContactResult {
 
 class AircraftContacts {
 public:
-    void Configure(const glm::dvec3& modelMin,const glm::dvec3& modelMax);
+    void Configure(const glm::dvec3& modelMin,const glm::dvec3& modelMax,
+                   AirframeType type=AirframeType::Airliner);
     ContactResult Resolve(const CollisionWorld& world,const AircraftPose& oldPose,
                           const AircraftPose& newPose,const glm::dvec3& velocity,double dt);
     void Reset();

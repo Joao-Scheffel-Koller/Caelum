@@ -108,6 +108,13 @@ int main() {
     camera.SetMode(CameraType::COCKPIT,vertical);Valid(camera.Pose(vertical),"vertical aircraft cockpit");
     camera.SetMode(CameraType::FREE,vertical);Valid(camera.Pose(vertical),"vertical entry to free");
     camera.Look(20,20);Valid(camera.Pose(vertical),"free rotation after vertical entry");
+    CameraFrame smallAircraft;smallAircraft.defaultOrbitDistance=26;
+    camera.SetMode(CameraType::LOOK_AT,smallAircraft);camera.Reset(smallAircraft);
+    Check(std::abs(glm::length(camera.Pose(smallAircraft).position-smallAircraft.orbitTarget)-26)<.001f,
+          "small aircraft starts with its configured external camera distance");
+    camera.SetMode(CameraType::FREE,smallAircraft);camera.Reset(smallAircraft);
+    Check(std::abs(glm::length(camera.Pose(smallAircraft).position-smallAircraft.orbitTarget)-26)<.001f,
+          "free camera Home uses the selected aircraft framing");
     std::cout<<"PASS: "<<checks<<" camera checks\n";
     return EXIT_SUCCESS;
 }

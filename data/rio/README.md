@@ -3,6 +3,9 @@
 Mapa convertido pelo OSM2World 0.5.0-SNAPSHOT, dividido com auxilio de IA
 (Codex) pelo script `data/rio/tools/split_obj.py`.
 
+A origem dos dados e as etapas de producao estao em [PROVENANCE.md](PROVENANCE.md).
+O guia dos tres modelos do projeto esta em [../ASSETS.md](../ASSETS.md).
+
 ## Arquivos para carregar
 
 Carregue **todos os OBJ listados em `chunks/manifest.json`**, mantendo a mesma
@@ -101,6 +104,6 @@ python data/rio/tools/test_split_obj.py
 - Dados cartograficos: © OpenStreetMap contributors,
   https://www.openstreetmap.org/copyright (ODbL).
 - Conversao e materiais/texturas do estilo padrao: OSM2World,
-  https://osm2world.org/ e https://github.com/OSM2World/default-style .
+  https://osm2world.org/ e https://github.com/tordanik/OSM2World-default-style .
   Os nomes originais das imagens foram mantidos apos um prefixo de hash.
 - Script de divisao e verificacao escrito com auxilio de IA (Codex).

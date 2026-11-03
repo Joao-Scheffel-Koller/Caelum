@@ -52,6 +52,7 @@
 //Newly definied classes
 #include "aircraft/Aircraft.hpp"
 #include "aircraft/FlightModel.hpp"
+#include "aircraft/AircraftCatalog.hpp"
 #include "render/GameScene.hpp"
 #include "camera/CameraInput.hpp"
 #include "platform/FrameLimiter.hpp"
@@ -63,6 +64,9 @@
 #include "mission/MissionInspection.hpp"
 #include "ui/MissionOverlay.hpp"
 #include "ui/MissionMarker.hpp"
+#include "ui/FrontendModel.hpp"
+#include "ui/FrontendScreen.hpp"
+#include "ui/FrontendInspection.hpp"
 #include <memory>
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -213,6 +217,8 @@ bool g_UsePerspectiveProjection = true;
 bool g_ShowInfoText = true;
 bool g_ShowCollisionVolumes=false,g_ResetFlightRequested=false,g_PlayerCrashed=false;
 bool g_ShowMissionMarker=false;
+std::unique_ptr<frontend::FrontendModel> g_Frontend;
+frontend::Action g_MenuAction=frontend::Action::None;
 
 // Variáveis que definem um programa de GPU (shaders). Veja função LoadShadersFromFiles().
 GLuint g_GpuProgramID = 0;
@@ -239,6 +245,9 @@ int main(int argc, char* argv[])
     // Optional developer check: load the real scene, render 60 frames, then exit.
     const bool collision_check=argc>2&&std::string(argv[1])=="--collision-check";
     const bool mission_check=argc>2&&std::string(argv[1])=="--mission-check";
+    const bool menu_check=argc>2&&std::string(argv[1])=="--menu-check";
+    bool menuInspectionActive=menu_check;
+    FrontendInspection frontendInspection(menu_check?argv[2]:"");
     bool missionInspectionActive=mission_check;
     MissionInspection missionInspection(mission_check?argv[2]:"");
     const bool smoke_test = collision_check||(argc > 1 && std::string(argv[1]) == "--smoke-test");
@@ -247,10 +256,15 @@ int main(int argc, char* argv[])
     RenderInspection inspection(texture_check?argv[2]:"");
     HudInspection hudInspection(hud_check?argv[2]:"");
     bool keep_open=false;
-    for(int i=3;i<argc;++i) {
+    std::size_t initialAircraft=0;
+    std::string loadingCapturePrefix;
+    for(int i=1;i<argc;++i) {
         if(std::string(argv[i])=="--keep-open")keep_open=true;
         // Explicit opt-in for repeatable GPU inspections. Normal play starts hidden.
         if(std::string(argv[i])=="--show-mission-marker")g_ShowMissionMarker=true;
+        if(std::string(argv[i])=="--aircraft=light")initialAircraft=1;
+        const std::string arg=argv[i],captureFlag="--capture-loading=";
+        if(arg.compare(0,captureFlag.size(),captureFlag)==0)loadingCapturePrefix=arg.substr(captureFlag.size());
     }
     int rendered_frames = 0;
     int exit_code = EXIT_SUCCESS;
@@ -330,63 +344,140 @@ int main(int argc, char* argv[])
     //
     LoadShadersFromFiles();
 
-    // AI-assisted scene integration. Release GPU resources before destroying GLFW.
-    std::unique_ptr<GameScene> scene(new GameScene);
+    // The front end owns no scene data: the menu appears before any OBJ loads.
+    TextRendering_Init();
+    std::unique_ptr<frontend::FrontendScreen> frontendScreen(new frontend::FrontendScreen);
+    std::vector<frontend::AircraftChoice> choices;
+    for(const auto& spec:AircraftCatalog()) {
+        std::ifstream model(spec.modelPath);
+        choices.push_back({spec.id,spec.name,spec.description,bool(model)});
+    }
+    g_Frontend.reset(new frontend::FrontendModel(choices));
+    std::unique_ptr<GameScene> scene;
+    bool sceneReady=false;
+    std::size_t loadAttempt=0;
+    std::string loadedAircraft;
     mission::FlightMission flightMission;
     MissionOverlay missionOverlay;
-    try {
-        scene->Load(window);
-        scene->ResetPlayer(MainAircraft);
-        if(collision_check) {
-            if(!scene->InspectCollisions(MainAircraft,std::string(argv[2])+".txt"))
-                throw std::runtime_error("Collision integration inspection failed");
-            g_ShowCollisionVolumes=true;
-        }
-        if(mission_check&&!scene->InspectMission(MainAircraft,std::string(argv[2])+".txt"))
-            throw std::runtime_error("Mission integration inspection failed");
-        flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
-    } catch(const std::exception& error) {
-        fprintf(stderr,"Scene loading failed: %s\n",error.what());
-        scene.reset();
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
-
-    g_CameraFrame=scene->Cameras(MainAircraft);
-    g_CameraInput.reset(new CameraInput(window,g_Camera,g_CameraFrame));
-    // Optional initial mode for repeatable GPU smoke checks.
-    if(smoke_test && argc>3) {
-        const std::string mode=argv[3];
-        if(mode=="cockpit")g_Camera.SetMode(CameraType::COCKPIT,g_CameraFrame);
-        else if(mode=="free") {
-            g_Camera.SetMode(CameraType::FREE,g_CameraFrame);
-            CameraMovement movement;movement.vertical=1;
-            g_Camera.Update(movement,2.0f,g_CameraFrame);
-        }
-    }
-
-    // Inicializamos o código para renderização de texto.
-    TextRendering_Init();
     std::unique_ptr<FlightHud> hud(new FlightHud);
     std::unique_ptr<CollisionDebug> collisionDebug(new CollisionDebug);
     std::unique_ptr<MissionMarker> missionMarker(new MissionMarker);
-
-    // Habilitamos o Z-buffer. Veja slides 104-116 do documento Aula_09_Projecoes.pdf.
-    glEnable(GL_DEPTH_TEST);
-
-    // Habilitamos o Backface Culling. Veja slides 8-13 do documento Aula_02_Fundamentos_Matematicos.pdf, slides 23-34 do documento Aula_13_Clipping_and_Culling.pdf e slides 112-123 do documento Aula_14_Laboratorio_3_Revisao.pdf.
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    
-    double previous_time = glfwGetTime();
-    const double smoke_start=glfwGetTime();
+    double previous_time=glfwGetTime(),smoke_start=previous_time;
     FrameLimiter frameLimiter(60.0);
+    const bool inspectionRun=smoke_test||texture_check||hud_check||mission_check;
+    const auto startFlight=[&](std::size_t index)->bool {
+        const std::size_t attempt=++loadAttempt;
+        const auto& spec=AircraftCatalog().at(index);
+        if(g_CameraInput)g_CameraInput->Focus(false);
+        g_MenuAction=frontend::Action::None;
+        g_Frontend->BeginLoading();
+        const bool hadFlight=sceneReady;
+        bool cancelRequested=false;
+        LoadProgress progress("Preparando voo",0,1);
+        const double loadingStarted=glfwGetTime();
+        double nextLoadingDraw=0;
+        int capturedLoading=0;
+        LoadCallbacks callbacks;
+        callbacks.pump=[&] {
+            glfwPollEvents();
+            if(g_MenuAction==frontend::Action::CancelLoading) {
+                cancelRequested=true;nextLoadingDraw=0;g_MenuAction=frontend::Action::None;
+            }
+            int fw,fh;glfwGetFramebufferSize(window,&fw,&fh);
+            const double loadingNow=glfwGetTime();
+            if(fw>0&&fh>0&&loadingNow>=nextLoadingDraw) {
+                nextLoadingDraw=loadingNow+1.0/60;
+                const double fraction=progress.total?double(progress.completed)/progress.total:0;
+                frontendScreen->DrawLoading(window,fraction,cancelRequested?"Cancelando":progress.stage,
+                    cancelRequested?"Voltando ao menu...":spec.name+" | Santos Dumont -> Galeao",glfwGetTime()-loadingStarted);
+                if(!loadingCapturePrefix.empty()&&capturedLoading<3&&fraction>=capturedLoading*.5) {
+                    CaptureFrontendFrame(window,loadingCapturePrefix+"-"+std::to_string(attempt)+"-"+
+                                         std::to_string(capturedLoading)+".ppm");
+                    ++capturedLoading;
+                }
+                glfwSwapBuffers(window);
+            }
+            if(glfwWindowShouldClose(window)||cancelRequested)throw LoadCancelled();
+        };
+        callbacks.progress=[&](const LoadProgress& next) {progress=next;nextLoadingDraw=0;callbacks.pump();};
+        try {
+            callbacks.pump();
+            if(!sceneReady) {
+                scene.reset(new GameScene);
+                scene->Load(window,callbacks,spec.modelPath,spec.cockpitEye);
+                sceneReady=true;
+            } else if(loadedAircraft!=spec.id) {
+                scene->LoadAircraft(spec.modelPath,spec.cockpitEye,callbacks);
+            }
+            loadedAircraft=spec.id;
+            scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
+            scene->ResetPlayer(MainAircraft);g_PlayerCrashed=false;g_ResetFlightRequested=false;
+            flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
+            std::printf("Flight ready: %s state=%d gear=%u origin_armed=%d reused_scene=%d\n",spec.id.c_str(),
+                int(scene->PlayerContact().state),scene->PlayerContact().gearContacts,
+                int(flightMission.Snapshot().originArmed),int(hadFlight));std::fflush(stdout);
+            g_CameraFrame=scene->Cameras(MainAircraft);
+            g_Camera.SetMode(CameraType::LOOK_AT,g_CameraFrame);g_Camera.Reset(g_CameraFrame);
+            if(!g_CameraInput)g_CameraInput.reset(new CameraInput(window,g_Camera,g_CameraFrame));
+            g_Frontend->Close();
+            glfwSetWindowTitle(window,("Caelum - "+spec.name+" - Rio de Janeiro").c_str());
+            previous_time=smoke_start=glfwGetTime();
+            return true;
+        } catch(const LoadCancelled&) {
+            if(!sceneReady)scene.reset();
+            if(hadFlight) {
+                for(std::size_t old=0;old<AircraftCatalog().size();++old)if(AircraftCatalog()[old].id==loadedAircraft)
+                    SelectFrontendAircraft(*g_Frontend,old,1280,720);
+                g_Frontend->OpenPause();
+            } else g_Frontend->OpenMain();
+            g_MenuAction=frontend::Action::None;
+        } catch(const std::exception& error) {
+            std::fprintf(stderr,"Flight loading failed: %s\n",error.what());
+            if(!sceneReady)scene.reset();
+            g_Frontend->OpenMain();
+            g_Frontend->SetError("Nao foi possivel carregar o voo. Tente novamente.");
+        }
+        previous_time=glfwGetTime();
+        return false;
+    };
+    if(inspectionRun) {
+        SelectFrontendAircraft(*g_Frontend,initialAircraft,1280,720);
+        if(!startFlight(initialAircraft)) {
+            missionMarker.reset();collisionDebug.reset();hud.reset();frontendScreen.reset();
+            scene.reset();g_Frontend.reset();glfwTerminate();return EXIT_FAILURE;
+        }
+        previous_time=smoke_start=glfwGetTime();
+        try {
+            if(collision_check) {
+                if(!scene->InspectCollisions(MainAircraft,std::string(argv[2])+".txt"))
+                    throw std::runtime_error("Collision integration inspection failed");
+                g_ShowCollisionVolumes=true;
+            }
+            if(mission_check&&!scene->InspectMission(MainAircraft,std::string(argv[2])+".txt"))
+                throw std::runtime_error("Mission integration inspection failed");
+        } catch(const std::exception& error) {
+            std::fprintf(stderr,"Inspection failed: %s\n",error.what());
+            g_CameraInput.reset();missionMarker.reset();collisionDebug.reset();hud.reset();
+            frontendScreen.reset();scene.reset();g_Frontend.reset();glfwTerminate();return EXIT_FAILURE;
+        }
+        if(smoke_test&&argc>3) {
+            const std::string mode=argv[3];
+            if(mode=="cockpit")g_Camera.SetMode(CameraType::COCKPIT,g_CameraFrame);
+            else if(mode=="free") {
+                g_Camera.SetMode(CameraType::FREE,g_CameraFrame);
+                CameraMovement movement;movement.vertical=1;
+                g_Camera.Update(movement,2.0f,g_CameraFrame);
+            }
+        }
+    }
+    previous_time=smoke_start=glfwGetTime();
+    glEnable(GL_DEPTH_TEST);glEnable(GL_CULL_FACE);glCullFace(GL_BACK);glFrontFace(GL_CCW);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
         frameLimiter.Wait();
+        if(menuInspectionActive)frontendInspection.Prepare(window,*g_Frontend);
         if(hud_check)hudInspection.Prepare(window,g_Camera,g_CameraFrame);
         if(missionInspectionActive)missionInspection.Prepare(window);
         // Read the latest mouse events immediately before computing this view.
@@ -396,6 +487,32 @@ int main(int argc, char* argv[])
         glfwGetFramebufferSize(window,&framebufferWidth,&framebufferHeight);
         if(framebufferWidth<=0 || framebufferHeight<=0) {
             glfwWaitEventsTimeout(.1);
+            previous_time=glfwGetTime();
+            continue;
+        }
+        if(g_Frontend->Active()) {
+            const auto action=g_MenuAction;g_MenuAction=frontend::Action::None;
+            if(action==frontend::Action::Quit)glfwSetWindowShouldClose(window,GL_TRUE);
+            else if(action==frontend::Action::Resume&&sceneReady) {
+                // Leaving aircraft selection without starting keeps the current
+                // flight and its actual aircraft, including the menu's label.
+                for(std::size_t current=0;current<AircraftCatalog().size();++current)
+                    if(AircraftCatalog()[current].id==loadedAircraft)
+                        SelectFrontendAircraft(*g_Frontend,current,framebufferWidth,framebufferHeight);
+                g_Frontend->Close();
+            }
+            else if(action==frontend::Action::MainMenu)g_Frontend->OpenMain();
+            else if(action==frontend::Action::Start)startFlight(g_Frontend->SelectedIndex());
+            if(g_Frontend->Active()&&!glfwWindowShouldClose(window)) {
+                if(menuInspectionActive)frontendInspection.Draw(window,*frontendScreen,*g_Frontend,glfwGetTime());
+                else frontendScreen->Draw(window,*g_Frontend,glfwGetTime());
+                if(menuInspectionActive&&frontendInspection.Capture(window)) {
+                    if(keep_open) {
+                        menuInspectionActive=false;g_Frontend->OpenMain();glfwSetWindowSize(window,1280,720);
+                    } else glfwSetWindowShouldClose(window,GL_TRUE);
+                }
+                glfwSwapBuffers(window);
+            }
             previous_time=glfwGetTime();
             continue;
         }
@@ -607,6 +724,8 @@ int main(int argc, char* argv[])
 
     // Finalizamos o uso dos recursos do sistema operacional
     g_CameraInput.reset();
+    g_Frontend.reset();
+    frontendScreen.reset();
     collisionDebug.reset();
     missionMarker.reset();
     hud.reset();
@@ -1216,14 +1335,26 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
 // Callbacks only forward events; CameraInput handles capture and control routing.
 void MouseButtonCallback(GLFWwindow* window,int button,int action,int mods)
 {
+    if(g_Frontend&&g_Frontend->Active()) {
+        if(button==GLFW_MOUSE_BUTTON_LEFT&&action==GLFW_PRESS) {
+            double x,y;int w,h;glfwGetCursorPos(window,&x,&y);glfwGetWindowSize(window,&w,&h);
+            const auto next=g_Frontend->Click(x,y,w,h);
+            if(next!=frontend::Action::None)g_MenuAction=next;
+        }
+        return;
+    }
     if(g_CameraInput)g_CameraInput->MouseButton(button,action);
 }
 void CursorPosCallback(GLFWwindow* window,double x,double y)
 {
+    if(g_Frontend&&g_Frontend->Active()) {
+        int w,h;glfwGetWindowSize(window,&w,&h);g_Frontend->Move(x,y,w,h);return;
+    }
     if(g_CameraInput)g_CameraInput->Cursor(x,y);
 }
 void ScrollCallback(GLFWwindow* window,double xoffset,double yoffset)
 {
+    if(g_Frontend&&g_Frontend->Active())return;
     if(g_CameraInput)g_CameraInput->Scroll(yoffset);
 }
 void FocusCallback(GLFWwindow* window,int focused)
@@ -1243,6 +1374,32 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     Correcao_KeyCallback(key, action, mod);
     // =======================
 
+    if(g_Frontend&&g_Frontend->Active()) {
+        if(action!=GLFW_PRESS&&action!=GLFW_REPEAT)return;
+        frontend::Key menuKey;
+        bool recognized=true;
+        switch(key) {
+        case GLFW_KEY_UP:menuKey=frontend::Key::Up;break;
+        case GLFW_KEY_DOWN:menuKey=frontend::Key::Down;break;
+        case GLFW_KEY_LEFT:menuKey=frontend::Key::Left;break;
+        case GLFW_KEY_RIGHT:menuKey=frontend::Key::Right;break;
+        case GLFW_KEY_TAB:menuKey=frontend::Key::Tab;break;
+        case GLFW_KEY_ENTER:case GLFW_KEY_KP_ENTER:menuKey=frontend::Key::Enter;break;
+        case GLFW_KEY_ESCAPE:menuKey=frontend::Key::Escape;break;
+        default:recognized=false;break;
+        }
+        // Navigation may repeat; activation/cancel never repeats while held.
+        if(recognized&&(action==GLFW_PRESS||(menuKey!=frontend::Key::Enter&&menuKey!=frontend::Key::Escape))) {
+            int w,h;glfwGetWindowSize(window,&w,&h);
+            const auto next=g_Frontend->KeyPress(menuKey,w,h,(mod&GLFW_MOD_SHIFT)!=0);
+            if(next!=frontend::Action::None)g_MenuAction=next;
+        }
+        return;
+    }
+    if(key==GLFW_KEY_ESCAPE&&action==GLFW_PRESS&&g_Frontend) {
+        if(g_CameraInput)g_CameraInput->Focus(false);
+        g_Frontend->OpenPause();return;
+    }
     if(g_CameraInput && g_CameraInput->Key(key,action))return;
 
     if(key==GLFW_KEY_ENTER&&action==GLFW_PRESS)g_ResetFlightRequested=true;

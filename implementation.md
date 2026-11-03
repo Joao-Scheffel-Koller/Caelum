@@ -2,7 +2,7 @@
 
 Documento técnico produzido com auxílio de IA (Codex), a pedido dos integrantes. Este arquivo serve para estudar, revisar e manter o código. Não substitui o relatório final de autoria dos alunos em `README.md`, nem altera a especificação `SPEC.md`.
 
-**Recorte documentado:** código consolidado até `e2917d8`, merge do HUD na `main`, em 2 de novembro de 2026. A branch `colisions` foi criada desse ponto. Neste primeiro registro, as colisões completas ainda são a etapa seguinte: o comportamento físico existente limita a posição a `Y=0`. O documento será publicado antes de começar essa implementação, conforme solicitado.
+**Estado documentado em 2 de novembro de 2026:** código da branch `menu`, criada da `main` em `3ab3bea`, com as etapas locais de menu, carregamento e monomotor descritas aqui. A `main` desse ponto já inclui colisões e missão. A primeira edição deste guia registrava o snapshot `e2917d8`, anterior às colisões; esta revisão atualiza esse conteúdo, preservando os detalhes das etapas de preparação e implementação. Os commits locais de `menu` não devem ser interpretados como já mesclados na `main`.
 
 Os trechos C++/GLSL/Python abaixo foram extraídos ou conferidos contra os arquivos desse recorte. Cada trecho mostra uma parte da implementação; assinaturas, includes e detalhes omitidos continuam nos arquivos indicados. Explicações de algoritmos e fórmulas complementam os trechos, sem apresentar pseudocódigo como se fosse código já executado.
 
@@ -26,21 +26,28 @@ Os trechos C++/GLSL/Python abaixo foram extraídos ou conferidos contra os arqui
 - [Câmeras: separar observação, entrada e estado do avião](#câmeras-separar-observação-entrada-e-estado-do-avião)
 - [Animação do segundo avião por curvas de Bézier](#animação-do-segundo-avião-por-curvas-de-bézier)
 - [HUD: instrumentos de voo e apresentação das leituras](#hud-instrumentos-de-voo-e-apresentação-das-leituras)
+- [Colisões contínuas, apoio no terreno e recuperação do jogador](#colisões-contínuas-apoio-no-terreno-e-recuperação-do-jogador)
+- [Carregamento responsivo, cancelamento e reutilização do cenário](#carregamento-responsivo-cancelamento-e-reutilização-do-cenário)
+- [Missão Santos Dumont → Galeão: objetivo e máquina de estados](#missão-santos-dumont--galeão-objetivo-e-máquina-de-estados)
+- [Marcador opcional do aeroporto de destino](#marcador-opcional-do-aeroporto-de-destino)
+- [Menu, seleção de aeronave e tela de carregamento](#menu-seleção-de-aeronave-e-tela-de-carregamento)
+- [Monomotor leve: segundo modelo, catálogo e adaptações](#monomotor-leve-segundo-modelo-catálogo-e-adaptações)
 - [Compilação, execução e diagnóstico da versão carregada](#compilação-execução-e-diagnóstico-da-versão-carregada)
 - [Estratégia de testes: matemática, arquivos e GPU](#estratégia-de-testes-matemática-arquivos-e-gpu)
-- [Controles consolidados no recorte](#controles-consolidados-no-recorte)
+- [Controles consolidados no estado atual](#controles-consolidados-no-estado-atual)
 - [Git, identificação de IA e organização documental](#git-identificação-de-ia-e-organização-documental)
-- [Estado ao fechar este documento e etapa seguinte](#estado-ao-fechar-este-documento-e-etapa-seguinte)
+- [Estado atual e trabalho restante](#estado-atual-e-trabalho-restante)
+
 
 ## Visão geral: o que mudou no projeto
 
-O ponto de partida foi o código base de Computação Gráfica, com infraestrutura de janela, contexto OpenGL, shaders, desenho de texto e objetos de demonstração. Ao longo da conversa, a cena inicial passou a carregar um avião comercial A320 com cockpit e um extrato tridimensional do Rio de Janeiro gerado a partir de OpenStreetMap pelo OSM2World. O jogador começa no Santos Dumont; um segundo avião reaproveita a mesma malha GPU e percorre um circuito de curvas de Bézier.
+O ponto de partida foi o código base de Computação Gráfica, com infraestrutura de janela, contexto OpenGL, shaders, desenho de texto e objetos de demonstração. A cena passou a combinar um extrato tridimensional do Rio, aeronave selecionável, três câmeras, tráfego autônomo, instrumentos e lógica de missão. O menu oferece o A320 com cockpit e um monomotor estilizado. Ao iniciar, o jogador aparece no Santos Dumont; um segundo avião reaproveita a malha GPU da aeronave selecionada e percorre um circuito de curvas de Bézier. A missão lê os contatos físicos do jogador para confirmar a partida e a chegada ao Galeão.
 
 O código novo foi separado em módulos. Câmeras, entrada de mouse, renderização de materiais, animação e telemetria têm responsabilidades diferentes. Essa separação permitiu corrigir o salto de câmera ao apertar o botão direito, ajustar sensibilidade e fontes e acrescentar instrumentos sem modificar as forças usadas pelo modelo de voo.
 
 | Área | Resultado consolidado | Implementação principal |
 |---|---|---|
-| Modelo do jogador | A320 com materiais, imagens e interior, substituindo o coelho na cena inicial | `data/aircraft/`, `ModelRenderer`, `GameScene` |
+| Modelo do jogador | Escolha entre A320 e monomotor estilizado, com materiais e enquadramentos próprios | `AircraftCatalog`, `data/aircraft/`, `data/light_aircraft/`, `GameScene` |
 | Cidade | 125 partes determinísticas do Rio, nas mesmas coordenadas do mapa original | `data/rio/chunks/manifest.json`, `split_obj.py` |
 | Chão adicional | Base limitada ao retângulo do extrato, para preencher lacunas visuais | `build_base_terrain.py`, `base_terrain.obj` |
 | Posição inicial | Pista 20L do Santos Dumont, 100 m após a cabeceira norte | `GameScene::Spawn` |
@@ -48,13 +55,17 @@ O código novo foi separado em módulos. Câmeras, entrada de mouse, renderizaç
 | Câmeras | Cockpit, observador livre e externa orbital, com estado separado | `CameraController`, `CameraInput` |
 | Mouse | Captura pelo botão direito, liberação por foco e estabilização inicial de 100 ms | `CameraInput`, `MouseCapture` |
 | Tempo e janela | Abertura em 1280×720; limite de 60 FPS; movimento de câmera com tempo real | `FrameLimiter`, `main.cpp` |
-| Tráfego | Segunda instância do A320 em quatro Béziers cúbicas, com Euler sobre distância | `BezierPath`, `BezierFlight` |
+| Tráfego | Segunda instância da malha selecionada em quatro Béziers cúbicas, com Euler sobre distância | `BezierPath`, `BezierFlight` |
 | Instrumentos | Velocidade, altitude, potência, bússola e horizonte artificial | `FlightTelemetry`, `FlightHud` |
 | Ponteiros | Ângulos proporcionais, movimento intermediário e suavização independente de FPS | `HudLayout`, `HudNeedleMotion` |
 | Fontes auxiliares | Tamanho final 1,5 vez o inicial, margens medidas e versões compactas | Bloco de ajuda em `main.cpp` |
-| Validação | Nove testes CTest e modos de captura com os assets reais | `tests/`, `RenderInspection`, `HudInspection` |
+| Colisões | Varredura contínua, BVH, apoio do trem, água, obstáculos, acidente e reinício | `collisions`, `CollisionWorld`, `AircraftContacts` |
+| Missão | Santos Dumont → Galeão, com histórico de decolagem e pouso confirmado | `Airports`, `FlightMission`, `MissionOverlay` |
+| Destino | Marcador “!” acima do Galeão, oculto por padrão e alternado por M | `MissionMarker` |
+| Menu e carregamento | Seleção, controles, pausa, progresso real, cancelamento e preparação CPU responsiva | `FrontendModel`, `FrontendScreen`, `LoadProgress` |
+| Validação | Dezesseis suítes CTest e inspeções CPU/GPU, distinguindo replay físico e fixtures de interface | `tests/`, `RenderInspection`, `HudInspection`, `MissionInspection`, `FrontendInspection` |
 
-Isso ainda é um simulador em desenvolvimento. A presença do modelo visual, das câmeras e do painel não implica que a missão decolar/voar/pousar entre aeroportos já esteja concluída. A física simplificada antecede parte deste trabalho, e os controles completos da atitude do jogador, as colisões com a cidade, o menu de escolha de avião e os critérios de conclusão da missão permanecem pendentes no recorte acima.
+Isso ainda é um simulador em desenvolvimento. Colisões, critérios da missão e menu estão implementados, mas os controles completos de atitude do jogador continuam pendentes. Os testes da missão usam amostras controladas e o resolvedor sobre o mapa real; eles não demonstram um trajeto manual completo. A execução do monomotor chegou ao estado de apoio com três rodas e partida armada no Santos Dumont, sem apresentar esse teste inicial como prova de decolagem, manobra e pouso manual completos.
 
 ## Arquitetura e organização dos arquivos
 
@@ -62,41 +73,61 @@ Uma reorganização moveu os arquivos antes dispersos na raiz de `src` para past
 
 ```text
 src/
-  main.cpp                    janela, contexto, eventos e composição dos módulos
+  main.cpp                    janela, callbacks e composição dos estados da aplicação
   aircraft/
     Aircraft.*                estado mutável do jogador
-    FlightModel.*             forças e integração do jogador
+    FlightModel.*             forças e integração preditiva do jogador
+    AircraftCatalog.*         IDs, modelos e olhos locais das aeronaves selecionáveis
     BezierFlight.*            estado e pose do avião autônomo
     FlightTelemetry.*         medições somente de leitura
   animation/
-    BezierPath.*               geometria e consultas do caminho cúbico
+    BezierPath.*              geometria e consultas do caminho cúbico
   camera/
     CameraController.*        matemática e estados das três câmeras
     CameraInput.*             eventos GLFW e intenção de movimento
     MouseCapture.*            confinamento nativo do cursor
+  collision/
+    collisions.*              interseções e varredura esfera/triângulo em CPU
+    CollisionWorld.*          geometria persistente, materiais físicos e BVH
+    AircraftContacts.*        volumes do avião e resposta de apoio/acidente
+    CollisionDebug.*          desenho opcional das esferas físicas
+    shaders/                  shaders da visualização de depuração
+  mission/
+    Airports.*                retângulos de pistas, distância e rumo
+    FlightMission.*           histórico e estados da missão
+    MissionInspection.*       fixtures e capturas da missão
   render/
-    ModelRenderer.*           leitura de modelos, materiais e desenho GPU
-    GameScene.*               integração de mapa, jogador e tráfego
-    MaterialPolicy.*          interpretação dos materiais do mapa
-    RenderInspection.*        vistas repetíveis para inspeção visual
+    ModelRenderer.*           preparação CPU, uploads e desenho dos modelos
+    GameScene.*               mapa, contatos, jogador e tráfego
+    MaterialPolicy.*          interpretação dos materiais visuais
+    RenderInspection.*        vistas repetíveis para inspeção gráfica
     shaders/                  shaders do cenário e dos aviões
   ui/
+    FrontendModel.*            páginas, seleção e ações do menu sem OpenGL
+    FrontendScreen.*           menu, botões e tela de carregamento
+    FrontendInspection.*      fixtures e capturas das páginas
     FlightHud.*               construção e desenho dos instrumentos
     HudLayout.*               posições, dimensões e conversão valor/ângulo
-    HudNeedleMotion.*         resposta visual dos ponteiros
+    HudNeedleMotion.*          resposta visual dos ponteiros
     HudInspection.*           fixtures e capturas opcionais do HUD
+    MissionOverlay.*          instrução e navegação da missão
+    MissionMarker.*           marcador procedural do destino
     textrendering.cpp          fonte e desenho de letras do código base
-    shaders/                  shaders exclusivos do HUD
+    shaders/                  programas próprios de HUD, marcador e menu
   platform/
     FrameLimiter.*            espera e temporização entre quadros
+    LoadProgress.hpp          progresso, pump e execução CPU com drenagem no cancelamento
   input/                      esqueleto de CommandInterface ainda sem lógica
   course/                     código auxiliar das aulas e correção
   third_party/                unidades de compilação de bibliotecas existentes
 tests/                        regressões CPU; não dependem de abrir o jogo
 docs/                         explicações técnicas de subsistemas
-data/aircraft/                OBJ, MTL e imagens do A320
+data/ASSETS.md                guia central de origem e preparação dos três assets
+data/aircraft/                OBJ, MTL, imagens e cena editável do A320
+data/light_aircraft/          monomotor, fonte/licença e conversor reproduzível
 data/rio/chunks/              partes do mapa e recursos compartilhados
 data/rio/tools/               divisão determinística e geração da base visual
+data/rio/airports.json        proveniência das coordenadas e dimensões das pistas
 ```
 
 `CameraController` e `FlightTelemetry` são bons exemplos da separação: ambos fazem cálculos sem chamar OpenGL. O renderer recebe matrizes e geometrias já definidas; o HUD recebe medições; a física altera o estado de `Aircraft`. O controle da câmera livre modifica o observador, sem usar o movimento da câmera como força no avião.
@@ -105,58 +136,86 @@ data/rio/tools/               divisão determinística e geração da base visua
 
 ## Inicialização e ciclo de vida da aplicação
 
-`main()` inicializa GLFW, pede um contexto OpenGL 3.3 core, cria a janela e registra callbacks. O tamanho inicial é explícito:
+`main()` inicializa GLFW, pede um contexto OpenGL 3.3 core, cria a janela e registra callbacks. O tamanho inicial continua explícito:
 
 ```cpp
 window = glfwCreateWindow(1280, 720, "Caelum - Rio de Janeiro", NULL, NULL);
 ```
 
-Após carregar as funções OpenGL com GLAD, o programa imprime fabricante, renderer e versões da GPU. Isso ajuda a distinguir um problema de contexto de um erro de leitura de arquivo. O programa 3D é compilado pelos helpers do código base antes de criar e carregar a cena.
+Após GLAD, o programa imprime fabricante, renderer e versões da GPU e compila os shaders 3D pelos helpers do código base. A fonte e os renderizadores de interface são criados antes da leitura dos OBJ. A cena começa nula: abrir a janela não carrega o A320 nem as 125 partes do mapa.
 
-Trecho de `src/main.cpp`:
+Dois fragmentos de `src/main.cpp` mostram essa separação. Na inicialização, o catálogo fornece as opções e a existência do arquivo determina a disponibilidade:
 
 ```cpp
-std::unique_ptr<GameScene> scene(new GameScene);
-try {
-    scene->Load(window);
-    scene->Spawn(MainAircraft);
-} catch(const std::exception& error) {
-    fprintf(stderr,"Scene loading failed: %s\n",error.what());
-    scene.reset();
-    glfwTerminate();
-    return EXIT_FAILURE;
+TextRendering_Init();
+std::unique_ptr<frontend::FrontendScreen> frontendScreen(new frontend::FrontendScreen);
+std::vector<frontend::AircraftChoice> choices;
+for(const auto& spec:AircraftCatalog()) {
+    std::ifstream model(spec.modelPath);
+    choices.push_back({spec.id,spec.name,spec.description,bool(model)});
 }
+g_Frontend.reset(new frontend::FrontendModel(choices));
+std::unique_ptr<GameScene> scene;
+bool sceneReady=false;
 ```
 
-`Load` pode lançar uma exceção por OBJ, manifesto ou textura ausente. O programa informa o erro e libera os recursos enquanto o contexto ainda existe. `Spawn` vem depois da carga, antes de iniciar a simulação, e define constantes de posição e orientação. Os limites geométricos do modelo são usados por `AircraftTransform`, na preparação da câmera e no desenho, para calcular o pivô que mantém as rodas na altura da posição do avião.
+A ação de iniciar executa a lambda `startFlight`. Ela coloca a interface em carregamento, cria callbacks de progresso/desenho e carrega ou troca o modelo:
 
-Depois disso, `GameScene::Cameras` prepara o quadro de referência do avião, `CameraInput` recebe uma referência para esse quadro, a fonte é inicializada e `FlightHud` cria seus buffers e programa. A instância da cena é proprietária dos modelos; as câmeras consultam sua transformação, sem duplicar a leitura do OBJ para descobrir a posição do jogador.
+```cpp
+if(!sceneReady) {
+    scene.reset(new GameScene);
+    scene->Load(window,callbacks,spec.modelPath,spec.cockpitEye);
+    sceneReady=true;
+} else if(loadedAircraft!=spec.id) {
+    scene->LoadAircraft(spec.modelPath,spec.cockpitEye,callbacks);
+}
+loadedAircraft=spec.id;
+scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
+scene->ResetPlayer(MainAircraft);g_PlayerCrashed=false;g_ResetFlightRequested=false;
+flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
+```
 
-O mapa inteiro é lido na inicialização. O título da janela indica quantas partes já foram carregadas, e eventos são processados durante essa etapa para permitir cancelar pelo fechamento da janela. Foi discutido carregar somente chunks próximos, mas streaming de disco ou descarregamento de chunks ainda não foi implementado. O descarte por campo de visão acontece no desenho e reduz trabalho de GPU; ele não reduz o conjunto carregado em memória.
+`ResetPlayer` chama `Spawn`, limpa os contatos e resolve o apoio inicial no mapa. `SetAirframeType` escolhe as proporções dos volumes e rodas. Depois, `GameScene::Cameras` produz o referencial, a câmera é restaurada, `CameraInput` é criado se necessário e `g_Frontend->Close()` libera o jogo. A referência temporal é reiniciada para não aplicar à física o intervalo do carregamento.
+
+O primeiro voo lê o mapa completo. Leitura/triangulação, agrupamento de vértices, geometria física/BVH e decodificação de imagens são preparados em CPU; o thread principal atende eventos e desenha o progresso. Uploads OpenGL permanecem no thread do contexto. A barra representa unidades concluídas, não segundos restantes. `Escape`, Cancelar e o fechamento da janela interrompem a carga depois de drenar a tarefa CPU atual com segurança.
+
+Falhas de OBJ, manifesto ou textura voltam ao menu, com detalhes no terminal e liberação da cena inicial incompleta. `LoadAircraft` prepara modelo e contatos temporários antes de substituir o avião; uma troca cancelada preserva o voo anterior. Após a primeira carga concluída, reiniciar ou trocar a aeronave reutiliza os 126 chunks físicos/visuais do Rio.
+
+Streaming espacial e descarregamento de chunks continuam ausentes. O culling reduz trabalho de desenho, mas o mapa pronto permanece em memória. Isso é diferente do antigo bootstrap que bloqueava a abertura do menu enquanto carregava toda a cidade.
 
 ## Um quadro completo: entrada, simulação, câmera e desenho
 
-O ciclo principal tem uma ordem definida. Primeiro espera pelo orçamento de quadro e processa os eventos mais recentes. Em seguida, verifica se o framebuffer está disponível. Uma janela minimizada pode ter largura ou altura zero: nesse caso, o programa espera eventos e reinicia a referência temporal, evitando divisão por zero e um salto grande de tempo ao restaurar a janela.
+O loop espera pelo orçamento de quadro, processa eventos e verifica o framebuffer. Durante minimização, dimensões nulas fazem o programa esperar eventos e reiniciar a referência temporal, evitando divisão por zero e um salto ao restaurar a janela.
 
-O intervalo real é obtido pelo relógio do GLFW:
+Com `g_Frontend->Active()`, o loop trata a ação, desenha o menu, apresenta o quadro e continua sem executar a simulação. Jogador, tráfego Bézier e missão ficam pausados. Retomar atualiza `previous_time`; o tempo no menu não vira um passo de física. Selecionar um cartão só substitui a aeronave ao iniciar outra tentativa; Continuar mantém o avião do voo existente.
+
+No jogo, `Enter` restaura jogador, contatos, missão e câmera antes da previsão. O intervalo real vem do GLFW, e a pose anterior permite detectar movimentos que atravessariam obstáculos:
 
 ```cpp
 double current_time = glfwGetTime();
 const double elapsed = std::max(current_time - previous_time,0.0);
 float dt = static_cast<float>(elapsed);
-// Keep the existing physics step limit; camera travel uses real elapsed time.
-MainModel.update(&MainAircraft, std::min(dt,0.05f));
+const auto previousPose=GameScene::PhysicalPose(MainAircraft);
+const double physicsStep=std::min(dt,0.05f);
+if(!g_PlayerCrashed) {
+    MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
+    scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
+    g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
+}
+flightMission.Update(scene->PlayerMissionSample(MainAircraft),physicsStep);
 previous_time = current_time;
-scene->Update(elapsed); // Euler advances traffic once, outside all draw passes.
+scene->Update(elapsed);
 g_CameraFrame=scene->Cameras(MainAircraft);
 g_CameraInput->Update(dt);
 ```
 
-Há três usos distintos de tempo nesse trecho. A física do jogador mantém o limite de 0,05 s por atualização que já era usado na integração. A câmera recebe o tempo real do quadro. O tráfego da cena também recebe o intervalo real e é atualizado uma única vez. Se o computador travar por um intervalo longo, o clamp da física do jogador descarta parte desse tempo: isso é uma limitação existente, não um sistema de passos fixos com acumulador.
+A resposta de contato vem depois da predição; só então a missão recebe posição, velocidade, orientação e rodas corrigidas. Em acidente, o jogador para fisicamente, mas a missão lê o estado para entrar em falha. Tráfego e câmeras continuam fora da pausa; o NPC não alimenta os critérios da missão.
 
-O cálculo da câmera vem depois da física para usar a posição mais nova do avião. Os eventos vêm antes desse cálculo para evitar desenhar a câmera com o mouse do quadro anterior. Então são montadas as matrizes view e projection, enviadas ao programa GPU e executados os passes da cena. No cockpit, o passe do mundo e o passe do interior têm intervalos de profundidade diferentes, explicados adiante.
+Física e temporizadores da missão usam no máximo `0.05 s` por passo; câmera e tráfego usam o intervalo real. Um travamento longo pode fazer a física avançar menos que o relógio, pois esse limite descarta parte do intervalo. Não há acumulador de passos fixos nessa integração.
 
-Após o desenho 3D, o estado do jogador é convertido em telemetria:
+A câmera acompanha a pose corrigida. View/projection vêm das matrizes da disciplina. A cena é desenhada em passes; no cockpit, mundo e interior usam faixas de profundidade diferentes. Os volumes opcionais e o marcador do destino vêm depois dos passes 3D, com projeção de mundo.
+
+O jogador também fornece a telemetria:
 
 ```cpp
 FlightTelemetry readings=CalculateFlightTelemetry(MainAircraft.get_position(),MainAircraft.get_velocity(),
@@ -165,20 +224,24 @@ if(hud_check)readings=hudInspection.Telemetry(readings);
 hud->Update(readings,elapsed);
 ```
 
-No uso normal, os dados vêm do jogador. A substituição por valores sintéticos só acontece com o argumento explícito de inspeção do HUD. A atualização visual dos ponteiros ocorre mesmo quando `H` oculta as informações. Assim, reabrir o painel não faz uma animação a partir de leituras antigas.
+Valores sintéticos aparecem somente na inspeção explícita do HUD; não alimentam colisões ou missão. Os ponteiros são atualizados mesmo com `H` desligado. Conclusão/falha da missão permanecem visíveis sem HUD; o “!” é controlado separadamente por `M` e começa oculto.
 
-O HUD e os textos auxiliares são desenhados sobre a cena; os modos de inspeção podem ler o framebuffer; finalmente `glfwSwapBuffers` apresenta o quadro. O desenho usa double buffering: o programa prepara um buffer enquanto o anterior está disponível para apresentação. A captura é feita antes da troca para obter exatamente o quadro que acabou de ser desenhado.
+As inspeções leem o framebuffer antes de `glfwSwapBuffers`, que apresenta o quadro preparado por double buffering. As capturas de UI de missão/menu identificam seus estados como fixtures: uma tela de conclusão não comprova um voo manual.
 
-A liberação segue a ordem inversa das dependências:
+A liberação mantém o contexto vivo até excluir os recursos gráficos:
 
 ```cpp
 g_CameraInput.reset();
+g_Frontend.reset();
+frontendScreen.reset();
+collisionDebug.reset();
+missionMarker.reset();
 hud.reset();
 scene.reset();
 glfwTerminate();
 ```
 
-Essa ordem permite liberar o confinamento do cursor e excluir os VAOs, VBOs, programas, texturas e samplers gerenciados pelos módulos novos antes de destruir o contexto. O renderer de texto do código base não recebeu um destrutor geral nesta etapa; seus recursos restantes são liberados com o contexto. A câmera não fica com o cursor preso ao fechar o aplicativo.
+Isso libera o confinamento do cursor e os recursos dos módulos antes de destruir o contexto. O renderer de texto do código base ainda não recebeu um destrutor geral; seus recursos restantes são liberados junto do contexto.
 
 ## Estado do jogador e interface com a física existente
 
@@ -188,23 +251,23 @@ Os valores atuais do construtor são massa 10, gravidade -1 no modelo, sustenta�
 
 O modelo calcula empuxo na direção `forward`, gravidade em -Y, sustentação em `up` e arrasto contrário à velocidade. Em termos de equações, a resultante é `F = F_empuxo + F_gravidade + F_sustentacao + F_arrasto`, seguida de `a = F/m`, atualização de velocidade e atualização de posição. A posição usa a velocidade já atualizada nesse passo.
 
-O problema corrigido no contato com a pista era acumular velocidade de queda mesmo depois de a posição ter sido limitada ao chão. Essa velocidade negativa entrava no módulo da velocidade usado na sustentação e no arrasto. O trecho consolidado de `FlightModel.cpp` é:
+Uma correção antiga limitava a posição a `Y=0` e apagava a velocidade vertical negativa. Ela foi substituída pela resposta sobre o mapa real: o modelo de forças preserva a previsão e a velocidade de impacto até `GameScene::ResolvePlayer`. A parte final de `FlightModel::update` é:
 
 ```cpp
-if (position.y < 0.0f){
-    position.y = 0.0f;
-    // AI-assisted fix: the runway cancels downward velocity on contact.
-    // Otherwise speed/lift would include accumulated falling through the floor.
-    if (velocity.y < 0.0f) velocity.y = 0.0f;
-    aircraft->set_velocity(velocity);
-}
+velocity += acceleration * dt;
+aircraft->set_velocity(velocity);
+glm::vec3 position = aircraft->get_position();
+position += velocity * dt;
+aircraft->set_position(position);
 ```
 
-O teste resolve o ponto inicial em uma pista de altura zero; não consulta o solo sob o avião nem os prédios. Também apaga a velocidade de impacto, motivo pelo qual o futuro sistema de colisões precisa medir o contato antes de aplicar a resposta. A correção não deve ser confundida com reconhecimento de pouso seguro.
+Não há plano universal implícito em `FlightModel`. `AircraftContacts` consulta o mundo físico e decide entre voo, apoio seguro e acidente, usando a velocidade predita para distinguir pouso suave e impacto forte. `GameScene` aplica o resultado ao jogador. A missão acrescenta outra condição: apoio geométrico em algum chão não equivale a pouso confirmado na pista do destino.
+
+Os triângulos persistentes e limites da BVH usam `float` para manter o cenário compacto; os candidatos são promovidos a `double` na fase estreita esfera/triângulo. Esses dados físicos são separados dos buffers de normais/UVs usados no desenho e não dependem da visibilidade do chunk.
 
 W/S aumentam ou reduzem o throttle em passos de 0,05 quando os eventos correspondentes chegam ao callback e a câmera livre não consome essas teclas. O HUD suaviza a apresentação desses passos, mas não muda o valor armazenado. Os campos legados `pitch`, `yaw` e `roll` não são a fonte escolhida para o horizonte artificial; ele usa os vetores que realmente orientam a malha.
 
-O mouse sem botão direito ainda não altera a atitude do jogador no recorte documentado. Os controles das câmeras foram concluídos sem apresentar essa parte da física como pronta. Isso é importante para testar: mover a câmera externa ao redor do avião é diferente de mudar o rumo do avião.
+O mouse sem botão direito ainda não altera a atitude do jogador no estado documentado. Os controles das câmeras foram concluídos sem apresentar essa parte da física como pronta. Isso é importante para testar: mover a câmera externa ao redor do avião é diferente de mudar o rumo do avião.
 
 ## Assets do avião: preparação, materiais e créditos
 
@@ -321,7 +384,7 @@ Formalmente, para uma face de `n` vértices, calcula-se `cx = Σxi/n`, `cz = Σz
 
 Se uma célula ultrapassa o limite de bytes, o divisor a subdivide recursivamente em quadrantes na ordem noroeste, nordeste, sudoeste e sudeste. A ordem das faces dentro de cada região segue a origem. Índices positivos e negativos de OBJ são resolvidos antes da redistribuição; posições, UVs, normais, materiais e repetições são preservados. O script relê os resultados e compara o multiconjunto das faces, incluindo a ordem dos vértices de cada face, evitando aceitar uma divisão que simplesmente mantenha a contagem enquanto modifica o conteúdo.
 
-Os nomes `o` e `g` originais não são preservados como entidades individuais: cada arquivo gerado recebe um objeto com nome único. Isso é suficiente para renderizar, mas não fornece automaticamente IDs físicos de prédios ou árvores. Uma implementação futura de colisões precisará considerar essa perda de separação semântica.
+Os nomes `o` e `g` originais não são preservados como entidades individuais: cada arquivo gerado recebe um objeto com nome único. Isso não fornece automaticamente IDs físicos de prédios ou árvores. As colisões atuais usam triângulos e materiais; árvores de billboard são reconhecidas geometricamente e substituídas por proxies sólidos. A BVH usa limites dos vértices reais, sem depender do nome da célula ou da separação original em objetos.
 
 As texturas referenciadas pelo MTL são copiadas para `chunks/textures/`, recebem prefixo derivado do SHA-256 e passam a usar caminhos relativos. O prefixo evita colisões entre imagens de mesmo nome e conteúdo diferente. `manifest.json` registra arquivos, tamanhos, bounds e hashes; o OBJ original foi preservado localmente em `build/rio_original/`, fora do Git. Para reproduzir os mesmos arquivos, é necessário o mesmo original e as mesmas imagens, não apenas outro extrato da mesma cidade.
 
@@ -352,16 +415,22 @@ O preenchimento reaproveita `GRASS_0` e a imagem do mapa. **Não é classificaç
 
 ## Relação entre ModelRenderer, GameScene e a GPU
 
-`ModelRenderer` concentra leitura e desenho; `GameScene` decide quais modelos carregar, onde posicionar instâncias e em que passes desenhá-las. A chamada central de carregamento é:
+`ModelRenderer` concentra preparação, uploads e desenho; `GameScene` decide quais modelos carregar, onde posicionar instâncias e em que passes desenhá-las. A primeira carga recebe caminho e olhos da aeronave selecionada, além dos callbacks da tela. Em `GameScene::Load`, a aeronave vem antes dos chunks:
 
 ```cpp
-aircraftModel=renderer.Load("../../data/aircraft/aircraft.obj");
-chunks=renderer.LoadMap("../../data/rio/chunks/manifest.json",[window](size_t loaded){
+LoadAircraft(aircraftPath,cockpitEye,activity);
+report("Cenario",1);
+chunks=renderer.LoadMap(manifest,[&](size_t loaded){
+    glfwSetWindowTitle(window,("Caelum - carregando Rio ("+std::to_string(loaded)+" partes)").c_str());
+    report("Cenario",1+loaded);
+},&physicalWorld,activity);
 ```
 
-`LoadMap` percorre os arquivos do esquema fixo do manifesto. Cada arquivo é carregado por `Load(..., true)`, para ativar as regras próprias dos materiais do mapa. O callback atualiza o título com o progresso, processa eventos e permite cancelar o carregamento. A base complementar é carregada separadamente, com `foundation=true`. Assim, a cena pronta contém o A320 e **126 chunks**, incluindo a base.
+O manifesto é lido antes para contar o total: uma aeronave, 125 partes do manifesto e uma base complementar. São 127 unidades de carga e 126 partes de cenário. O callback atualiza progresso/título, e `activity.pump` atende eventos e desenha a interface. A base é carregada com `foundation=true` e também fornece superfície física finita.
 
-Todo o mapa continua sendo carregado na inicialização. A divisão em arquivos não foi transformada em streaming sob demanda. Durante o desenho existe descarte de partes fora do campo de visão, mas os recursos dessas partes permanecem residentes. São duas etapas diferentes: carregamento controla quais dados existem em memória; culling controla quais desses dados são enviados para desenhar naquele quadro.
+Cada parte chama `Load(..., true, physicalWorld, callbacks)`, ativando políticas visuais e extraindo geometria física da mesma leitura. A preparação CPU e a construção da BVH podem ocorrer no worker enquanto o thread principal desenha somente o carregamento. Uploads GPU ficam no thread principal. A cena parcial não é consultada pelo jogo; cancelar drena a tarefa em andamento antes de descartar os dados.
+
+O mapa completo é carregado no **primeiro início de voo**, não antes de abrir o menu. A divisão não constitui streaming. A cena pronta permanece em memória e é reutilizada ao reiniciar ou trocar de avião. O culling limita o desenho do quadro; não descarrega partes do mundo físico ou da GPU.
 
 `ModelRenderer::Load` usa `tinyobjloader`, pede triangulação e rejeita faces que ainda não tenham três vértices. Para cada canto, monta `Vertex { position, normal, uv }`; normais ausentes são calculadas pelo produto vetorial das arestas, com proteção contra triângulos degenerados. As faces são agrupadas pelo ID do material em `std::map<int,std::vector<Vertex>>`. Cada grupo vira um `RenderBatch`, com VAO, VBO, quantidade de vértices, material e centro espacial.
 
@@ -369,7 +438,7 @@ Todo o mapa continua sendo carregado na inicialização. A divisão em arquivos 
 glBufferData(GL_ARRAY_BUFFER,group.second.size()*sizeof(Vertex),group.second.data(),GL_STATIC_DRAW);
 ```
 
-A posição, a normal e a UV ocupam os atributos 0, 1 e 2. O desenho usa `glDrawArrays(GL_TRIANGLES,...)`, e não uma indexação compartilhada por elemento nessa camada. `RenderModel` guarda os batches e bounds gerais; após o carregamento, os vetores temporários da leitura não ficam disponíveis como uma malha física persistente em CPU.
+A posição, a normal e a UV ocupam os atributos 0, 1 e 2. O desenho usa `glDrawArrays(GL_TRIANGLES,...)`, e não indexação compartilhada por elemento nessa camada. `RenderModel` guarda batches e bounds. Os vetores temporários de vértices completos são liberados após os uploads; a geometria de colisão fica separada no `CollisionWorld`, com posições, tipo físico e BVH, sem duplicar normais e UVs para essa função.
 
 As imagens são compartilhadas por caminho no cache `textures`. `stb_image` lê quatro canais, o carregador configura alinhamento de unpack igual a um, envia a imagem como `GL_SRGB8_ALPHA8` e gera mipmaps. Os materiais importam `Kd`, opacidade, caminho difuso e opção de clamp. Dois samplers distinguem repetição e clamp; filtros usam `GL_LINEAR_MIPMAP_LINEAR` para minificação e `GL_LINEAR` para magnificação. Os recursos são liberados por `Release` e pelos destruidores antes da destruição do contexto OpenGL.
 
@@ -494,7 +563,7 @@ A preservação dos mapas de normal e rugosidade do asset não deve ser usada co
 
 `ModelRenderer::Visible` transforma os oito cantos da AABB do chunk para clip space. Se todos ficarem fora de um mesmo plano, a parte é descartada naquele passe. O teste é conservador e baseado na caixa, não em visibilidade exata de cada prédio. O mundo pode ser desenhado no passe `WORLD`, o jogador no passe `AIRCRAFT`, ou ambos em `ALL`; isso permite o tratamento próprio do cockpit, mantendo o tráfego no mundo.
 
-A conferência dos problemas iniciais de materiais usou **13 vistas**. A versão atual de `RenderInspection` acrescenta duas posições do tráfego Bézier e totaliza **15 vistas**: pista baixa e alta, aeroporto de cima, três parques, cidade, Galeão, avião, três deslocamentos na pista, cockpit e as duas vistas do NPC. O programa executa o modo abaixo a partir de `bin/Debug`:
+A conferência dos problemas iniciais de materiais usou **13 vistas**. Com duas posições do tráfego Bézier, passou a **15**; agora `RenderInspection` tem **16**, incluindo `destination-far`, acrescentada para o marcador do Galeão. O conjunto cobre pista baixa e alta, aeroporto de cima, três parques, cidade, Galeão, destino distante, avião, três deslocamentos na pista, cockpit e duas posições do NPC. O programa executa o modo abaixo a partir de `bin/Debug`:
 
 ```powershell
 .\main.exe --texture-check ../../build/textures-check
@@ -502,7 +571,7 @@ A conferência dos problemas iniciais de materiais usou **13 vistas**. A versão
 
 Cada vista aguarda 30 quadros, captura o framebuffer por `glReadPixels`, grava PPM com as linhas invertidas verticalmente e consulta `glGetError`. Os deslocamentos `runway-move-a/b/c` ajudam a comparar o efeito das correções durante mudança de posição; vistas altas expõem lacunas e transparências; a vista interna verifica a integração dos materiais do cockpit. Um retorno sem erro OpenGL comprova a ausência de erros detectados pela API nesse roteiro, mas não prova que todas as UVs ou todos os materiais da cidade estejam visualmente corretos.
 
-Os testes automatizados também verificam classificação de materiais, leitura de MTL, divisão e base determinísticas. Permanecem limites concretos: carregamento integral do mapa na inicialização; preenchimento genérico sem relevo; transparência com ordenação aproximada; ausência de sombras e PBR; simplificações documentadas da pintura do A320; e nenhuma malha física persistente de obstáculos nessa etapa. Esses limites devem orientar a evolução do projeto sem confundir funcionalidades planejadas com as já presentes.
+Os testes também verificam materiais, MTL, divisão/base determinísticas, colisões, missão e interface. Permanecem limites: carga integral no primeiro voo, sem streaming espacial; preenchimento genérico sem relevo; transparência aproximadamente ordenada; ausência de sombras e PBR; simplificações da pintura do A320 e da cabine do monomotor. A malha física persistente dos obstáculos já existe, independente do descarte visual.
 
 ## Câmeras: separar observação, entrada e estado do avião
 
@@ -515,10 +584,11 @@ struct CameraFrame {
     glm::mat4 aircraftModel{1.0f};
     glm::vec3 orbitTarget{0.0f};
     glm::vec3 cockpitEyeLocal{7.90f,0.95f,-0.65f};
+    float defaultOrbitDistance=70.0f;
 };
 ```
 
-`aircraftModel` é a mesma matriz que posiciona a malha do A320. `orbitTarget` é o ponto que a visão externa acompanha. `cockpitEyeLocal` é um ponto medido dentro do modelo, ainda antes da transformação para o mundo. O resultado do controlador, `CameraPose`, contém `position`, `forward`, `up`, `nearPlane`, `farPlane` e `fieldOfView`. A estrutura não cria uma janela nem executa chamadas OpenGL. Já `CameraMovement` representa a intenção de deslocamento nos eixos para a frente, lateral e vertical, junto da opção de velocidade ampliada.
+`aircraftModel` posiciona a malha da aeronave selecionada. `orbitTarget` é acompanhado pela externa; `cockpitEyeLocal` é um ponto do catálogo antes da transformação para o mundo. `defaultOrbitDistance` orienta o enquadramento restaurado por Home ou por um novo voo: 70 m para o A320 e 26 m para o monomotor. O resultado do controlador, `CameraPose`, contém `position`, `forward`, `up`, `nearPlane`, `farPlane` e `fieldOfView`. A estrutura não cria uma janela nem executa chamadas OpenGL. Já `CameraMovement` representa a intenção de deslocamento nos eixos para a frente, lateral e vertical, junto da opção de velocidade ampliada.
 
 Essa organização permite verificar a matemática em testes de CPU, sem carregar o Rio ou abrir uma janela. Também mantém o movimento da cabeça separado do movimento do avião: olhar para o lado dentro do cockpit não altera o vetor `forward` de `Aircraft`.
 
@@ -548,7 +618,7 @@ Assim, a implementação não usa `glm::lookAt`, `glm::perspective` ou outros co
 
 ### Câmera externa: órbita sobre um alvo móvel
 
-A câmera externa não gira o avião. Seu estado particular é `orbitYaw`, `orbitElevation` e `orbitDistance`; inicialmente são zero, `0.25` radiano e `70` metros. O rumo horizontal é extraído da primeira coluna de `aircraftModel`. A componente Y é zerada para que a referência da órbita acompanhe a direção horizontal do avião mantendo o horizonte nivelado.
+A câmera externa não gira o avião. Seu estado é `orbitYaw`, `orbitElevation` e `orbitDistance`. Ao restaurar a órbita, yaw e elevação passam a zero e `0.25` radiano, e a distância usa `frame.defaultOrbitDistance`: 70 m no A320 ou 26 m no monomotor. O alvo fica 4 m acima do pivô do A320 e 1,5 m acima do pivô pequeno. Configurações de distância não finitas caem em 70 m; as válidas são limitadas ao intervalo de zoom. O rumo horizontal é extraído da primeira coluna de `aircraftModel`. A componente Y é zerada para que a referência da órbita acompanhe a direção horizontal do avião mantendo o horizonte nivelado.
 
 O trecho central de `OrbitPose` é:
 
@@ -561,13 +631,13 @@ pose.position=frame.orbitTarget+distance*offset;
 pose.forward=Unit(frame.orbitTarget-pose.position,forward);
 ```
 
-O vetor `offset` combina uma posição atrás do avião, um deslocamento lateral e elevação. Multiplicá-lo pela distância coloca a câmera sobre uma órbita em torno do alvo. O olhar é recalculado do observador para esse alvo. `GameScene::Cameras()` usa a posição do avião mais quatro metros de altura como alvo, evitando mirar somente no ponto de contato das rodas.
+O vetor `offset` combina uma posição atrás do avião, um deslocamento lateral e elevação. Multiplicá-lo pela distância coloca a câmera sobre uma órbita em torno do alvo. O olhar é recalculado do observador para esse alvo. `GameScene::Cameras()` eleva esse alvo em relação ao pivô conforme a aeronave, evitando mirar somente no ponto de contato das rodas.
 
 O movimento horizontal do mouse modifica o azimute. O vertical modifica a elevação com sinal invertido, pois os eventos de tela têm Y positivo para baixo. Portanto, arrastar para cima eleva a câmera externa. A elevação fica entre `0.02` radiano e `π/2 - 0.01`, evitando chegar ao polo em que a base view perderia uma direção lateral bem definida. A rodinha modifica a distância de forma exponencial, entre `5` e `15000` metros. `Home` restaura a órbita inicial.
 
 ### Cockpit: uma câmera em primeira pessoa ligada à aeronave
 
-A câmera do cockpit é uma câmera em primeira pessoa cujo referencial acompanha o A320. O ponto dos olhos foi calibrado em `(7.90, 0.95, -0.65)` nas coordenadas originais do OBJ: próximo do assento esquerdo, acima do encosto, atrás do painel e abaixo do teto. Não é a posição global do avião, nem o centro de sua caixa delimitadora.
+A câmera do cockpit é uma câmera em primeira pessoa cujo referencial acompanha a aeronave selecionada. No A320, os olhos usam `(7.90, 0.95, -0.65)` nas coordenadas originais do OBJ: próximo do assento esquerdo, acima do encosto, atrás do painel e abaixo do teto. No monomotor, o catálogo usa `(2.44, 2.40, -0.26)` na cabine simples adaptada. Esses valores não são posição global nem centro dos bounds. O monomotor conserva a pintura original e recebeu transparência nas janelas e pás para preservar a visão; a hélice é estática.
 
 O cálculo em `CameraController::Pose` é:
 
@@ -594,7 +664,7 @@ glUniformMatrix4fv(g_projection_uniform,1,GL_FALSE,glm::value_ptr(interior));
 scene->Draw(g_GpuProgramID,MainAircraft,interior*view,camera.position,SceneLayer::AIRCRAFT);
 ```
 
-O mundo usa near de `0.5 m` e far de `30000 m`; o A320 do jogador usa near de `0.05 m` e far de `100 m`. A limpeza intermediária afeta somente profundidade, preservando as cores já desenhadas. O avião de tráfego pertence à camada WORLD, inclusive no cockpit. As perspectivas externa e livre continuam com desenho normal em um único conjunto de passes. Esse tratamento do primeiro plano não substitui as colisões ainda pendentes no momento deste documento: penetrar em um prédio continua sendo uma situação que o futuro sistema físico precisará impedir.
+O mundo usa near de `0.5 m` e far de `30000 m`; o interior do jogador usa near de `0.05 m` e far de `100 m`. A limpeza intermediária afeta somente profundidade. O tráfego pertence à camada WORLD, inclusive no cockpit; externa e livre usam o desenho normal dos passes. Essa separação visual não decide contato: a resposta física já consulta a geometria do mundo para o avião. O deslocamento da cabeça segue limitado por uma caixa local, sem colisão contra cada peça do interior.
 
 ### Câmera livre: desacoplar sem mudar de lugar
 
@@ -653,8 +723,12 @@ O laço mede o tempo com `glfwGetTime`:
 ```cpp
 const double elapsed = std::max(current_time - previous_time,0.0);
 float dt = static_cast<float>(elapsed);
-// Keep the existing physics step limit; camera travel uses real elapsed time.
-MainModel.update(&MainAircraft, std::min(dt,0.05f));
+const double physicsStep=std::min(dt,0.05f);
+if(!g_PlayerCrashed) {
+    MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
+    scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
+    g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
+}
 ```
 
 A câmera usa o intervalo real; o passo da física mantém o limite preexistente de 50 ms. Portanto, num travamento longo a física do jogador pode avançar menos que o relógio, enquanto o movimento de exploração e o tráfego usam seus próprios intervalos. Essa diferença é uma limitação explícita da integração atual, e não uma promessa de equivalência completa da física em qualquer taxa de quadros. Se o framebuffer estiver zerado durante minimização, o programa espera eventos e atualiza a referência de tempo antes de continuar, evitando divisão por zero nas proporções da projeção.
@@ -686,7 +760,7 @@ Esses testes automatizados complementam as capturas `--smoke-test` com o A320 e 
 
 Foi acrescentado um avião autônomo ao cenário para representar tráfego aéreo e
 atender ao requisito de movimentação por uma curva cúbica. Ele utiliza o mesmo
-modelo A320 carregado para o jogador, mas sua posição e sua orientação são
+modelo da aeronave selecionada para o jogador, mas sua posição e sua orientação são
 calculadas independentemente. Essa escolha separa duas tarefas diferentes:
 `FlightModel` atualiza a física do jogador, enquanto `BezierFlight` calcula a
 animação cinemática do avião secundário. Alterar o throttle do jogador não muda a
@@ -872,7 +946,8 @@ direção e inclinação dos dois lados de cada junção. Há verificações da 
 ortonormal, do alinhamento do nariz e do limite de inclinação.
 
 O modo `--texture-check` recebeu as vistas `bezier-start` e `bezier-later`. Por
-isso, o conjunto de inspeção da cena passou das 13 vistas anteriores para 15.
+isso, naquela etapa, o conjunto de inspeção passou de 13 vistas para 15; a
+inspeção atual tem 16 com a vista posterior `destination-far`.
 Essas capturas complementam os testes CPU: permitem conferir o uso da malha e
 dos passes com os assets reais, enquanto o log informa a posição do NPC e erros
 OpenGL. Esse modo de desenvolvimento não altera a definição normal da rota.
@@ -1176,6 +1251,553 @@ passagem pelo norte nos dois sentidos, transição de mil metros, falha e
 recuperação de canais e intervalos de tempo inválidos. Essas verificações não
 dependem de uma janela, driver gráfico ou carregamento da cidade.
 
+## Colisões contínuas, apoio no terreno e recuperação do jogador
+
+O cenário deixou de ser apenas uma malha visível. A geometria carregada dos OBJ
+também alimenta um mundo físico, consultado depois da previsão do modelo de voo.
+Isso permite apoiar as rodas na pista, taxiar, decolar e distinguir um pouso de
+um acidente com água, prédio, árvore ou parte do próprio avião no chão.
+
+### Organização e dados que passam entre as camadas
+
+Os testes geométricos puros estão em `src/collision/collisions.cpp`, conforme o
+nome exigido pelo enunciado. `CollisionWorld.*` organiza o mapa e seus materiais;
+`AircraftContacts.*` monta os volumes da aeronave e resolve o contato;
+`CollisionDebug.*` desenha esses mesmos volumes para inspeção. O renderer fornece
+os vértices sem fazer uma segunda leitura independente do arquivo OBJ.
+
+O resultado geométrico é representado por este trecho real de `collisions.hpp`:
+
+```cpp
+struct Hit {
+    bool hit=false;
+    double time=1;
+    glm::dvec3 point{0},normal{0};
+    double penetration=0;
+    Surface surface=Surface::Solid;
+};
+```
+
+`time` é uma fração do deslocamento, entre zero e um, e não uma duração em
+segundos. `point` pertence à superfície e `normal` aponta dela para a esfera.
+`penetration` descreve a sobreposição inicial. O tipo de superfície participa da
+resposta de jogo; encontrar água não equivale a encontrar um chão pavimentado.
+
+### Sweep esfera–triângulo: testar todo o caminho de um quadro
+
+Uma colisão apenas na posição final poderia deixar o avião atravessar uma
+parede quando o deslocamento de um quadro fosse maior que a espessura dela.
+`SweepSphere(from, to, radius, triangle)` testa o caminho completo do centro.
+O centro no instante candidato é `from + time * (to - from)`.
+
+O algoritmo considera primeiro a sobreposição em `time = 0`. Depois resolve
+candidatos nas duas faces do triângulo afastadas pelo raio, nas três arestas e
+nos três vértices. Arestas são tratadas como segmentos com distância radial;
+vértices fornecem equações esfera–ponto. As raízes da quadrática são calculadas
+com escala e uma formulação que reduz cancelamento numérico na raiz menor.
+
+O teste das faces contém efetivamente este trecho de `collisions.cpp`:
+
+```cpp
+const double initial=glm::dot(from-triangle.a,normal);
+const double rate=glm::dot(motion,normal);
+if(rate!=0)for(double side:{-1.0,1.0}) {
+    const double time=(side*radius-initial)/rate;
+    if(time < -TimeTolerance||time > 1+TimeTolerance)continue;
+    const glm::dvec3 contact=from+time*motion-side*radius*normal;
+    if(Inside(contact,triangle,normal))consider(time);
+}
+```
+
+Cada candidato passa novamente por uma verificação geométrica de ponto mais
+próximo e distância ao triângulo. Conserva-se o primeiro válido. Tangência,
+raio zero e triângulos degenerados têm tratamento definido: uma face degenerada
+continua podendo oferecer segmentos ou pontos; não é transformada numa normal
+NaN. Entradas não finitas são rejeitadas e os cálculos estreitos usam `double`.
+
+### BVH, materiais e árvores: reduzir candidatos sem perder obstáculos
+
+O mapa retém posições em `float`, para limitar memória, sem duplicar imagens,
+UVs ou normais no índice físico. Só os candidatos selecionados são promovidos a
+`double` no teste detalhado. Antes dele, a AABB de `from` e `to`, expandida pelo
+raio, elimina regiões que não podem intersectar o deslocamento.
+
+Cada chunk tem uma BVH binária própria, calculada dos limites reais de seus
+triângulos. A construção divide pela mediana dos centroides no eixo de maior
+variação; cada folha contém no máximo oito triângulos. Isso não depende do nome
+do chunk nem do frustum da câmera. Uma face que cruzou uma célula do splitter
+continua protegida pelos limites reais da geometria que a BVH recebeu.
+
+`ClassifyCollisionMaterial` distingue `Ground`, `Water`, `Solid` e árvore antes
+de montar os triângulos físicos. Pinturas e decals são ignorados nessa etapa,
+evitando que uma faixa 1 mm acima do asfalto produza um segundo piso. Materiais
+desconhecidos permanecem sólidos. O concreto recebe uma exceção controlada no
+loader: só faces quase horizontais, perto de `Y=0`, podem ser chão; paredes e
+telhados de concreto não se tornam pistas por terem a mesma palavra no nome.
+
+Árvores visuais usam quads com transparência. Colidir com o retângulo completo
+faria o jogador atingir o espaço transparente ao lado da árvore. Os quads da
+mesma instância são agrupados por centro/altura quantizados e fornecem dimensões
+para um tronco octogonal e uma copa cônica, totalizando 48 triângulos por proxy.
+As proporções do construtor são estas:
+
+```cpp
+const double trunkRadius=std::min(width*.07,height*.035),trunkHeight=height*.58;
+const double crownRadius=width*.30,crownBottom=height*.32,crownTop=height*.95;
+```
+
+O proxy fica dentro da imagem e não altera a árvore desenhada. A base limitada
+`base_terrain.obj`, a `Y=-0,02`, também oferece apoio onde faltava chão exportado.
+A água original a `Y=0` é encontrada antes dela. Nos empates, a consulta prioriza
+água, depois sólido e depois chão; o preenchimento não transforma água em pista.
+
+### Esferas da aeronave e orientação entre dois estados
+
+Uma única caixa do tamanho do avião incluiria muito espaço vazio. O corpo usa
+cadeias de esferas sobrepostas que aproximam fuselagem, asas, motores e cauda.
+Três esferas adicionais representam o contato das rodas. A origem coincide com
+o renderer: centro dos limites em X/Z e mínimo em Y; nariz local em `+X`.
+
+As proporções do A320 são configuradas pelo perfil `AirframeType::Airliner`.
+Na branch do menu foi acrescentado `LightTaildragger`, baseado nas rodas medidas
+do monomotor real importado, e não numa miniatura do trem triciclo do A320:
+
+```cpp
+for(double side:{-1.0,1.0})
+    localSpheres.push_back({local(.8417722,.1104324,side*.1543546),size.x*.03681081,true});
+localSpheres.push_back({local(.1600221,.07287955,-.00882703),size.x*.02199480,true});
+```
+
+As duas esferas principais ficam na frente e a terceira corresponde à roda de
+cauda. Frações, raios e coordenadas da malha estão auditados em
+`data/light_aircraft/metadata.json`. `SetAirframeType` seleciona o perfil antes
+de `ResetPlayer`, que faz a consulta de apoio na posição inicial.
+
+O resolver ortonormaliza `forward` e `up`, converte essa base para um quaternion
+por fórmulas próprias e interpola pelo arco curto. Quando os quaternions têm
+produto negativo, troca o sinal de um deles para evitar a volta longa. Divide
+o movimento angular em subpassos de no máximo 5°; cada centro de esfera recebe
+um sweep contínuo entre as poses interpoladas. É uma aproximação controlada da
+rotação, não um teste exato de duas malhas arbitrárias em rotação contínua.
+
+### Apoio seguro, acidente, depuração e reinício
+
+Os limites atuais, em `AircraftContacts.cpp`, são regras simplificadas de jogo:
+
+```cpp
+const double MaximumSinkSpeed=3.0;
+const double MaximumPitchDegrees=15.0;
+const double MaximumRollDegrees=10.0;
+const double MinimumSupportNormal=.85;
+const double SupportProbeDistance=.08;
+const double MaximumRotationStep=5.0*Pi/180;
+```
+
+Uma roda apoiada pode corrigir a altura da aeronave e remover apenas a
+velocidade descendente. O deslocamento horizontal continua, permitindo taxiar.
+A sondagem de 8 cm conserva apoio entre quadros; uma roda subindo não deve ficar
+presa à sua tangência inicial. Depois do toque, o resto do caminho é consultado
+na altura corrigida. Um contato inicial com o chão não pode esconder uma
+barreira baixa, um trecho de água ou um obstáculo encontrado logo à frente.
+
+`Grounded`, `Flying` e `Crashed` são estados físicos. `HardLanding`,
+`UnsafeAttitude`, `Obstacle`, `Water`, `AirframeContact` e `InvalidPose`
+identificam causas de acidente. Encostar fuselagem/asa/cauda no chão não é um
+pouso só porque uma roda também tocou. Pose inválida falha de maneira definida.
+
+`FlightModel` conserva a velocidade de impacto até o resolver. O antigo clamp
+que fixava `Y=0` antecipadamente foi removido. A aplicação usa o resultado real:
+
+```cpp
+playerContact=contacts.Resolve(physicalWorld,previous,PhysicalPose(aircraft),glm::dvec3(aircraft.get_velocity()),dt);
+aircraft.set_position(glm::vec3(playerContact.position));
+aircraft.set_velocity(glm::vec3(playerContact.velocity));
+aircraft.set_forward(glm::vec3(playerContact.forward));aircraft.set_up(glm::vec3(playerContact.up));
+aircraft.set_right(glm::normalize(glm::cross(aircraft.get_forward(),aircraft.get_up())));
+```
+
+Em acidente, o resolver congela a pose de impacto, zera a velocidade, e o jogo
+zera a potência. O jogador permanece parado até `Enter`; a câmera e o tráfego
+podem continuar funcionando enquanto o jogo não estiver pausado. `Enter`
+restaura apoio, avião, câmera e missão no Santos Dumont. `B` desenha as esferas
+exatas do resolver, com cores distintas para corpo e rodas, e começa oculto.
+
+As colisões não decidem sozinhas que um objetivo foi cumprido. Estar apoiado em
+terra firme fora de uma pista continua sendo `Grounded`; a missão verifica
+separadamente decolagem, aeroporto correto, área de pista e condições de chegada.
+
+Testes CPU cobrem faces/arestas/vértices, BVH, água, árvores, rodas, rotações,
+impactos e regressões de obstáculos após o toque. As inspeções opcionais usam
+o mapa real. Os detalhes adicionais estão em `docs/collisions.md`.
+Limitações: proxies aproximados, nenhum dano/deformação da malha, classificação
+de materiais específica deste mapa e nenhuma colisão entre jogador e avião NPC.
+
+## Carregamento responsivo, cancelamento e reutilização do cenário
+
+A tela de carregamento não usa um temporizador para fingir que os assets estão
+prontos. `LoadProgress`, em `src/platform/LoadProgress.hpp`, transporta a etapa
+e as contagens reais. `LoadCallbacks` separa o aviso de progresso do pump que
+atende eventos e desenha a interface no thread que possui o contexto OpenGL:
+
+```cpp
+struct LoadCallbacks {
+    std::function<void(const LoadProgress&)> progress;
+    // Runs on the OpenGL/main thread, including while CPU preparation waits.
+    // Throw LoadCancelled to stop after draining the current worker safely.
+    std::function<void()> pump;
+};
+```
+
+### Preparação CPU e uploads da GPU têm responsabilidades diferentes
+
+`PrepareModel`, em `ModelRenderer.cpp`, lê o OBJ/MTL, calcula limites, agrupa
+vértices por material, preserva/rebaseia UVs e prepara os triângulos físicos.
+A construção da BVH também é CPU. Essa parte pode rodar em `std::async`, enquanto
+o thread principal continua mostrando a tela e recebendo Escape ou fechamento.
+Não há leitura de gameplay do `CollisionWorld` enquanto esse worker o constrói.
+
+Criar VAOs, VBOs, texturas, mipmaps e desenhar continuam no thread principal.
+Desse modo não é necessário transferir o contexto OpenGL nem compartilhar VAOs
+entre contextos. O acesso a OpenGL não é colocado no worker só para animar a UI.
+O decode das imagens pelo STB também usa a preparação CPU; o resultado possui
+memória gerenciada até o upload da imagem no contexto correto.
+
+O controle de espera efetivo de `RunLoadCpu` é:
+
+```cpp
+auto task=std::async(std::launch::async,std::move(work));
+std::exception_ptr interruption;
+while(task.wait_for(std::chrono::milliseconds(16))!=std::future_status::ready) {
+    try {callbacks.pump();}
+    catch(...) {if(!interruption)interruption=std::current_exception();}
+}
+```
+
+O `wait_for` evita ocupar um núcleo num laço de espera ativo. O pump executa no
+chamador e atualiza a tela durante o trabalho mais caro. No caminho sem pump,
+o helper pode executar a preparação diretamente, útil para chamadas sem UI.
+Na aplicação, o desenho do carregamento é limitado por tempo a 60 quadros/s;
+eventos continuam sendo atendidos mesmo quando ainda não é hora de redesenhar.
+
+### Cancelar não abandona uma tarefa que ainda usa memória da cena
+
+Uma exceção do pump é guardada; a tarefa CPU atual termina antes de a cena poder
+ser destruída. Durante essa espera, novos pumps mantêm a janela responsiva e
+permitem mostrar “Cancelando”. O trecho que estabelece a ordem de vida é:
+
+```cpp
+if(interruption) {
+    try {task.get();}catch(...) {}
+    std::rethrow_exception(interruption);
+}
+auto result=task.get();
+callbacks.pump();
+return result;
+```
+
+O descarte da tarefa usa `get`, e não apenas a destruição informal do future.
+Isso também propaga falhas de parsing/decode quando não houve cancelamento.
+O cancelamento já registrado tem prioridade sobre uma falha posterior do worker.
+Não existe uma promessa de interromper o parsing instantaneamente: o limite é
+terminar a tarefa atual mantendo a UI em funcionamento e então voltar ao menu.
+
+`ModelRenderer::Load` libera os buffers dos batches parciais caso um material,
+uma textura ou um pump falhe. `LoadMap` faz o mesmo para os chunks já carregados.
+Uma primeira carga incompleta nunca é marcada como `sceneReady` e não é entregue
+ao loop de física. O fluxo de erro ou cancelamento libera a cena incompleta.
+
+### O que a barra mede e como trocar de avião sem recarregar o Rio
+
+`CountMapChunks` lê o manifesto antes da preparação. Para o conjunto atual são
+125 partes, mais a aeronave e a base de preenchimento: **127 unidades**. A barra
+avança por conclusão real dessas unidades, passando por aeronave, cenário e
+finalização. Um chunk grande pode demorar mais que outro; 50% das unidades não
+significa metade dos segundos de espera. Os arquivos são carregados por inteiro.
+
+Depois da primeira carga, `sceneReady` permite reutilizar o mapa, as texturas
+em cache e o índice de colisões. `LoadAircraft` carrega só o modelo necessário.
+Ela monta a malha e os contatos substitutos em temporários, deixando o antigo
+voo intacto se houver erro ou cancelamento. A configuração física e o último
+callback cancelável ocorrem antes de liberar o modelo anterior:
+
+```cpp
+replacementContacts.Configure(glm::dvec3(replacement.min),glm::dvec3(replacement.max));
+if(callbacks.progress)callbacks.progress(LoadProgress("Aeronave",1,1));
+if(callbacks.pump)callbacks.pump();
+```
+
+Só após essa etapa sem exceções são trocados os recursos:
+
+```cpp
+renderer.Release(aircraftModel);aircraftModel=std::move(replacement);
+contacts=std::move(replacementContacts);cockpitEyeLocal=cockpitEye;
+```
+
+O fluxo principal aplica o perfil escolhido e reinicia a missão depois do
+retorno bem-sucedido. Se o usuário cancelar a troca, ele recupera o avião
+anterior e o menu de pausa. Durante menus, física e tráfego não são atualizados;
+o relógio de referência é renovado para não aplicar todo o intervalo da pausa
+como um único salto ao voltar ao jogo.
+
+O teste `responsive_loading` verifica thread de execução, pumps durante a
+preparação, propagação de falhas e drenagem em cancelamentos iniciais, tardios
+ou simultâneos a uma falha do worker. Ele não exige janela nem driver OpenGL.
+Os testes visuais separados conferem o carregamento real e a interface.
+
+Essa mudança melhora a interação durante a carga, mas **não implementa streaming**.
+O Rio completo e sua BVH continuam ocupando memória após o carregamento. Um
+upload individual pode consumir tempo no driver, e chunks grandes ainda custam
+CPU; não se afirma que carregar a cidade ficou instantâneo ou que apenas os
+chunks visíveis estão na RAM. Consulte `docs/menu.md` e o registro de origem do
+mapa em `data/rio/PROVENANCE.md` para os limites e a preparação dos arquivos.
+
+## Missão Santos Dumont → Galeão: objetivo e máquina de estados
+
+A missão transforma o deslocamento entre aeroportos em um objetivo verificável: o jogador deve partir de uma pista do Santos Dumont, entrar em voo e realizar uma chegada segura numa pista do Galeão. O módulo não considera a câmera livre, o avião autônomo ou a simples proximidade ao aeroporto como conclusão. Sua entrada é o estado real do jogador, já corrigido pelas colisões.
+
+| Arquivo | Responsabilidade na missão |
+| --- | --- |
+| `src/mission/Airports.hpp/.cpp` | Pistas, retângulos orientados, distância horizontal e rumo para um alvo. |
+| `src/mission/FlightMission.hpp/.cpp` | Histórico da decolagem, aproximação, toque e confirmação; sem OpenGL ou entrada do usuário. |
+| `src/render/GameScene.cpp` | Conversão do contato físico e dos volumes das rodas em uma amostra da missão. |
+| `src/ui/MissionOverlay.hpp/.cpp` | Instruções, pista-alvo, distância, rumo, confirmação e estados finais. |
+| `src/mission/MissionInspection.hpp/.cpp` | Prévias explícitas de interface para inspeção; não alteram a missão jogável. |
+| `data/rio/airports.json` | Proveniência dos dados das pistas e valores projetados usados como referência. |
+
+### Geometria das pistas e convenções
+
+Os aeroportos foram definidos a partir do mesmo extrato OSM utilizado para produzir o cenário. `SantosDumont()` contém as pistas 20L/02R e 20R/02L, com larguras de 42 e 30 m; `Galeao()` contém 15/33 e 10/28, com 47 e 45 m. O JSON registra os IDs OSM, extremos geográficos e projetados, larguras, hash do extrato e atribuição aos colaboradores do OpenStreetMap. A execução usa os valores correspondentes de `Airports.cpp`; não há consulta online nem parser de aeroporto em tempo de jogo.
+
+Cada pista é um retângulo no plano XZ, orientado pelo vetor entre seus extremos. `Contains` projeta o ponto nos eixos longitudinal e transversal e testa os limites dessas duas coordenadas. Os extremos são retangulares, sem semicírculos que aumentariam indevidamente a área aceita. A missão usa margem interna de 2 m nas duas laterais e nos dois extremos. A altura é validada separadamente, porque um teste XZ sozinho também aceitaria um avião apoiado no telhado de uma construção acima da pista.
+
+As coordenadas seguem o cenário: unidades em metros, `+Y` para cima e norte em `−Z`. O rumo fornecido por `BearingToTarget` cresce no sentido horário, com norte em 000° e leste em 090°. Ele representa a orientação cartesiana do mapa, sem modelagem de declinação magnética. A referência de altura das pistas é o piso plano exportado a Y=0, e não uma medição real de elevação sobre o nível do mar.
+
+### Dados recebidos e ordem de atualização
+
+`MissionSample` transporta posição, velocidade, vetor frontal, `AircraftState`, quantidade de contatos e as três esferas das rodas. As posições dos centros e seus raios ficam em vetores correspondentes. O adaptador real de `GameScene.cpp` seleciona somente os volumes marcados como trem de pouso:
+
+```cpp
+sample.position=contact.position;sample.velocity=contact.velocity;sample.forward=contact.forward;
+sample.aircraftState=contact.state;sample.gearContacts=contact.gearContacts;
+for(const auto& probe:probes)if(probe.gear) {
+    sample.gearCenters.push_back(probe.center);sample.gearRadii.push_back(probe.radius);
+}
+```
+
+A integração em `main.cpp` respeita a sequência física → colisões → missão. O trecho a seguir ocorre na atualização normal, depois de guardar a pose anterior:
+
+```cpp
+const double physicsStep=std::min(dt,0.05f);
+if(!g_PlayerCrashed) {
+    MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
+    scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
+    g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
+}
+flightMission.Update(scene->PlayerMissionSample(MainAircraft),physicsStep);
+```
+
+Isso evita concluir um pouso usando a posição prevista que atravessaria o solo antes da correção. A missão continua recebendo a leitura de acidente mesmo quando a física do jogador já foi congelada. O HUD e suas prévias de telemetria são desenhados depois; não substituem os valores usados para decidir o resultado.
+
+### Estados e regras de passagem
+
+O enum `mission::Stage` possui seis valores, cada um com uma finalidade distinta:
+
+| Estado | Condição ou finalidade |
+| --- | --- |
+| `Departure` | Esperar apoio válido na origem e confirmar a saída do chão. |
+| `EnRoute` | Orientar o jogador para o Galeão após uma decolagem confirmada. |
+| `Approach` | Indicar a aproximação quando o avião está perto de uma pista do destino. |
+| `Landing` | Aguardar velocidade, alinhamento e apoio estáveis após um toque válido. |
+| `Completed` | Preservar a conclusão até o reinício explícito. |
+| `Failed` | Preservar uma falha por acidente até o reinício explícito. |
+
+Na origem, o estado `Grounded` precisa estar acompanhado de pelo menos duas rodas apoiadas. O pivot e os centros das três rodas devem estar no mesmo retângulo de pista, com a margem interna aplicada. A altura de apoio usa o fundo da esfera, `center.y − radius`, e admite diferença de até 1 m da referência da pista. O contador físico de contatos continua sendo a autoridade para dizer se existe apoio; a tolerância geométrica não inventa um contato.
+
+O uso dos fundos das rodas corrige um caso importante: num toque seguro inclinado, uma roda pode alcançar o chão enquanto o pivot continua a mais de 1 m de altura. Rejeitar esse pivot faria a missão perder o primeiro toque, embora as colisões tivessem aceitado o pouso. As três posições e raios também impedem aceitar dados parciais ou uma altura de telhado como se fosse a pista.
+
+Uma saída válida exige transição observada de apoio para voo depois que a origem foi armada. A primeira leitura aérea precisa continuar a até 50 m da pista que forneceu o último apoio, evitando que uma mudança direta de localização para outro aeroporto seja interpretada como decolagem. A confirmação exige ao mesmo tempo 0,5 s no ar e altura de pelo menos 5 m sobre a referência da origem. O primeiro quadro aéreo não recebe o tempo do intervalo anterior, que poderia ter sido passado no solo. Um retorno ao apoio antes da confirmação reinicia esse histórico.
+
+Depois da decolagem, a aproximação começa a até 2 km do retângulo de uma pista do Galeão. Uma margem de saída de 2,5 km evita oscilar entre `EnRoute` e `Approach` ao cruzar repetidamente a fronteira. Em rota, o alvo fica 1 km antes do extremo de aproximação da primeira pista do destino; próximo ao aeroporto, a pista mais próxima passa a orientar a indicação e o alvo fica no centro dela. Distância e rumo sempre correspondem ao mesmo alvo exibido.
+
+A chegada exige um evento `Flying → Grounded` dentro de uma pista do destino. O primeiro contato pode ter somente uma roda, desde que sua esfera esteja na altura e na região válidas; isso arma a chegada sem iniciar imediatamente a confirmação estável. Quando o avião se acomoda, a missão exige pelo menos duas rodas apoiadas e as três dentro da mesma pista.
+
+Pousar em terra firme fora da pista e entrar nela taxiando não satisfaz esse histórico. Da mesma forma, tocar numa pista e cruzar pelo chão para outra elimina o registro de chegada. Sair da região, perder o apoio verificado ou voltar a voar exige um novo toque válido. Essa distinção mantém `Grounded` como um estado geométrico geral, enquanto a missão determina se esse apoio constitui uma chegada ao aeroporto correto.
+
+### Velocidade, alinhamento, tempo e prioridade de acidente
+
+A confirmação final exige velocidade horizontal de até 5 m/s, equivalente a 18 km/h, e alinhamento de até 25° com o eixo da pista, nos dois sentidos possíveis. O teste usa o módulo do produto escalar entre a direção frontal horizontal e o eixo normalizado; assim, não depende de qual extremo foi armazenado primeiro no cadastro.
+
+O trecho real de `FlightMission::Update` acumula somente intervalos consecutivos qualificados na mesma pista:
+
+```cpp
+const bool aligned=Aligned(destination.runways[runway],sample.forward);
+const bool slow=std::hypot(sample.velocity.x,sample.velocity.z)<=LandingSpeed+1e-9;
+const bool qualified=aligned&&slow;
+if(qualified&&previousLandingQualified&&previousLandingRunway==runway)
+    snapshot.landingSeconds+=elapsedSeconds;
+else snapshot.landingSeconds=0;
+```
+
+São necessários 2 s nessas condições. O primeiro quadro qualificado inicia a observação, sem receber o tempo do voo ou do taxiamento anterior. Acelerar ou desalinhar zera a contagem. O núcleo usa segundos recebidos pelo chamador, não quantidade de quadros; em execução esses segundos são os mesmos do passo limitado da física. O relógio de voo começa após a decolagem confirmada, e pausas longas não são aplicadas como movimento físico acumulado.
+
+Antes de testar qualquer vitória, `Update` verifica `AircraftState::Crashed`. Assim, um acidente ocorrido no quadro que completaria o temporizador resulta em `Failed`. Após `Completed` ou `Failed`, o resultado fica retido até `Reset`; concluir a missão não congela o restante da simulação. Leituras não finitas, raios não positivos ou contagens incompatíveis quebram a continuidade dos históricos, em vez de produzirem uma conclusão.
+
+`Enter` reinicia o jogador, o resolvedor de contatos, a missão e o enquadramento da câmera. Iniciar uma nova tentativa pelo menu realiza o mesmo tipo de preparação. A documentação detalhada está em `docs/mission.md`; `AirportsTest.cpp` e `FlightMissionTest.cpp` cobrem a geometria, entradas inválidas, saída da origem, toque de uma roda, altura, arremetida, taxiamento indevido, acidente e temporizadores em frequências diferentes. As inspeções contra o mapa são replays determinísticos de amostras e contatos reais; não são apresentadas como um voo manual completo.
+
+## Marcador opcional do aeroporto de destino
+
+Além das instruções textuais, `src/ui/MissionMarker.hpp/.cpp` desenha um ponto de exclamação amarelo grande sobre o Galeão. O marcador começa oculto, e `M` alterna sua visibilidade uma vez por pressionamento. Sua preferência é independente de `H`, que controla o HUD; `Enter` não precisa apagar essa escolha de exibição.
+
+A âncora não usa `MissionSnapshot::target`: na partida esse alvo pertence ao Santos Dumont, e em rota ele pode ser um ponto de aproximação fora do aeroporto. O marcador precisa permanecer fixo sobre o destino. O construtor calcula a média dos centros das duas pistas do Galeão e acrescenta 450 m em Y:
+
+```cpp
+const auto& runways=mission::Galeao().runways;
+for(const auto& runway:runways)anchor+=(runway.start+runway.end)*.5;
+anchor/=double(runways.size());anchor.y+=450;
+```
+
+O símbolo é um billboard de interface: seu centro é uma posição do mundo, mas a superfície está sempre voltada para a câmera. O tamanho é mantido em pixels lógicos, com limite de 144 px de altura, ou 24% da altura da janela quando ela é menor. Assim, o auxílio continua visível a quilômetros de distância, sem precisar criar uma malha de exclamação de tamanho físico desproporcional.
+
+A projeção desconta a posição da câmera antes da rotação, seguindo o mesmo princípio de precisão usado no mapa. A translação da view não é aplicada uma segunda vez:
+
+```cpp
+const auto relative=glm::vec3(anchor-glm::dvec3(camera));
+const auto clip=projection*glm::vec4(glm::mat3(view)*relative,1);
+if(clip.w<=0||clip.z < -clip.w||clip.z>clip.w)return;
+const float size=std::min(144.0f,height*.24f);
+```
+
+O vertex shader `mission_marker_vertex.glsl` desloca os vértices do retângulo ao redor desse centro em clip space, multiplicando o deslocamento por `clip_anchor.w` para manter o tamanho aparente. O fragment shader produz a haste afunilada, o ponto circular e um contorno escuro a partir das coordenadas locais, com suavização por derivadas. Não foi acrescentado um bitmap de sinalização baixado de terceiros. O rótulo `GALEAO` usa a fonte já presente no código base.
+
+O marcador é desenhado depois do mundo e dos dois passes do cockpit, mas antes dos instrumentos. Ele recebe a projeção de mundo, mesmo quando o último passe do avião usou a projeção curta do interior. Como auxílio de navegação, não testa nem escreve profundidade: construções não devem escondê-lo. O renderer salva e restaura programa, VAO, buffers, função e escrita de profundidade, blend, culling e os demais estados que ele e a fonte modificam.
+
+O recorte em W/Z impede exibir a âncora atrás da câmera ou fora do alcance de profundidade. O recorte lateral fica a cargo do rasterizador. Não existe uma seta presa à borda quando o destino está fora da tela; nesse caso o jogador precisa virar a câmera. As vistas `galeao` e `destination-far` de `RenderInspection` foram preparadas para conferir a posição próxima e distante com a opção explícita `--show-mission-marker`.
+
+## Menu, seleção de aeronave e tela de carregamento
+
+O programa deixou de carregar o Rio imediatamente após criar a janela. Agora inicializa a fonte e os módulos leves da interface e abre o menu antes de ler qualquer OBJ. O menu permite iniciar a missão, selecionar a aeronave, consultar controles ou sair. Durante o voo, `Escape` libera a captura do mouse e abre a pausa, com opções para continuar, trocar de aeronave, consultar controles, voltar ao início ou sair.
+
+### Separação entre estado, apresentação e aplicação
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `src/ui/FrontendModel.hpp/.cpp` | Páginas, opção selecionada, foco, hover, retângulos clicáveis e ações; somente CPU. |
+| `src/ui/FrontendScreen.hpp/.cpp` | Geometria procedural, textos, botões, silhuetas e carregamento. |
+| `src/ui/shaders/frontend_*.glsl` | Conversão de pixels lógicos para NDC e superfície procedural da interface. |
+| `src/aircraft/AircraftCatalog.hpp/.cpp` | Identidade, nome, caminho de modelo e ponto dos olhos de cada aeronave real. |
+| `src/ui/FrontendInspection.hpp/.cpp` | Navegação e capturas repetíveis das páginas, sem carregar o cenário. |
+| `src/main.cpp` | Roteamento de entrada, pausa, início/carregamento, retomada, cache e recuperação de falhas. |
+
+O `FrontendModel` não conhece OpenGL, GLFW, arquivos de malha ou física. Seu vocabulário explícito separa a página apresentada da ação que a aplicação precisa executar:
+
+```cpp
+enum class Page { Main,Aircraft,Controls,Pause,Loading };
+enum class Action { None,Start,Resume,MainMenu,Quit,CancelLoading };
+enum class Key { Up,Down,Left,Right,Tab,Enter,Escape };
+```
+
+`AircraftChoice` é o dado exibido pelo menu, com ID, nome, descrição e disponibilidade. O catálogo de execução é convertido para essas escolhas em `main.cpp`; a disponibilidade inicial verifica a existência do arquivo de modelo. Um catálogo sem opções é rejeitado, e uma opção indisponível não pode ser selecionada nem iniciar uma carga. A verificação inicial de existência não substitui a validação de MTL e texturas durante o carregamento efetivo.
+
+`Start` retorna a intenção de iniciar, conservando o menu ativo até que a aplicação chame `BeginLoading`. Escolher um card só muda `selected`; não começa a ler arquivos dentro do callback. `Resume`, `MainMenu`, `Quit` e `CancelLoading` também são comandos explícitos, tratados pela aplicação. Esse desenho evita que um clique inicie uma segunda carga de forma reentrante enquanto a primeira ainda atende eventos.
+
+### Layout, mouse e teclado
+
+`Layout(width,height)` produz os retângulos usados para desenhar e testar os botões das páginas do menu. O botão de cancelar no desenho dedicado ao carregamento reproduz a mesma fórmula de limites usada no modelo. Nas janelas largas, os cards ficam lado a lado; abaixo de 650 px de largura, passam a linhas. Alturas abaixo de 420 px usam uma composição reduzida. O primeiro card compacto começa em Y=150, abaixo do subtítulo, corrigindo uma sobreposição observada na captura de 640×480.
+
+O teste de contenção de `Rect` exige área positiva e coordenadas finitas. Os limites direito e inferior são exclusivos, evitando que um ponto sobre uma borda compartilhada ative dois controles. `Move` calcula hover e atualiza o foco; `Click` procura uma área habilitada e chama a ação associada. Setas e `Tab` percorrem os controles habilitados, `Shift+Tab` inverte a navegação e `Enter` ativa o foco atual.
+
+`Escape` tem significado conforme a página: volta de seleção/controles, retoma a pausa, cancela o carregamento ou sai quando já está no menu inicial. A integração GLFW permite repetição das teclas de navegação, mas exige `GLFW_PRESS` para ativação e cancelamento, impedindo repetir `Enter` ou `Escape` enquanto a tecla permanece segurada.
+
+Os callbacks de mouse e teclado de `main.cpp` verificam primeiro se o frontend está ativo. Nesse estado, o clique esquerdo e o cursor são enviados ao menu; rolagem e comandos de jogo não chegam à câmera ou ao throttle. Ao abrir a pausa, `g_CameraInput->Focus(false)` libera também uma captura pendente do botão direito. A chamada de correção do professor continua sendo a primeira operação do callback de teclado.
+
+### Desenho da interface em OpenGL
+
+`FrontendScreen` acumula triângulos coloridos e rótulos e envia a geometria a um VAO/VBO. O vertex shader converte posições em pixels lógicos diretamente para NDC; não depende de uma biblioteca de widgets nem de funções prontas de câmera/transformação. O fundo usa um gradiente, uma grade e um traço cuja posição é calculada a partir de segundos decorridos. Painéis, contornos e destaques são geometria 2D procedural.
+
+As silhuetas do A320 e do monomotor são ilustrações produzidas no próprio C++: asas enflechadas e duas turbinas para o comercial; asas mais retas e hélice frontal para o pequeno. Elas ajudam a distinguir as opções, mas não são novos modelos externos nem substituem as malhas usadas durante o voo. A fonte continua sendo a fornecida no código base, com medição de largura para abreviar textos longos sem reduzir indefinidamente a escala.
+
+A interface desativa teste/escrita de profundidade e culling e configura blend para seus painéis e textos. Um guardião de estado restaura as alterações, inclusive as feitas pelo renderizador de fonte. Essa restauração é necessária para abrir e fechar a pausa sem mudar os testes de profundidade ou a transparência do próximo quadro 3D.
+
+### Iniciar, retomar e reutilizar o cenário
+
+`main.cpp` guarda separadamente `sceneReady`, `loadedAircraft` e a escolha atual do menu. O primeiro indica que a cena está inteiramente disponível; o segundo identifica a malha realmente carregada. A escolha visual ainda pode estar sendo examinada pelo usuário e não deve, por si só, mudar o avião que estava em voo.
+
+O trecho real da rotina local `startFlight` distingue a primeira carga da troca posterior:
+
+```cpp
+if(!sceneReady) {
+    scene.reset(new GameScene);
+    scene->Load(window,callbacks,spec.modelPath,spec.cockpitEye);
+    sceneReady=true;
+} else if(loadedAircraft!=spec.id) {
+    scene->LoadAircraft(spec.modelPath,spec.cockpitEye,callbacks);
+}
+loadedAircraft=spec.id;
+scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
+scene->ResetPlayer(MainAircraft);
+```
+
+Depois disso, a rotina limpa flags de acidente/reinício, chama `flightMission.Reset()`, fornece a leitura física inicial, restaura a câmera externa e fecha o frontend. A nova tentativa começa no Santos Dumont. Se o mesmo avião e o Rio já estiverem carregados, a cena é reutilizada; trocar de avião substitui sua malha e os volumes próprios, conservando o mapa e sua estrutura de colisões. Não há uma nova leitura dos 125 chunks a cada clique em iniciar.
+
+Selecionar outra aeronave na pausa e voltar sem iniciar não deve modificar o voo atual. Antes de continuar, `Resume` sincroniza o card com `loadedAircraft` e fecha o menu, mantendo a aeronave realmente carregada. Durante o menu ativo, o loop não alcança a física, a missão, o tráfego Bézier nem a atualização das câmeras. `previous_time` é atualizado nesse caminho, portanto o tempo passado escolhendo opções não vira um grande passo de movimento quando o jogo retorna.
+
+O cache é da sessão atual: não é um salvamento de campanha nem um cache de todos os modelos. A malha substituída é liberada pelo renderer; o mapa carregado continua residente. O tráfego autônomo usa a mesma malha ativa em outra instância, portanto também apresenta o modelo selecionado, conservando a trajetória definida pela curva Bézier.
+
+### Progresso, cancelamento e recuperação
+
+A tela de carregamento recebe uma fração, uma etapa, uma mensagem e o tempo decorrido. A fração vem de `LoadProgress.completed / LoadProgress.total`, e não de um temporizador que simula uma porcentagem. Na carga completa, as unidades são a aeronave, as partes do mapa e a base complementar. As etapas exibidas distinguem preparação da aeronave, cenário e finalização; a barra mede trabalho concluído, sem prometer segundos restantes.
+
+`LoadCallbacks` separa `progress` de `pump`. O primeiro atualiza a leitura da barra; o segundo mantém eventos e desenho na thread principal enquanto a preparação CPU trabalha. A rotina `startFlight` desenha a interface em até 60 atualizações/s, usando a hora atual; ela não consulta uma cena parcialmente carregada como se já pudesse ser pilotada. O cancelamento muda a mensagem para indicar o retorno ao menu.
+
+Na primeira carga cancelada, a cena incompleta é descartada e o menu inicial volta a ficar disponível. Ao cancelar uma troca com voo anterior pronto, a cena antiga é conservada, a seleção volta à aeronave carregada e a pausa é reaberta. `GameScene::LoadAircraft` prepara a substituta antes de liberar a malha antiga e libera a substituta se sua preparação for interrompida. O worker CPU em andamento é drenado antes que seus dados possam ser destruídos.
+
+Falhas de arquivo, textura ou preparação são capturadas, registradas com detalhes no terminal e apresentadas no menu como uma mensagem curta de tentativa malsucedida. O programa não transforma uma falha de carga numa cena jogável vazia. Os modos de inspeção podem iniciar diretamente para preservar os testes automáticos; `--menu-check` é o caso inverso e confere apenas o frontend, sem pagar o custo da carga do Rio.
+
+### Verificação do frontend
+
+`tests/FrontendModelTest.cpp` contém 372 verificações sem janela/GPU, incluindo seleção efetiva da segunda aeronave, indisponibilidade, roteamento de mouse/teclado, pausa, retorno, cancelamento, erros e áreas clicáveis não sobrepostas em resoluções diferentes. `FrontendInspection` produz 11 capturas de páginas e carregamento, incluindo a composição compacta de 640×480 e a mínima de 320×240.
+
+Os percentuais do modo `--menu-check` são fixtures declaradas para conferir a apresentação. Eles não são evidência de conversão real do cenário. A opção `--capture-loading=...`, em conjunto com uma inspeção que inicia voo, registra separadamente a barra durante uma carga real. Essa distinção permite conferir a interface rapidamente e também verificar a integração com os assets e as colisões completos. O comportamento e os comandos estão em `docs/menu.md`.
+
+## Monomotor leve: segundo modelo, catálogo e adaptações
+
+O segundo modelo é **“Low Poly Airplane”**, de **MagicGames**, obtido na opção gratuita da página `https://magic-games.itch.io/low-poly-airplane`. O arquivo de origem e sua licença CC BY 4.0 foram preservados em `data/light_aircraft/source/`. Não foi adquirido o pacote premium. O modelo escolhido é estilizado, de asa alta e com trem convencional, isto é, duas rodas principais e uma roda na cauda; ele não é apresentado como reprodução de um Cessna específico.
+
+`data/ASSETS.md` organiza a proveniência do Rio, do A320 e do monomotor. Para o pequeno, `data/light_aircraft/credits.md` registra autor, licença, alterações e reprodução; `metadata.json` conserva hashes, limites, ponto dos olhos e medição das rodas. O FBX original fica separado dos OBJ/MTL usados pelo jogo. `tools/convert_asset.py` executa a conversão no Blender sem executar scripts incluídos no arquivo baixado.
+
+A conversão orienta nariz em `+X`, cima em `+Y` e direita em `+Z`, e prepara dimensões aproximadas de 9 × 3 × 11 m. Foram acrescentados piso, painel e dois bancos simples ao interior, e os vidros passaram a ser transparentes. A pintura original vermelha/azul foi mantida conforme a preferência do usuário. As pás são semitransparentes para preservar a visão da câmera; a hélice permanece estática, sem uma animação de rotação introduzida nesta etapa.
+
+O OBJ convertido possui 1.094 triângulos, incluindo as adições da cabine. Materiais sem imagens usam as cores preservadas e o tratamento procedural do renderer. O resultado continua passando pelo mesmo caminho de iluminação e transparência dos demais modelos. A cabine é simplificada; não existe a promessa de um painel detalhado ou de controles físicos clicáveis equivalentes aos de uma aeronave real.
+
+### Catálogo e posição das câmeras
+
+`AircraftCatalog()` associa uma escolha visível a um arquivo concreto e à posição local dos olhos. O trecho real do catálogo do monomotor é:
+
+```cpp
+{"light","Monomotor leve","Alta asa | Motor a helice | Modelo estilizado",
+ "../../data/light_aircraft/aircraft.obj",{2.44f,2.40f,-.26f},true}
+```
+
+O A320 continua usando `data/aircraft/aircraft.obj` e olhos em `(7.90, 0.95, −0.65)`. O pequeno usa `(2.44, 2.40, −0.26)`. O ponto dos olhos não é o pivot das rodas nem o centro da caixa delimitadora: é medido no espaço local da malha e transformado pela mesma Model matrix do avião.
+
+`GameScene::Cameras` também informa um enquadramento externo compatível com a escala menor. O alvo fica a 1,5 m sobre o pivot do monomotor, com distância inicial de 26 m; no A320 são 4 m e 70 m. `CameraFrame::defaultOrbitDistance` permite que `CameraController::Reset` restaure essa distância, em vez de aplicar o enquadramento do jato a todos os modelos.
+
+### Perfil de colisões de trem convencional
+
+Somente trocar a malha manteria rodas físicas nas proporções do A320, podendo deixar o monomotor flutuando ou tocando o chão com volumes incorretos. A seleção usa `collision::AirframeType::LightTaildragger`, e `AircraftContacts::Configure` constrói outro conjunto de esferas e cadeias para corpo, asas, cauda e trem. Os valores foram derivados da geometria convertida, com as medidas registradas no metadata.
+
+As duas esferas principais ficam próximas de X=3,076 m e Z=±1,698 m, com raio de aproximadamente 0,331 m. A roda de cauda fica próxima de X=−3,060 m, Z=−0,097 m, com raio de aproximadamente 0,198 m. Como seu raio e sua altura são diferentes, ela não deve herdar o raio das rodas principais. O trecho real do perfil usa frações dos limites da malha:
+
+```cpp
+for(double side:{-1.0,1.0})
+    localSpheres.push_back({local(.8417722,.1104324,side*.1543546),size.x*.03681081,true});
+localSpheres.push_back({local(.1600221,.07287955,-.00882703),size.x*.02199480,true});
+```
+
+Os volumes físicos continuam sendo aproximações, sem simulação detalhada da suspensão ou contato exato dos triângulos dos pneus. A missão recebe as mesmas três esferas e seus raios pela interface genérica, aceitando a nova configuração sem precisar conhecer o nome do avião. A câmera, as colisões e a seleção foram adaptadas; a física aerodinâmica continua compartilhada e não foi calibrada para reproduzir as características reais distintas de um jato e de um monomotor.
+
+A inspeção da integração registrou o pequeno apoiado por três rodas e a partida armada no Santos Dumont. Isso demonstra o encaixe entre asset, perfil e missão inicial, sem afirmar que um trajeto manual completo já foi concluído. O controle de atitude pelo mouse continua pendente em `CommandInterface::process_input()`, que permanece vazio: o botão direito move a câmera, e o menu não introduz por si só comandos de direção no modelo de voo.
+
 ## Compilação, execução e diagnóstico da versão carregada
 
 A lista `SOURCES` em `CMakeLists.txt` contém os arquivos efetivamente compilados. Acrescentar um `.cpp` em `src` não basta nesse fluxo: ele precisa estar nessa lista. O Makefile do macOS também recebeu os arquivos novos. O padrão C++ exigido no CMake é C++11. Os headers de módulos próprios são procurados em `src` e os de bibliotecas e matrizes em `include`.
@@ -1196,13 +1818,13 @@ Em uma configuração nova, começa-se por `cmake -S . -B build`, usando um gera
 
 O diretório de trabalho ao executar importa porque o código usa caminhos como `../../data/aircraft/aircraft.obj` e `../../src/ui/shaders/hud_vertex.glsl`. A execução em `bin/Debug`, `bin/Release`, `bin/Linux` ou no diretório equivalente do Makefile mantém a relação esperada com a raiz. Um executável antigo aberto pelo editor ou uma configuração diferente de Release/Debug pode continuar mostrando o coelho ou a fonte de uma versão anterior, mesmo depois de editar os arquivos corretos. Por isso os testes interativos passaram a abrir explicitamente o executável recém-compilado e a conferir a captura do framebuffer.
 
-O carregamento ainda pode levar dezenas de segundos no computador de desenvolvimento, pois percorre o mapa completo. Isso é diferente de congelar o loop de desenho durante o voo. O título com o contador dos chunks indica progresso; erros de caminho ou de textura são reportados pela rotina de carga. O programa permite cancelar o carregamento fechando a janela.
+O primeiro carregamento ainda pode ser demorado, pois prepara o mapa completo e suas colisões. O menu aparece antes; a tela própria mostra estágio, percentual por unidades concluídas e cancelamento. Um worker prepara os dados CPU enquanto o thread do contexto atende eventos e desenha a interface. Trocar a aeronave ou reiniciar depois de uma carga concluída reutiliza o Rio. Falhas são apresentadas no menu e detalhadas no terminal; cancelar drena a tarefa atual antes de liberar os dados. No Windows, uma instância aberta também pode impedir o linker de substituir `main.exe`: feche esse executável antes de uma recompilação que precise gravá-lo.
 
 ## Estratégia de testes: matemática, arquivos e GPU
 
 O teste de uma fórmula e a inspeção de uma imagem respondem a perguntas diferentes. A suíte CPU consegue simular centenas de orientações e eventos sem abrir uma janela. A inspeção GPU confirma que os shaders compilam, os materiais reais são encontrados e o resultado se mantém visível no ambiente gráfico usado pelo jogador. Um teste não substitui o outro.
 
-No recorte documentado, o CTest executa nove alvos:
+O CTest executa **16 alvos** no ambiente configurado. As nove suítes anteriores permanecem, somadas às sete de colisões, aeroportos/missão e menu/carregamento:
 
 | Alvo | Problema que ele ajuda a detectar |
 |---|---|
@@ -1215,8 +1837,15 @@ No recorte documentado, o CTest executa nove alvos:
 | `flight_telemetry` | Unidades, sinais, cardinais, normalização de base e leituras inválidas |
 | `hud_layout` | Limites, círculos sem sobreposição, troca entre linhas e ângulos entre graduações |
 | `hud_needle_motion` | Resposta contínua, equivalência a 30/60/144 FPS, recuperação e passagem pelo norte |
+| `collisions` | AABB, pontos próximos e varredura de esfera contra faces, arestas e vértices |
+| `collision_world` | Materiais físicos, proxies de árvores, BVH e candidatos locais |
+| `aircraft_contacts` | Apoio, pouso, impacto, obstáculos baixos e perfis A320/monomotor |
+| `airports` | Retângulos de pistas, distâncias, rumos e coordenadas reais |
+| `flight_mission` | Histórico de partida/toque, condições de chegada, falha e reinício |
+| `frontend_model` | Páginas, seleção, teclado/mouse, indisponibilidade e áreas clicáveis |
+| `responsive_loading` | Threads, pump gráfico, exceções e drenagem após cancelamento |
 
-O alvo Python depende de encontrar Python durante a configuração do CMake. No ambiente usado, ele foi encontrado e os nove alvos passaram. O teste determinístico do splitter continua disponível separadamente:
+O alvo Python depende de encontrar Python durante a configuração do CMake. No ambiente usado, ele foi encontrado e os 16 alvos passaram. `frontend_model` registrou 372 verificações, e `responsive_loading` registrou 12 verificações de concorrência/cancelamento. O teste determinístico do splitter continua disponível separadamente:
 
 ```powershell
 python data/rio/tools/test_split_obj.py
@@ -1225,7 +1854,7 @@ python data/rio/tools/test_base_terrain.py
 
 O primeiro usa exemplos pequenos para provocar subdivisão e comparar resultados reproduzíveis. O manifesto do mapa real, por sua vez, registra hashes e limites da conversão completa. Os testes pequenos não afirmam que o mapa passou a ter relevo real ou que todos os dados OSM do mundo estão completos.
 
-Para a GPU, há três entradas distintas, executadas a partir do diretório do binário:
+Para a GPU e a integração com os assets, há modos distintos executados a partir do diretório do binário:
 
 ```powershell
 .\main.exe --smoke-test ../../build/scene.ppm orbit
@@ -1234,15 +1863,24 @@ Para a GPU, há três entradas distintas, executadas a partir do diretório do b
 .\main.exe --smoke-test ../../build/interactive.ppm orbit --keep-open
 .\main.exe --texture-check ../../build/material-check
 .\main.exe --hud-check ../../build/hud-check
+.\main.exe --collision-check ../../build/collision-check.ppm orbit
+.\main.exe --mission-check ../../build/mission-check
+.\main.exe --menu-check ../../build/menu-check
+.\main.exe --texture-check ../../build/destination-check --show-mission-marker
+.\main.exe --smoke-test ../../build/light-flight.ppm orbit --aircraft=light --capture-loading=../../build/light-loading
 ```
 
-O smoke test carrega os assets reais, verifica erros OpenGL e pode salvar uma imagem PPM depois de 60 quadros. `--keep-open` conserva a janela para teste manual. O modo de texturas usa atualmente 15 vistas, incluindo as duas vistas do tráfego acrescentadas depois das 13 usadas na correção inicial dos materiais. O modo de HUD gera 11 vistas e aguarda 90 quadros por vista para os ponteiros acomodarem os saltos intencionais dos valores de teste.
+O smoke test carrega os assets reais, verifica erros OpenGL e pode salvar uma imagem depois de 60 quadros. `--keep-open` conserva a janela nos modos que o suportam. O modo de texturas passou de 13 para 15 vistas e agora usa **16**, incluindo o destino distante. O HUD mantém 11 vistas, com 90 quadros por vista para acomodar os saltos intencionais dos ponteiros.
+
+`--collision-check` exercita um resolvedor local sobre a geometria carregada. `--mission-check` produziu 31 verificações de integração aprovadas com o mapa e 11 capturas de UI; estas usam estados simulados e não demonstram um voo manual. `--menu-check` produz 11 capturas de páginas sem carregar o mapa, também como fixtures visuais. `--capture-loading` registra o progresso de uma carga real, com número da tentativa e estágios de início/metade/término.
+
+A execução real do monomotor registrou 126 partes do cenário, 11.213.227 triângulos físicos, apoio de três rodas e `origin_armed=1` no Santos Dumont. Isso confirma carga e apoio inicial, sem afirmar que os controles de atitude ou a viagem completa foram validados. As verificações distinguem estado real de jogo, replay controlado e apresentação de dados de teste.
 
 As imagens PPM são leituras dos pixels produzidos pela GPU. A conversão posterior para PNG usada na conferência facilita visualizar o arquivo; não cria texturas para o jogo nem modifica a imagem renderizada. Os arquivos de teste e logs ficam em `build`, ignorado pelo Git.
 
 As conferências incluíram, entre outros casos, a pintura sobre o asfalto em posições de câmera diferentes, parques antes com lacunas de chão, transparência nas árvores, o cockpit com painel próximo, a aeronave autônoma em posições distintas do circuito, curvas à direita e à esquerda no horizonte, voo invertido, dados inválidos, leitura acima da escala e a passagem do altímetro de 999 para 1001 metros.
 
-## Controles consolidados no recorte
+## Controles consolidados no estado atual
 
 | Entrada | Comportamento |
 |---|---|
@@ -1260,17 +1898,23 @@ As conferências incluíram, entre outros casos, a pintura sobre o asfalto em po
 | `P/O` | Perspectiva/ortográfica fora do cockpit |
 | `R` | Recarregar os shaders 3D do código base |
 | `H` | Alternar instrumentos e textos auxiliares |
-| `Esc` | Encerrar a aplicação |
+| `Enter` durante o voo | Reiniciar jogador, contatos, missão e câmera no Santos Dumont |
+| `B` durante o voo | Alternar volumes de colisão, ocultos por padrão |
+| `M` durante o voo | Mostrar/ocultar o “!” do Galeão, inicialmente oculto e independente de H |
+| `Esc` durante o voo | Abrir a pausa e liberar o cursor |
+| `Esc` na pausa / páginas / carregamento | Retomar / voltar / cancelar, conforme o estado |
+| Mouse, setas ou `Tab` no menu | Escolher opção; `Enter` ativa o botão focado |
+| `Esc` no menu inicial | Encerrar a aplicação |
 
 O recarregamento `R` usa a infraestrutura existente dos shaders 3D; ele não é apresentado como um sistema geral de hot reload de todos os programas GPU. Teclas legadas de demonstração ainda existentes no callback não substituem a futura implementação dos controles de atitude.
 
 ## Git, identificação de IA e organização documental
 
-O trabalho foi desenvolvido em etapas: preparação dos assets e integração gráfica, reorganização e câmeras, tráfego em Bézier e HUD. As branches permitiram revisar os blocos antes de integrá-los à `main`. Durante a conversa também foi discutida a exclusão de branches e a relação entre commits locais e remotos; uma branch é uma referência para um commit, e sua exclusão não é um mecanismo de arquivamento dos arquivos do projeto.
+O trabalho foi desenvolvido em etapas: assets e integração gráfica, reorganização e câmeras, tráfego Bézier, HUD, colisões, missão e menu/carregamento com uma segunda aeronave. As branches permitiram revisar os blocos antes de integrá-los à `main`. Durante a conversa também foi discutida a exclusão de branches e a relação entre commits locais e remotos; uma branch é uma referência para um commit, e sua exclusão não é um mecanismo de arquivamento dos arquivos do projeto.
 
 O histórico antigo recebeu identificação de auxílio de IA conforme o pedido do usuário e as regras do trabalho. Os commits novos passaram a usar o prefixo `IA:` e os prompts foram preservados em `prompts.md`. Há referências antigas reescritas em outras branches locais; para estudar a versão consolidada, deve-se partir do histórico alcançável pela `main` ou pelo commit do recorte, em vez de interpretar a saída de `git log --all` como uma única sequência linear de mudanças distintas.
 
-Alguns marcos alcançáveis pelo recorte ajudam a localizar as alterações:
+Alguns marcos do histórico ajudam a localizar as alterações. A tabela inclui os commits locais de implementação da branch `menu`; sua presença não implica merge dessa branch na `main`:
 
 | Commit | Conteúdo |
 |---|---|
@@ -1283,8 +1927,16 @@ Alguns marcos alcançáveis pelo recorte ajudam a localizar as alterações:
 | `c56d70f` | Telemetria, layout e cálculos dos ponteiros com testes |
 | `7d803ae` | Desenho e integração dos cinco instrumentos |
 | `e2155d8` | Escalas finais das fontes auxiliares |
+| `d5f0d57` | Primeira edição histórica deste guia, anterior às colisões |
+| `9fa3cd4` | Geometria contínua, mundo físico e resposta dos contatos |
+| `8f3106e` | Integração de colisões no Rio, acidente, reinício e depuração |
+| `d46cb4c` | Aeroportos e progressão da missão |
+| `913a089` | Interface da missão e marcador opcional do destino |
+| `3ab3bea` | Merge da missão na main, base da branch menu |
+| `f323647` | Asset licenciado do monomotor, catálogo, contatos e enquadramento |
+| `75a8e6d` | Menu, seleção, pausa e carregamento responsivo |
 
-O `README.md` foi deixado vazio a pedido do usuário, para o relatório de autoria da dupla. As notas anteriores foram preservadas em `AI_README.md`; por isso esse arquivo é uma cópia histórica e pode descrever uma etapa anterior do jogo. `SPEC.md` não foi alterado pelo desenvolvimento documentado aqui. As explicações específicas continuam em `docs/rendering.md`, `docs/cameras.md`, `docs/bezier.md`, `docs/hud.md` e `data/rio/README.md`.
+O `README.md` foi deixado vazio a pedido do usuário, para o relatório de autoria da dupla. As notas anteriores foram preservadas em `AI_README.md`; por isso esse arquivo é uma cópia histórica e pode descrever uma etapa anterior do jogo. `SPEC.md` não foi alterado pelo desenvolvimento documentado aqui. As explicações específicas estão em `docs/rendering.md`, `docs/cameras.md`, `docs/bezier.md`, `docs/hud.md`, `docs/collisions.md`, `docs/mission.md` e `docs/menu.md`. `data/ASSETS.md` reúne a proveniência do Rio e das duas aeronaves, com guias detalhados dentro de `data/`.
 
 Os OBJ/MTL gerados têm hashes no manifesto. Para que a troca de plataforma não altere seus bytes apenas pela conversão de fim de linha, `.gitattributes` preserva LF nos chunks:
 
@@ -1299,12 +1951,12 @@ O aviso de Git sobre LF/CRLF observado durante a conversa não indicava uma text
 
 O uso de GLM neste projeto serve a vetores, produtos e armazenamento de matrizes. As matrizes de transformação, câmera e projeção utilizadas pela cena vêm do material da disciplina em `include/matrices.h`. As partes novas não usam construtores proibidos como `glm::lookAt`, `glm::perspective`, `glm::translate`, `glm::rotate` ou `glm::scale`. Trechos reaproveitados foram identificados com comentários `FONTE`; as bibliotecas mantêm seus avisos de licença.
 
-## Estado ao fechar este documento e etapa seguinte
+## Estado atual e trabalho restante
 
-A implementação consolidada permite carregar a cena real, observar o jogador pelas três câmeras, explorar a cidade com a câmera livre, acompanhar um segundo avião animado e consultar os cinco instrumentos do jogador. Os ajustes de textura e de profundidade fazem parte desse resultado, tanto no A320 quanto nas superfícies do cenário. Eles são detalhados nas seções anteriores porque o resultado não depende apenas de carregar um OBJ: materiais, UVs, precisão numérica e ordem de desenho também interferem na imagem final.
+A versão documentada combina menu inicial, escolha entre duas aeronaves, carregamento com progresso/cancelamento, pausa, três câmeras, cenário do Rio, tráfego Bézier e cinco instrumentos. O jogador usa contatos contínuos contra o mapa, com apoio seguro, água, obstáculos e acidente. A máquina de estados reconhece a partida no Santos Dumont, guia ao Galeão e exige chegada válida na pista. O “!” é uma ajuda opcional, separada desses critérios.
 
-Ainda faltam, nesse recorte: colisões com solo real e obstáculos, classificação de pouso/acidente, objetivo de viagem A→B, menu com escolha de avião, controle completo da atitude do jogador, animação de árvores pelo vento e luzes piscantes previstas na especificação. As posições do cenário continuam sendo de uma conversão OSM; a base adicional não fornece um modelo de elevação do terreno.
+Essas funcionalidades não tornam o simulador completo. O mouse sem botão direito ainda não controla a atitude do jogador; `CommandInterface::process_input()` continua vazio, e os ângulos legados não constituem essa ligação. Falta calibrar os controles e verificar um trajeto manual completo, incluindo manobra e redução de velocidade. Contatos, missão e HUD já recebem os vetores/velocidades do avião, mas o replay de amostras não substitui o teste de pilotagem.
 
-A etapa autorizada depois da publicação deste documento é o sistema de colisões. O plano é manter testes geométricos em `collisions.cpp`, como exige o enunciado, criar um índice espacial independente da câmera, usar volumes próprios da aeronave e contatos separados do trem de pouso, e classificar o impacto antes de zerar a velocidade vertical. Pintura, água e imagens de árvores exigem políticas físicas diferentes: a imagem de uma árvore pode conter pixels transparentes, e asfalto também existe fora de aeroportos.
+Continuam pendentes a animação das árvores pelo vento e as luzes piscantes previstas na especificação. A hélice do monomotor é estática e sua cabine é simples; os parâmetros físicos são compartilhados, sem calibração real de cada aeronave. O cenário mantém limitações dos dados OSM, sem DEM; a base é um preenchimento genérico e finito. Não há streaming espacial, sombras, PBR ou colisão entre jogador e avião autônomo.
 
-Esses itens são planejamento neste primeiro commit do documento. A implementação de colisões e suas evidências de teste devem ser consultadas nos commits e notas técnicas acrescentados depois dele.
+A entrega final exige o relatório em `README.md` escrito pelos alunos, imagens, vídeo e metadados. Este guia e os documentos de proveniência identificados como assistidos por IA servem à manutenção e ao estudo; não devem ser apresentados como o relatório de autoria exigida da dupla. `SPEC.md` permanece sem alteração.

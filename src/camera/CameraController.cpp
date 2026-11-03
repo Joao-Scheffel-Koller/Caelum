@@ -130,12 +130,13 @@ void CameraController::Update(const CameraMovement& movement,float dt,const Came
 }
 
 void CameraController::Reset(const CameraFrame& frame) {
+    const float distance=std::isfinite(frame.defaultOrbitDistance)?Clamp(frame.defaultOrbitDistance,5.0f,15000.0f):70.0f;
     if(mode==CameraType::COCKPIT) {
         headYaw=0;headPitch=0;headOffset=glm::vec3(0);
     } else if(mode==CameraType::LOOK_AT) {
-        orbitYaw=0;orbitElevation=.25f;orbitDistance=70;
+        orbitYaw=0;orbitElevation=.25f;orbitDistance=distance;
     } else {
-        CaptureFree(OrbitPose(frame,0,.25f,70));
+        CaptureFree(OrbitPose(frame,0,.25f,distance));
         freeSpeed=50;
     }
 }

@@ -1,0 +1,77 @@
+# FONTE: MagicGames, CC BY 4.0; modified windows/cabin for Caelum.
+newmtl Red.001
+Kd 0.800000 0.000000 0.000000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl Cyan
+Kd 0.074765 0.575306 1.000000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl Red
+Kd 1.000000 0.000000 0.000000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl Black
+Kd 0.000000 0.000000 0.000000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl DarkGrey
+Kd 0.050000 0.050000 0.050000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl Propeller_Cyan
+Kd 0.074765 0.575306 1.000000
+d 0.240
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl Propeller_Red
+Kd 1.000000 0.000000 0.000000
+d 0.240
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl LightBlue
+Kd 0.000000 1.000000 1.000000
+d 0.180
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl CabinPanel
+Kd 0.035000 0.045000 0.055000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl CabinSeat
+Kd 0.055000 0.065000 0.075000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2
+
+newmtl CabinFloor
+Kd 0.080000 0.090000 0.100000
+d 1.000
+Ks 0.04 0.04 0.04
+Ns 32
+illum 2

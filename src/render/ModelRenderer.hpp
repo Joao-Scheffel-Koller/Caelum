@@ -7,6 +7,7 @@
 #include <map>
 #include <functional>
 #include "render/MaterialPolicy.hpp"
+#include "platform/LoadProgress.hpp"
 namespace collision {class CollisionWorld;}
 
 enum class RenderPass { Solid, Decal, Transparent };
@@ -39,9 +40,12 @@ struct MapChunk {
 class ModelRenderer {
 public:
     ~ModelRenderer();
-    RenderModel Load(const std::string& path,bool map=false,collision::CollisionWorld* physicalWorld=nullptr);
+    RenderModel Load(const std::string& path,bool map=false,collision::CollisionWorld* physicalWorld=nullptr,
+                     const LoadCallbacks& callbacks={});
     std::vector<MapChunk> LoadMap(const std::string& manifest,
-        const std::function<void(size_t)>& progress = {},collision::CollisionWorld* physicalWorld=nullptr);
+        const std::function<void(size_t)>& progress = {},collision::CollisionWorld* physicalWorld=nullptr,
+        const LoadCallbacks& callbacks={});
+    static std::size_t CountMapChunks(const std::string& manifest);
     // Call after loading/reloading the shader program (R remains supported).
     void SetProgram(GLuint program);
     void Draw(const RenderModel& model, const glm::mat4& transform,
@@ -54,6 +58,6 @@ private:
     GLint modelUniform=-1, colorUniform=-1, opacityUniform=-1,
           textureUniform=-1, hasTextureUniform=-1, cameraUniform=-1,
           proceduralUniform=-1, alphaCutoffUniform=-1;
-    GLuint LoadTexture(const std::string& file);
+    GLuint LoadTexture(const std::string& file,const LoadCallbacks& callbacks);
 };
 #endif

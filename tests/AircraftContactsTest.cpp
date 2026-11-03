@@ -196,8 +196,29 @@ void WheelHazardsAfterSupport() {
     Check(splash.state==AircraftState::Crashed&&splash.reason==CrashReason::Water,
           "a supported wheel entering water is detected even if it ends beyond the water patch");
 }
+void LightAircraftGeometry() {
+    AircraftContacts light;light.Configure({-4.5,0,-5.5},{4.5,3,5.5},AirframeType::LightTaildragger);
+    std::vector<ProbeSphere> gear;
+    for(const auto& sphere:light.DebugSpheres(Pose()))if(sphere.gear)gear.push_back(sphere);
+    Check(gear.size()==3,"light aircraft retains three distinct landing gear probes");
+    Check(Near(gear[0].center.x,3.0759498)&&Near(gear[0].center.z,-1.6979006)&&
+          Near(gear[1].center.z,1.6979006)&&Near(gear[2].center.x,-3.0598011),
+          "taildragger support matches the converted mesh instead of the A320 nose gear");
+    CollisionWorld floor;Plane(floor);
+    auto result=light.Resolve(floor,Pose(),Pose(),{0,0,0},0);
+    Check(result.state==AircraftState::Grounded&&result.gearContacts==3,
+          "two main wheels and raised tail wheel support the light aircraft without a false body impact");
+    result=light.Resolve(floor,Pose(),Pose(10,0),{5,0,0},2);
+    Check(result.state==AircraftState::Grounded&&Near(result.position.x,10),
+          "light aircraft can taxi with its own landing gear layout");
+    CollisionWorld wingObstacle;Plane(wingObstacle);Box(wingObstacle,{.8,2.3,5.2},{1.5,2.7,5.5});
+    light.Reset();result=light.Resolve(wingObstacle,Pose(),Pose(),{0,0,0},0);
+    Check(result.state==AircraftState::Crashed&&result.reason==CrashReason::Obstacle,
+          "high-wing proxy detects an obstacle at the light aircraft wing tip");
+}
 }
 int main() {
     SupportAndTaxi();Landings();ObstaclesAndSweeps();LifetimeAndGeometry();WheelHazardsAfterSupport();
+    LightAircraftGeometry();
     std::printf("PASS: %d aircraft support, impact and continuous collision checks\n",checks);
 }

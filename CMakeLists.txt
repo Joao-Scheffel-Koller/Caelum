@@ -14,6 +14,10 @@ set(SOURCES
   src/ui/HudNeedleMotion.cpp
   src/ui/HudInspection.cpp
   src/aircraft/FlightTelemetry.cpp
+  src/aircraft/AircraftCatalog.cpp
+  src/ui/FrontendModel.cpp
+  src/ui/FrontendScreen.cpp
+  src/ui/FrontendInspection.cpp
   src/collision/collisions.cpp
   src/collision/CollisionWorld.cpp
   src/collision/AircraftContacts.cpp
@@ -43,6 +47,9 @@ set(SOURCES
 cmake_minimum_required(VERSION 3.5.0)
 
 project(LAB_FCG VERSION 1.0.0)
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 set(CMAKE_CXX_STANDARD          11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -82,12 +89,20 @@ Por favor, atualize a lista de arquivos fonte no arquivo CMakeLists.txt.")
 endforeach()
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
+target_link_libraries(${EXECUTABLE_NAME} Threads::Threads)
 
 target_include_directories(${EXECUTABLE_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src)
 
 # AI-assisted CPU regression checks: no window, graphics driver or assets needed.
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(responsive_loading_test tests/ResponsiveLoadingTest.cpp)
+  target_include_directories(responsive_loading_test PRIVATE src)
+  target_link_libraries(responsive_loading_test Threads::Threads)
+  add_test(NAME responsive_loading COMMAND responsive_loading_test)
+  add_executable(frontend_model_test tests/FrontendModelTest.cpp src/ui/FrontendModel.cpp)
+  target_include_directories(frontend_model_test PRIVATE src)
+  add_test(NAME frontend_model COMMAND frontend_model_test)
   add_executable(airports_test tests/AirportsTest.cpp src/mission/Airports.cpp)
   target_include_directories(airports_test PRIVATE include src)
   add_test(NAME airports COMMAND airports_test)

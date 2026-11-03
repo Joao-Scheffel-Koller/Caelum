@@ -1,0 +1,77 @@
+{
+  "title": "Low Poly Airplane",
+  "author": "MagicGames",
+  "source": "https://magic-games.itch.io/low-poly-airplane",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "coordinates": "meters, nose +X, up +Y, right +Z; pivot midpoint XZ/minY",
+  "bounds_min": [
+    -4.5,
+    0.0,
+    -5.5
+  ],
+  "bounds_max": [
+    4.5,
+    3.0,
+    5.5
+  ],
+  "triangles": 1094,
+  "cockpit_eye": [
+    2.44,
+    2.4,
+    -0.26
+  ],
+  "changes": [
+    "Normalized axis orientation and approximate meter scale (9m length,11m span,3m height)",
+    "Blue window material made transparent",
+    "Propeller blades translucent for clear cockpit visibility; no animation",
+    "Added simple dashboard, floor and two seats; not a detailed Cessna cockpit"
+  ],
+  "source_bounds_min": [
+    -4.000000476837158,
+    -2.1655519008636475,
+    0.015300151892006397
+  ],
+  "source_bounds_max": [
+    3.999999523162842,
+    6.874067783355713,
+    2.6633875370025635
+  ],
+  "original_archive_sha256": "49e90bd99accf7647ddffb8b60f2a61646323c831719fc1f5e5419a9e26a1945",
+  "original_fbx_sha256": "8d55c2e30326e3e1168fc5b07bcf631e9c44a90bfced6d0343ddb66b18bd9863",
+  "gear": [
+    {
+      "name": "main",
+      "center": [
+        3.0759496688842773,
+        0.3312973082065582,
+        1.6979005336761475
+      ],
+      "radius": 0.3312973082065582,
+      "x_fraction": 0.8417721854315864,
+      "z_fraction": 0.15435459397055887
+    },
+    {
+      "name": "main",
+      "center": [
+        3.0759496688842773,
+        0.3312973082065582,
+        -1.6979000568389893
+      ],
+      "radius": 0.33129730187602435,
+      "x_fraction": 0.8417721854315864,
+      "z_fraction": -0.1543545506217263
+    },
+    {
+      "name": "tail",
+      "center": [
+        -3.0598011016845703,
+        0.21863864362239838,
+        -0.09709735959768295
+      ],
+      "radius": 0.19795317482203245,
+      "x_fraction": 0.16002209981282553,
+      "z_fraction": -0.00882703269069845
+    }
+  ]
+}

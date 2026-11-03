@@ -14,8 +14,13 @@ enum class SceneLayer { ALL, WORLD, AIRCRAFT };
 class GameScene {
 public:
     ~GameScene();
-    void Load(GLFWwindow* window);
+    void Load(GLFWwindow* window,const LoadCallbacks& callbacks={},
+              const std::string& aircraftPath="../../data/aircraft/aircraft.obj",
+              const glm::vec3& cockpitEye=glm::vec3(7.90f,.95f,-.65f));
+    void LoadAircraft(const std::string& aircraftPath,const glm::vec3& cockpitEye,
+                      const LoadCallbacks& callbacks={});
     void Spawn(Aircraft& aircraft) const;
+    void SetAirframeType(collision::AirframeType type);
     void ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& previous,double dt);
     void ResetPlayer(Aircraft& aircraft);
     const collision::ContactResult& PlayerContact() const {return playerContact;}
@@ -37,7 +42,9 @@ private:
     std::vector<MapChunk> chunks;
     collision::CollisionWorld physicalWorld;
     collision::AircraftContacts contacts;
+    collision::AirframeType airframeType=collision::AirframeType::Airliner;
     collision::ContactResult playerContact;
+    glm::vec3 cockpitEyeLocal{7.90f,.95f,-.65f};
     glm::mat4 AircraftTransform(Aircraft& aircraft) const;
 };
 #endif
