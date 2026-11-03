@@ -1,5 +1,43 @@
 ## File used to store ai prompts
 
+30. Codex (2026-11-02): "o implementation.md está atualizado, atualize caso
+    ele n esteja com as novas adições do projeto". Antes dos commits/push ja
+    autorizados, revisar o guia originalmente limitado ao HUD e2917d8 e
+    atualiza-lo para a branch menu baseada em 3ab3bea. Preservar o detalhamento
+    de texturas, cameras, Rio, Bezier e HUD; corrigir bootstrap/loop/estado
+    fisico/controles/testes/limites obsoletos. Acrescentar explicacoes e trechos
+    reais de colisoes CCD/BVH/perfis, missao A-B e marcador M, menu/pausa,
+    progresso e cancelamento assincronos, troca de aeronave e monomotor CC BY.
+    Atualizar indice, arquitetura e referencias a data/ASSETS e proveniencia.
+    Distinguir recursos implementados de controles de atitude e voo manual
+    completo ainda pendentes. Nao escrever README final nem alterar SPEC.md.
+
+29. Codex (2026-11-02): "deixa como esta no modelo da internet, documente como
+    os modelos foram achados e produzidos dentro da pasta data/, incluindo rio
+    e as duas aeronaves". Preservar pintura vermelha/azul original do monomotor.
+    Produzir data/ASSETS.md e guias de proveniencia dos tres assets, com fontes,
+    autoria, licencas, aquisicao, conversao, correcoes, arquivos ativos e de
+    origem, hashes e comandos reproduziveis. Distinguir dados OSM/estilo/texturas,
+    adaptacoes do A320, monomotor estilizado e suas alteracoes de cabine/vidro.
+    Nao inventar historico nao registrado nem chamar o monomotor de Cessna exato.
+    Corrigir link do repositorio do estilo OSM2World. Preservar README.md/SPEC.md.
+
+28. Codex (2026-11-02): "vamos fazer o menu e uma tela de carregamento em uma
+    branch menu vinda da main"; "Quero acrescentar outra aeronave";
+    "Monomotor, como um Cessna"; "eu n baixei o modelo ainda, se vc conseguir
+    pode baixar, se não me de as instruções"; "pode continuar o trabalho anterior".
+    Criar menu da main atualizada (3ab3bea). Implementar menu inicial com
+    selecao real entre A320 e monomotor, controles, iniciar e sair; pausa com
+    Escape, retomar e voltar ao menu. Separar modelo CPU/layout de renderer
+    OpenGL e entradas; preservar capturas e controles existentes. Mostrar menu
+    antes de ler assets, carregamento com progresso por trabalho concluido,
+    preparacao CPU em worker e eventos/desenho/GL na thread principal.
+    Permitir cancelar, tratar falhas sem entrar em cena incompleta e reutilizar
+    o mapa ao reiniciar ou trocar de aviao. Obter monomotor gratuito com licenca
+    de redistribuicao, registrar fonte/licenca/alteracoes e calibrar escala,
+    orientacao, contato e camera. Documentar em docs/menu.md; testes CPU e
+    capturas reais de menu/carregamento/jogo. Nao alterar README.md e SPEC.md.
+
 27. Codex (2026-11-02): "tem como colocara um ponto de exclamação gigante
     encima do aeroporto para o jogador saber onde ir? deixe ele oculto com
     uma tecla para ser desocultado". Implementar MissionMarker modular,

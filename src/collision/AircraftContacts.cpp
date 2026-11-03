@@ -115,7 +115,7 @@ const char* CrashReasonText(CrashReason why) {
 void AircraftContacts::Reset() {
     state=AircraftState::Flying;reason=CrashReason::None;frozen=ContactResult{};
 }
-void AircraftContacts::Configure(const glm::dvec3& low,const glm::dvec3& high) {
+void AircraftContacts::Configure(const glm::dvec3& low,const glm::dvec3& high,AirframeType type) {
     const auto size=high-low;
     if(!Finite(low)||!Finite(high)||size.x<=0||size.y<=0||size.z<=0)
         throw std::invalid_argument("Invalid aircraft model bounds");
@@ -131,6 +131,20 @@ void AircraftContacts::Configure(const glm::dvec3& low,const glm::dvec3& high) {
         for(int i=0;i<=count;++i)
             localSpheres.push_back({from+(to-from)*(double(i)/count),radius,false});
     };
+    if(type==AirframeType::LightTaildragger) {
+        // FONTE: geometry survey of the CC BY MagicGames mesh after conversion;
+        // exact wheel measurements and derivation are in data/light_aircraft/metadata.json.
+        chain(local(.10,.50,0),local(.91,.50,0),size.x*.05);
+        for(double side:{-1.0,1.0}) {
+            chain(local(.68,.82,side*.02),local(.63,.82,side*.49),size.x*.013);
+            chain(local(.12,.61,side*.02),local(.12,.61,side*.18),size.x*.012);
+        }
+        chain(local(.10,.57,0),local(.10,.96,0),size.x*.012);
+        for(double side:{-1.0,1.0})
+            localSpheres.push_back({local(.8417722,.1104324,side*.1543546),size.x*.03681081,true});
+        localSpheres.push_back({local(.1600221,.07287955,-.00882703),size.x*.02199480,true});
+        Reset();return;
+    }
     // Proportions surveyed from this A320: nose +X, wings sweep backward, wheels
     // near model X=5.5 (nose) and -7.5/Z=+-3.3 (main), minY=-3.342473.
     chain(local(.06,.255,0),local(.94,.255,0),size.x*.052);

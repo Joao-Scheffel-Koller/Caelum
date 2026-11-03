@@ -10,6 +10,7 @@ struct CameraFrame {
     glm::mat4 aircraftModel{1.0f};
     glm::vec3 orbitTarget{0.0f};
     glm::vec3 cockpitEyeLocal{7.90f,0.95f,-0.65f};
+    float defaultOrbitDistance=70.0f;
 };
 
 struct CameraPose {
