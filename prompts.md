@@ -1,5 +1,26 @@
 ## File used to store ai prompts
 
+32. Codex (2026-11-03): "vamos fazer a implementar o phong tb ent".
+    Substituir Blinn-Phong pelo modelo de reflexao de Phong nos fragment
+    shaders do cenario/aeronaves e das lentes das luzes. Usar reflect(-sun,n)
+    comparado a direcao da camera, manter a condicao de superficie iluminada
+    e ajustar os expoentes de 32/36 para 8/9 como aproximacao da largura
+    anterior dos brilhos. Registrar a referencia da formula, atualizar a
+    documentacao tecnica e conferir compilacao GLSL/capturas dos dois modelos.
+    Preservar README.md e SPEC.md; manter as luzes na branch light.
+
+31. Codex (2026-11-03): "vamos começar pelas luzes piscantes nas aeronaves,
+    vamos criar um branch light a partir da main e vamos pensar sobre isso";
+    "pode começar a implementar". Criar light da main atualizada em 5594f68.
+    Implementar luzes de navegacao continuas, beacons vermelhos e strobes
+    brancos nas duas aeronaves, com ancoras medidas nos OBJ. Separar perfis e
+    padroes temporais CPU de renderer OpenGL com nucleos emissivos e halos
+    procedurais. Integrar jogador e trafego Bezier com suas mesmas matrizes;
+    atualizar o relogio uma vez por quadro, respeitando pausa e os dois passes
+    do cockpit. Preservar profundidade e estado GL; testar periodos, FPS,
+    oclusao, instancias e capturas dos assets reais. Documentar em docs/lights.md
+    e implementation.md sem alterar o relatorio README.md nem SPEC.md.
+
 30. Codex (2026-11-02): "o implementation.md está atualizado, atualize caso
     ele n esteja com as novas adições do projeto". Antes dos commits/push ja
     autorizados, revisar o guia originalmente limitado ao HUD e2917d8 e

@@ -87,6 +87,10 @@ void GameScene::SetAirframeType(collision::AirframeType type) {
     contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),type);
     airframeType=type;
 }
+void GameScene::SetLightProfile(const std::string& aircraftId) {
+    aircraftlights::Profile(aircraftId); // Reject an unknown ID before changing the active profile.
+    lightProfileId=aircraftId;
+}
 void GameScene::ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& previous,double dt) {
     playerContact=contacts.Resolve(physicalWorld,previous,PhysicalPose(aircraft),glm::dvec3(aircraft.get_velocity()),dt);
     aircraft.set_position(glm::vec3(playerContact.position));
@@ -98,6 +102,7 @@ void GameScene::ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& 
     }
 }
 void GameScene::ResetPlayer(Aircraft& aircraft) {
+    lightClock.Reset();
     Spawn(aircraft);contacts.Reset();ResolvePlayer(aircraft,PhysicalPose(aircraft),0);
 }
 std::vector<collision::ProbeSphere> GameScene::PlayerProbes(Aircraft& aircraft) const {
@@ -293,7 +298,9 @@ CameraFrame GameScene::Cameras(Aircraft& aircraft) const {
     return frame;
 }
 
-void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProjection,const glm::vec3& camera,SceneLayer layer) {
+void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,const glm::mat4& projection,
+                     const glm::vec3& camera,SceneLayer layer) {
+    const glm::mat4 viewProjection=projection*view;
     renderer.SetProgram(program); // Also refreshes locations after R reloads shaders.
     glDisable(GL_CULL_FACE); // Trees/fences contain intentionally two-sided quads.
     glDisable(GL_BLEND);
@@ -314,6 +321,17 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
     if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
     // Traffic belongs to the world even in cockpit; the near pass is player-only.
     if(layer!=SceneLayer::AIRCRAFT)renderer.Draw(aircraftModel,npcTransform,camera,RenderPass::Solid);
+
+    // Cores contribute depth before glass. The same complete model matrices
+    // attach lights to the mesh despite the player/NPC using different pivots.
+    const auto& lights=aircraftlights::Profile(lightProfileId);
+    const auto drawLights=[&](LightRenderPass pass) {
+        if(layer!=SceneLayer::WORLD)
+            lightRenderer.Draw(lights,transform,view,projection,camera,lightClock.Time(),0,pass);
+        if(layer!=SceneLayer::AIRCRAFT)
+            lightRenderer.Draw(lights,npcTransform,view,projection,camera,lightClock.Time(),.43,pass);
+    };
+    drawLights(LightRenderPass::Core);
 
     // Draw all opaque geometry first, then glass from far to near.
     struct Instance {const RenderModel* model;glm::mat4 transform;glm::vec3 center;};
@@ -338,6 +356,9 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& viewProj
     for(const auto& item:transparent)renderer.Draw(*item.model,item.transform,camera,RenderPass::Decal);
     glDisable(GL_POLYGON_OFFSET_FILL);
     for(const auto& item:transparent)renderer.Draw(*item.model,item.transform,camera,RenderPass::Transparent);
+    // Halos stay depth-tested against opaque geometry. Their additive glow is
+    // an approximation and does not simulate light scattering through glass.
+    drawLights(LightRenderPass::Halo);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glBindSampler(0,0); // Text rendering owns its own texture state.

@@ -37,7 +37,11 @@ void main()
     vec3 camera = camera_position;
     vec3 v = normalize(camera-position_world.xyz);
     float diffuse = max(dot(n,sun),0.0);
-    float specular = diffuse > 0.0 ? pow(max(dot(n,normalize(sun+v)),0.0),32.0) : 0.0;
+    // FONTE (Phong reflection model): KhronosGroup/glTF,
+    // extensions/1.0/Khronos/KHR_materials_common/README.md#phong
+    // sun points toward the light; reflect the incoming direction instead.
+    vec3 reflected = reflect(-sun,n);
+    float specular = diffuse > 0.0 ? pow(max(dot(reflected,v),0.0),8.0) : 0.0;
     vec3 lit = material_diffuse * texel.rgb * (0.35+0.65*diffuse) + 0.04*specular;
     vec3 displayColor = pow(max(lit,vec3(0)),vec3(1.0/2.2));
     float fog = smoothstep(8000.0,28000.0,length(camera-position_world.xyz));
