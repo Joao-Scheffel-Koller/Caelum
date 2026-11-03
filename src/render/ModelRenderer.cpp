@@ -12,6 +12,8 @@
 #include <cmath>
 #include <cstring>
 #include <tuple>
+#include <memory>
+#include <utility>
 
 namespace {
 std::string Directory(const std::string& path) {
@@ -44,32 +46,25 @@ std::string StringValue(const std::string& line) {
 }
 }
 
-GLuint ModelRenderer::LoadTexture(const std::string& path) {
-    auto found=textures.find(path);
-    if(found!=textures.end())return found->second;
-    int w,h,n;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* pixels=stbi_load(path.c_str(),&w,&h,&n,4);
-    if(!pixels)throw std::runtime_error("Cannot load texture: "+path);
-    GLuint texture;glGenTextures(1,&texture);
-    glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,w,h,0,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);stbi_image_free(pixels);
-    textures[path]=texture;return texture;
-}
 
-RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::CollisionWorld* physicalWorld) {
+namespace {
+struct PreparedModel {
+    glm::vec3 min,max;
+    std::vector<tinyobj::material_t> materials;
+    std::map<int,std::vector<Vertex>> grouped;
+};
+
+PreparedModel PrepareModel(const std::string& path,bool map,collision::CollisionWorld* physicalWorld) {
     tinyobj::attrib_t attributes;
     std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
+    PreparedModel result;
+    auto& materials=result.materials;
     std::string warning,error,base=Directory(path);
     if(!tinyobj::LoadObj(&attributes,&shapes,&materials,&warning,&error,path.c_str(),base.c_str(),true))
         throw std::runtime_error(path+": "+error);
-    RenderModel result;
     result.min=glm::vec3(std::numeric_limits<float>::max());
     result.max=glm::vec3(std::numeric_limits<float>::lowest());
-    std::map<int,std::vector<Vertex>> grouped;
+    auto& grouped=result.grouped;
     // Reuse the OBJ read: the physical world retains positions/material kinds,
     // while GPU batches retain normals/UVs. Neither depends on camera visibility.
     std::vector<collision::WorldTriangle> physical;
@@ -138,14 +133,55 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::Coll
             offset+=3;
         }
     }
+    if(physicalWorld) {
+        for(const auto& entry:trees)collision::AppendTreeProxy(physical,entry.second.base,entry.second.height,entry.second.width);
+        physicalWorld->AddChunk(path,std::move(physical));
+    }
+    if(result.grouped.empty())throw std::runtime_error("Empty OBJ: "+path);
+    return result;
+}
+}
+
+GLuint ModelRenderer::LoadTexture(const std::string& path,const LoadCallbacks& callbacks) {
+    auto found=textures.find(path);
+    if(found!=textures.end())return found->second;
+    struct Image {int width=0,height=0;std::shared_ptr<unsigned char> pixels;};
+    auto image=RunLoadCpu(callbacks,[&](){
+        Image decoded;int channels;
+        stbi_set_flip_vertically_on_load(true);
+        decoded.pixels=std::shared_ptr<unsigned char>(stbi_load(path.c_str(),&decoded.width,&decoded.height,&channels,4),stbi_image_free);
+        if(!decoded.pixels)throw std::runtime_error("Cannot load texture: "+path);
+        return decoded;
+    });
+    if(callbacks.pump)callbacks.pump();
+    GLuint texture;glGenTextures(1,&texture);
+    glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_SRGB8_ALPHA8,image.width,image.height,0,GL_RGBA,GL_UNSIGNED_BYTE,image.pixels.get());
+    glGenerateMipmap(GL_TEXTURE_2D);
+    textures[path]=texture;
+    if(callbacks.pump)callbacks.pump();
+    return texture;
+}
+
+RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::CollisionWorld* physicalWorld,
+                                const LoadCallbacks& callbacks) {
+    auto prepared=RunLoadCpu(callbacks,[&](){return PrepareModel(path,map,physicalWorld);});
+    RenderModel result;result.min=prepared.min;result.max=prepared.max;
+    auto& materials=prepared.materials;
+    auto& grouped=prepared.grouped;
+    const auto base=Directory(path);
+    try {
     for(auto& group:grouped) {
-        RenderBatch batch;
+        if(callbacks.pump)callbacks.pump();
+        result.batches.emplace_back();
+        auto& batch=result.batches.back();
         if(group.first>=0 && size_t(group.first)<materials.size()) {
             const auto& m=materials[group.first];
             batch.material.diffuse=glm::vec3(m.diffuse[0],m.diffuse[1],m.diffuse[2]);
             batch.material.opacity=m.dissolve;
             batch.material.clamp=m.diffuse_texopt.clamp;
-            if(!m.diffuse_texname.empty())batch.material.texture=LoadTexture(Join(base,m.diffuse_texname));
+            if(!m.diffuse_texname.empty())batch.material.texture=LoadTexture(Join(base,m.diffuse_texname),callbacks);
             batch.material.policy=ClassifyMaterial(m.name,m.diffuse_texname,batch.material.texture!=0,map);
         } else {
             batch.material.policy=ClassifyMaterial("","",false,map);
@@ -162,38 +198,59 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::Coll
             glVertexAttribPointer(attribute,attribute==2?2:3,GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[attribute]));
             glEnableVertexAttribArray(attribute);
         }
-        result.batches.push_back(batch);
+        if(callbacks.pump)callbacks.pump();
     }
     glBindVertexArray(0);
     if(result.batches.empty())throw std::runtime_error("Empty OBJ: "+path);
-    if(physicalWorld) {
-        for(const auto& entry:trees)collision::AppendTreeProxy(physical,entry.second.base,entry.second.height,entry.second.width);
-        physicalWorld->AddChunk(path,std::move(physical));
+    } catch(...) {
+        glBindVertexArray(0);glBindBuffer(GL_ARRAY_BUFFER,0);
+        Release(result);throw;
     }
     return result;
 }
 
-std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const std::function<void(size_t)>& progress,
-                                          collision::CollisionWorld* physicalWorld) {
+namespace {
+std::vector<std::string> MapFiles(const std::string& manifest) {
     std::ifstream input(manifest);
     if(!input)throw std::runtime_error("Cannot open map manifest: "+manifest);
-    std::vector<MapChunk> result;
-    std::string line;
-    bool chunks=false;
+    std::vector<std::string> result;
+    std::string line;bool chunks=false;
     while(std::getline(input,line)) {
         if(line.find("\"chunks\"")!=std::string::npos)chunks=true;
         if(line.find("\"textures\"")!=std::string::npos)break;
         if(chunks&&line.find("\"file\"")!=std::string::npos) {
-            MapChunk chunk;chunk.file=StringValue(line);
-            if(chunk.file.size()<4||chunk.file.substr(chunk.file.size()-4)!=".obj")throw std::runtime_error("Invalid map chunk");
-            chunk.model=Load(Join(Directory(manifest),chunk.file),true,physicalWorld);
-            chunk.min=chunk.model.min;chunk.max=chunk.model.max;
-            result.push_back(chunk);
-            std::printf("Map chunk %zu: %s\n",result.size(),chunk.file.c_str());std::fflush(stdout);
-            if(progress)progress(result.size());
+            const auto file=StringValue(line);
+            if(file.size()<4||file.substr(file.size()-4)!=".obj")throw std::runtime_error("Invalid map chunk");
+            result.push_back(file);
         }
     }
     if(result.empty())throw std::runtime_error("No map chunks in manifest");
+    return result;
+}
+}
+std::size_t ModelRenderer::CountMapChunks(const std::string& manifest) {return MapFiles(manifest).size();}
+std::vector<MapChunk> ModelRenderer::LoadMap(const std::string& manifest,const std::function<void(size_t)>& progress,
+                                          collision::CollisionWorld* physicalWorld,const LoadCallbacks& callbacks) {
+    const auto files=MapFiles(manifest);
+    std::vector<MapChunk> result;
+    result.reserve(files.size());
+    try {
+        if(callbacks.progress)callbacks.progress(LoadProgress("Cenario",0,files.size()));
+        for(const auto& file:files) {
+            MapChunk chunk;chunk.file=file;
+            chunk.model=Load(Join(Directory(manifest),file),true,physicalWorld,callbacks);
+            chunk.min=chunk.model.min;chunk.max=chunk.model.max;
+            try {result.push_back(std::move(chunk));}
+            catch(...) {Release(chunk.model);throw;}
+            std::printf("Map chunk %zu: %s\n",result.size(),file.c_str());std::fflush(stdout);
+            if(progress)progress(result.size());
+            if(callbacks.progress)callbacks.progress(LoadProgress("Cenario",result.size(),files.size()));
+            if(callbacks.pump)callbacks.pump();
+        }
+    } catch(...) {
+        for(auto& chunk:result)Release(chunk.model);
+        throw;
+    }
     return result;
 }
 

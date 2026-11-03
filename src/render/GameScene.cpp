@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <fstream>
+#include <utility>
 
 // FONTE: codigo base do professor, include/matrices.h (definido em main.cpp).
 // Forward declaration avoids duplicating the header's non-inline definitions.
@@ -21,30 +22,57 @@ mission::MissionSample MissionInput(const collision::ContactResult& contact,
 }
 }
 
-void GameScene::Load(GLFWwindow* window) {
-    aircraftModel=renderer.Load("../../data/aircraft/aircraft.obj");
-    contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
-    chunks=renderer.LoadMap("../../data/rio/chunks/manifest.json",[window](size_t loaded){
-        std::string title="Caelum - carregando Rio ("+std::to_string(loaded)+" partes)";
-        glfwSetWindowTitle(window,title.c_str());
+void GameScene::LoadAircraft(const std::string& path,const glm::vec3& cockpitEye,const LoadCallbacks& callbacks) {
+    if(callbacks.progress)callbacks.progress(LoadProgress("Aeronave",0,1));
+    auto replacement=renderer.Load(path,false,nullptr,callbacks);
+    collision::AircraftContacts replacementContacts;
+    try {
+        replacementContacts.Configure(glm::dvec3(replacement.min),glm::dvec3(replacement.max));
+        if(callbacks.progress)callbacks.progress(LoadProgress("Aeronave",1,1));
+        if(callbacks.pump)callbacks.pump();
+    }
+    catch(...) {renderer.Release(replacement);throw;}
+    renderer.Release(aircraftModel);aircraftModel=std::move(replacement);
+    contacts=std::move(replacementContacts);cockpitEyeLocal=cockpitEye;
+}
+
+void GameScene::Load(GLFWwindow* window,const LoadCallbacks& callbacks,
+                     const std::string& aircraftPath,const glm::vec3& cockpitEye) {
+    if(!chunks.empty()||!aircraftModel.batches.empty())throw std::logic_error("Scene already loaded");
+    const std::string manifest="../../data/rio/chunks/manifest.json";
+    const std::size_t mapCount=ModelRenderer::CountMapChunks(manifest),total=mapCount+2;
+    LoadCallbacks activity;
+    activity.pump=callbacks.pump;
+    if(!activity.pump)activity.pump=[window](){
         glfwPollEvents();
-        if(glfwWindowShouldClose(window))throw std::runtime_error("Loading cancelled");
-        glClearColor(.60f,.76f,.90f,1);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glfwSwapBuffers(window);
-    },&physicalWorld);
+        if(glfwWindowShouldClose(window))throw LoadCancelled();
+        glClearColor(.60f,.76f,.90f,1);glClear(GL_COLOR_BUFFER_BIT);glfwSwapBuffers(window);
+    };
+    const auto report=[&](const std::string& stage,std::size_t done){
+        if(callbacks.progress)callbacks.progress(LoadProgress(stage,done,total));
+        activity.pump();
+    };
+    report("Aeronave",0);
+    LoadAircraft(aircraftPath,cockpitEye,activity);
+    report("Cenario",1);
+    chunks=renderer.LoadMap(manifest,[&](size_t loaded){
+        glfwSetWindowTitle(window,("Caelum - carregando Rio ("+std::to_string(loaded)+" partes)").c_str());
+        report("Cenario",1+loaded);
+    },&physicalWorld,activity);
+    report("Finalizando",1+mapCount);
     for(const char* file:{"base_terrain.obj"}) {
         MapChunk repairs;
         repairs.file=file;
         // Finite support matching the visible repair surface. Real water at Y=0
         // is reached before this Y=-0.02 fallback and remains a water accident.
-        repairs.model=renderer.Load(std::string("../../data/rio/chunks/")+file,true,&physicalWorld);
+        repairs.model=renderer.Load(std::string("../../data/rio/chunks/")+file,true,&physicalWorld,activity);
         repairs.min=repairs.model.min;repairs.max=repairs.model.max;
         repairs.foundation=true;
         chunks.push_back(repairs);
     }
+    report("Pronto",total);
     glfwSetWindowTitle(window,"Caelum - Rio de Janeiro");
-    std::printf("Scene ready: A320 and %zu Rio chunks.\n",chunks.size());
+    std::printf("Scene ready: aircraft and %zu Rio chunks.\n",chunks.size());
     std::printf("Collision world: %zu physical triangles in %zu indexed chunks.\n",
                 physicalWorld.TriangleCount(),physicalWorld.ChunkCount());
     std::fflush(stdout);
@@ -54,6 +82,10 @@ collision::AircraftPose GameScene::PhysicalPose(Aircraft& aircraft) {
     collision::AircraftPose pose;
     pose.position=aircraft.get_position();pose.forward=aircraft.get_forward();pose.up=aircraft.get_up();
     return pose;
+}
+void GameScene::SetAirframeType(collision::AirframeType type) {
+    contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),type);
+    airframeType=type;
 }
 void GameScene::ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& previous,double dt) {
     playerContact=contacts.Resolve(physicalWorld,previous,PhysicalPose(aircraft),glm::dvec3(aircraft.get_velocity()),dt);
@@ -122,19 +154,19 @@ bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) con
         inclinedHigh.up=-direction*std::sin(pitch)+glm::dvec3(0,std::cos(pitch),0);
         inclinedLow=inclinedHigh;inclinedLow.position=center;
         collision::AircraftContacts inclinedContacts;
-        inclinedContacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        inclinedContacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
         const auto inclined=inclinedContacts.Resolve(physicalWorld,inclinedHigh,inclinedLow,
                                                    direction*3.0+glm::dvec3(0,-1,0),4.0);
         collision::AircraftPose inclinedSettled;
         inclinedSettled.position=inclined.position;inclinedSettled.forward=inclined.forward;inclinedSettled.up=inclined.up;
-        check(inclined.state==collision::AircraftState::Grounded&&inclined.gearContacts==1&&inclined.position.y>1,
+        check(inclined.state==collision::AircraftState::Grounded&&(airframeType==collision::AirframeType::LightTaildragger?inclined.gearContacts>=1:inclined.gearContacts==1&&inclined.position.y>1),
               runway.id+" safe inclined first-wheel touchdown has an elevated pivot");
         inclinedArrival.Update(MissionInput(inclined,inclinedContacts.DebugSpheres(inclinedSettled)),4.0);
         collision::AircraftPose high,low;
         high.position=center+glm::dvec3(0,1,0);high.forward=direction;
         low=high;low.position=center-glm::dvec3(0,.01,0);
         collision::AircraftContacts arrival;
-        arrival.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        arrival.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
         const auto contact=arrival.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-1,0),1.01);
         check(contact.state==collision::AircraftState::Grounded&&contact.gearContacts==3,
               runway.id+" supports the A320 landing gear at arrival");
@@ -143,7 +175,7 @@ bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) con
         const auto sample=MissionInput(contact,arrival.DebugSpheres(settled));
         auto failedArrival=replay;
         collision::AircraftContacts impact;
-        impact.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+        impact.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
         const auto crash=impact.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-30,0),1.01);
         collision::AircraftPose stopped;stopped.position=crash.position;stopped.forward=crash.forward;stopped.up=crash.up;
         failedArrival.Update(MissionInput(crash,impact.DebugSpheres(stopped)),1.01);
@@ -179,7 +211,7 @@ bool GameScene::InspectCollisions(Aircraft& aircraft,const std::string& report) 
         passed=passed&&condition;
     };
     collision::AircraftContacts checker;
-    checker.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max));
+    checker.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
     const auto start=PhysicalPose(aircraft);
     auto result=checker.Resolve(physicalWorld,start,start,glm::dvec3(0),0);
     check(result.state==collision::AircraftState::Grounded,"Santos Dumont spawn supported by runway");
@@ -253,9 +285,11 @@ glm::mat4 GameScene::AircraftTransform(Aircraft& aircraft) const {
 CameraFrame GameScene::Cameras(Aircraft& aircraft) const {
     CameraFrame frame;
     frame.aircraftModel=AircraftTransform(aircraft);
-    frame.orbitTarget=aircraft.get_position()+glm::vec3(0,4,0);
+    const bool light=airframeType==collision::AirframeType::LightTaildragger;
+    frame.orbitTarget=aircraft.get_position()+glm::vec3(0,light?1.5f:4.0f,0);
+    frame.defaultOrbitDistance=light?26.0f:70.0f;
     // OBJ survey: above the left seat back, below overhead, behind dashboard.
-    frame.cockpitEyeLocal=glm::vec3(7.90f,.95f,-.65f);
+    frame.cockpitEyeLocal=cockpitEyeLocal;
     return frame;
 }
 
