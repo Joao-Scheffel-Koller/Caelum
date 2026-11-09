@@ -270,6 +270,11 @@ void GameScene::Spawn(Aircraft& aircraft) const {
     aircraft.set_velocity(glm::vec3(0));
     aircraft.set_acceleration(glm::vec3(0));
     aircraft.set_throttle(0);
+    // Takeoff configuration of the selected profile, brakes released.
+    aircraft.set_flap_index(aircraft.get_profile().takeoffFlap);
+    aircraft.set_alpha(0);
+    aircraft.set_brakes(false);
+    aircraft.set_path_hold(false,0);
 }
 
 glm::mat4 GameScene::AircraftTransform(Aircraft& aircraft) const {

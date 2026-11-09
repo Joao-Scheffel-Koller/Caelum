@@ -11,6 +11,8 @@
 #include <glm/vec4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "aircraft/FlightProfile.hpp"
+
 
 class Aircraft{
     private:
@@ -29,11 +31,15 @@ class Aircraft{
         float throttle;
         float throttle_increase_rate;
         float max_throttle;
-        float max_scalar_velocity;
 
-        float lift_factor;
-        float drag_factor;
-        float max_thrust;
+        // AI-assisted: physical parameters (mass, wing, engines...) of the
+        // selected aircraft, and the aerodynamic state used by FlightModel.
+        const FlightProfile* profile;
+        int flap_index;
+        float alpha;      // Angle of attack, rad.
+        bool brakes;
+        bool path_hold;        // Neutral sidestick: holding path_reference.
+        float path_reference;  // Flight path angle to hold, rad.
         
     public:
         Aircraft();
@@ -43,10 +49,11 @@ class Aircraft{
         void set_pitch(float value);
         void set_yaw(float value);
         void set_roll(float value);
-        void set_mass(float value);
-        void set_drag_factor(float value);
-        void set_lift_factor(float value);
-        void set_max_thrust(float value);
+        void set_profile(const FlightProfile& p);
+        void set_flap_index(int value);
+        void set_alpha(float value);
+        void set_brakes(bool value);
+        void set_path_hold(bool hold, float reference);
 
         void set_position(glm::vec3 p);
         void set_velocity(glm::vec3 v);
@@ -62,11 +69,14 @@ class Aircraft{
         float get_roll();
         float get_throttle_increase_rate();
         float get_max_throttle();
-        float get_max_scalar_velocity();
         float get_mass();
-        float get_lift_factor();
-        float get_drag_factor();
-        float get_max_thrust();
+        const FlightProfile& get_profile();
+        int get_flap_index();
+        const FlapSetting& get_flaps();
+        float get_alpha();
+        bool get_brakes();
+        bool get_path_hold();
+        float get_path_reference();
 
         glm::vec3 get_position();
         glm::vec3 get_velocity();

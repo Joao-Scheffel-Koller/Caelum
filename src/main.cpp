@@ -432,6 +432,7 @@ int main(int argc, char* argv[])
             }
             loadedAircraft=spec.id;
             scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
+            MainAircraft.set_profile(FlightProfileFor(spec.id)); // Realistic mass/wing/engines (docs/physics.md).
             scene->SetLightProfile(spec.id);
             scene->ResetPlayer(MainAircraft);g_PlayerCrashed=false;g_ResetFlightRequested=false;
             flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
@@ -578,8 +579,10 @@ int main(int argc, char* argv[])
         if(!g_PlayerCrashed) {
             // Attitude changes belong to this step so contacts sweep old->new pose.
             const bool grounded=scene->PlayerContact().state==collision::AircraftState::Grounded;
+            // Wheel brakes while '.' is held (MSFS default key).
+            MainAircraft.set_brakes(glfwGetWindowAttrib(window,GLFW_FOCUSED)&&glfwGetKey(window,GLFW_KEY_PERIOD)==GLFW_PRESS);
             flightcontrols::ApplyControls(MainAircraft,g_MouseYoke,grounded,static_cast<float>(physicsStep));
-            MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
+            MainModel.update(&MainAircraft,g_MouseYoke,grounded,static_cast<float>(physicsStep));
             scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
             g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
         }
@@ -703,8 +706,9 @@ int main(int argc, char* argv[])
                 TextRendering_PrintString(window,status,-1+24.0f/w,1-2*baseline/h,w<650?.85f:1.0f);
                 if(g_ShowInfoText&&!g_PlayerCrashed) {
                     char yoke[120];
-                    snprintf(yoke,sizeof(yoke),"Manche (mouse): arfagem %+.0f%% | rolagem %+.0f%%",
-                             g_MouseYoke.pitch*100.0f,g_MouseYoke.roll*100.0f);
+                    snprintf(yoke,sizeof(yoke),"Manche: arfagem %+.0f%% rolagem %+.0f%% | Flaps (F6/F7): %s | AoA %.1f | Freio (.): %s",
+                             g_MouseYoke.pitch*100.0f,g_MouseYoke.roll*100.0f,MainAircraft.get_flaps().name.c_str(),
+                             MainAircraft.get_alpha()*57.2958f,MainAircraft.get_brakes()?"ON":"off");
                     TextRendering_PrintString(window,yoke,-1+24.0f/w,1-2*(baseline+28.0f)/h,1.0f);
                 }
             }
@@ -1508,14 +1512,18 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     }
 
     //se o usuário clica w ou s, muda-se o throtlle do avião
-    if (key == GLFW_KEY_W && action == GLFW_PRESS)
+    // GLFW_REPEAT: holding the key keeps moving the throttle.
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT))
     {
         MainModel.increase_throttle(&MainAircraft);
     }
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT))
     {
         MainModel.decrease_throttle(&MainAircraft);
     }
+    // Flaps one notch at a time (MSFS defaults: F6 retract, F7 extend).
+    if (key == GLFW_KEY_F7 && action == GLFW_PRESS)MainModel.extend_flaps(&MainAircraft);
+    if (key == GLFW_KEY_F6 && action == GLFW_PRESS)MainModel.retract_flaps(&MainAircraft);
 }
 
 // Definimos o callback para impressão de erros da GLFW no terminal

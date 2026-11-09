@@ -147,7 +147,21 @@ void AircraftContacts::Configure(const glm::dvec3& low,const glm::dvec3& high,Ai
     }
     // Proportions surveyed from this A320: nose +X, wings sweep backward, wheels
     // near model X=5.5 (nose) and -7.5/Z=+-3.3 (main), minY=-3.342473.
-    chain(local(.06,.255,0),local(.94,.255,0),size.x*.052);
+    // AI-assisted (physics branch): the fuselage follows the mesh underside
+    // instead of one constant capsule: belly ~1.49 m above the wheels from the
+    // nose to X=-14, then the tail cone sweeps up (2.06 m at X=-20.5, ~3.5 m at
+    // X=-25). This gives the mesh's own tail-strike pitch (~9 deg about the
+    // main gear) instead of ~3 deg, so a normal takeoff rotation is possible.
+    const auto tapered=[&](glm::dvec3 from,glm::dvec3 to,double r0,double r1) {
+        const int count=std::max(1,int(std::ceil(glm::length(to-from)/(std::min(r0,r1)*1.3))));
+        for(int i=0;i<=count;++i) {
+            const double t=double(i)/count;
+            localSpheres.push_back({from+(to-from)*t,r0+(r1-r0)*t,false});
+        }
+    };
+    chain(local(.35354,.3003,0),local(.94,.3003,0),size.x*.052);
+    tapered(local(.18236,.30836,0),local(.35354,.3003,0),size.x*.0395,size.x*.052);
+    tapered(local(.06386,.3727,0),local(.18236,.30836,0),size.x*.02107,size.x*.0395);
     for(double side:{-1.0,1.0}) {
         chain(local(.56,.23,side*.025),local(.45,.31,side*.49),size.x*.018);
         chain(local(.10,.43,side*.025),local(.04,.43,side*.18),size.x*.012);

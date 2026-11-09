@@ -3,7 +3,7 @@
 
 SOURCES := src/main.cpp src/course/correcao.cpp src/ui/textrendering.cpp \
            src/third_party/glad.c src/third_party/tiny_obj_loader.cpp src/third_party/stb_image.cpp \
-           src/aircraft/Aircraft.cpp src/aircraft/FlightModel.cpp src/aircraft/FlightControls.cpp \
+           src/aircraft/Aircraft.cpp src/aircraft/FlightModel.cpp src/aircraft/FlightControls.cpp src/aircraft/FlightProfile.cpp \
            src/aircraft/AircraftCatalog.cpp src/ui/FrontendModel.cpp src/ui/FrontendScreen.cpp \
            src/aircraft/AircraftLights.cpp src/render/AircraftLightRenderer.cpp \
            src/render/AircraftLightsInspection.cpp \

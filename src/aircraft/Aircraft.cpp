@@ -14,13 +14,16 @@ Aircraft :: Aircraft()
         pitch = 0.0f;
         yaw = 0.0f;
         throttle_increase_rate = 0.05f;
-        max_throttle = 10.0f;
-        max_scalar_velocity = 40.0f;
-        //Deve ser alterada a massa para 40.0f depois de ajustes nas constantes
-        mass = 10.0f;
-        lift_factor = 0.5f;
-        drag_factor = 0.9f;
-        max_thrust = 80.0f;
+        // Throttle is a fraction of the maximum thrust (0..1).
+        max_throttle = 1.0f;
+        // Realistic parameters live in FlightProfile (docs/physics.md).
+        profile = &FlightProfileFor("a320");
+        mass = profile->mass;
+        flap_index = profile->takeoffFlap;
+        alpha = 0.0f;
+        brakes = false;
+        path_hold = false;
+        path_reference = 0.0f;
     }
 
 
@@ -32,9 +35,14 @@ Aircraft :: Aircraft()
         void Aircraft::set_pitch(float value){pitch = value;}
         void Aircraft::set_yaw(float value){yaw = value;}
         void Aircraft::set_roll(float value){roll = value;}
-        void Aircraft::set_mass(float value){mass = value;}
-        void Aircraft::set_lift_factor(float value){lift_factor = value;}
-        void Aircraft::set_drag_factor(float value){drag_factor = value;}
+        void Aircraft::set_profile(const FlightProfile& p){profile = &p; mass = p.mass; flap_index = p.takeoffFlap;}
+        void Aircraft::set_flap_index(int value){
+            const int last = static_cast<int>(profile->flaps.size()) - 1;
+            flap_index = value < 0 ? 0 : (value > last ? last : value);
+        }
+        void Aircraft::set_alpha(float value){alpha = value;}
+        void Aircraft::set_brakes(bool value){brakes = value;}
+        void Aircraft::set_path_hold(bool hold, float reference){path_hold = hold; path_reference = reference;}
 
         void Aircraft::set_position(glm::vec3 p){position = p;}
         void Aircraft::set_velocity(glm::vec3 v){velocity = v;}
@@ -51,11 +59,14 @@ Aircraft :: Aircraft()
         float Aircraft::get_roll(){return roll;}
         float Aircraft::get_throttle_increase_rate(){return throttle_increase_rate;}
         float Aircraft::get_max_throttle(){return max_throttle;}
-        float Aircraft::get_max_scalar_velocity(){return max_scalar_velocity;}
         float Aircraft::get_mass(){return mass;}
-        float Aircraft::get_lift_factor(){return lift_factor;}
-        float Aircraft::get_drag_factor(){return drag_factor;}
-        float Aircraft::get_max_thrust(){return max_thrust;}
+        const FlightProfile& Aircraft::get_profile(){return *profile;}
+        int Aircraft::get_flap_index(){return flap_index;}
+        const FlapSetting& Aircraft::get_flaps(){return profile->flaps[flap_index];}
+        float Aircraft::get_alpha(){return alpha;}
+        bool Aircraft::get_brakes(){return brakes;}
+        bool Aircraft::get_path_hold(){return path_hold;}
+        float Aircraft::get_path_reference(){return path_reference;}
 
         glm::vec3 Aircraft::get_position(){return position;}
         glm::vec3 Aircraft::get_velocity(){return velocity;}

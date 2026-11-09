@@ -1,6 +1,7 @@
 // AI-assisted CPU regressions for the mouse yoke and attitude control.
 #include "aircraft/FlightControls.hpp"
 #include "aircraft/Aircraft.hpp"
+#include "aircraft/FlightProfile.hpp"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -61,56 +62,37 @@ void Rotation() {
     Check(Near(RollAngle(glm::vec3(0,0,-1),bankedUp),Pi/4),"up tilted to the right is positive roll");
 }
 
-void PitchControl() {
-    auto a=Level(50);
-    Fly(a,In(1,0),false,.5f);
-    Check(PitchAngle(a.get_forward())>.2f,"mouse down pitches the nose up in flight");
-    Check(a.get_velocity().y>0,"velocity follows the nose upward");
-    Check(Near(glm::length(a.get_velocity()),50,1e-2),"alignment preserves speed");
-    auto b=Level(50);
-    Fly(b,In(-1,0),false,.5f);
-    Check(PitchAngle(b.get_forward())<-.2f,"mouse up pitches the nose down");
-    // Unlimited pitch: a full loop at 0.5 rad/s takes 2*pi/0.5 seconds.
-    auto c=Level(50);
-    float maxPitch=-10;
-    for(int i=0;i<int(2*Pi/.5*60);++i) {
-        ApplyControls(c,In(1,0),false,1.0f/60.0f);
-        maxPitch=std::max(maxPitch,PitchAngle(c.get_forward()));
-    }
-    Check(maxPitch>1.5f,"pitch is not limited: the nose passes the vertical");
-    Check(glm::dot(c.get_forward(),glm::vec3(0,0,-1))>.99f&&c.get_up().y>.99f,
-          "holding full nose up completes a loop back to level"); 
-}
-
-void RollAndTurn() {
-    auto a=Level(50);
-    Fly(a,In(0,1),false,.4f);
-    Check(RollAngle(a.get_forward(),a.get_up())>.3f,"mouse right banks right");
-    Fly(a,In(0,0),false,3);
-    Check(Heading(a.get_forward())>.2,"a right bank turns the heading to the right");
-    auto b=Level(50);
+// Ailerons only in flight: pitch is a load-factor demand in FlightModel.
+void Roll() {
+    const float rate=FlightProfileFor("a320").maxRollRate; // 15 deg/s
+    auto a=Level(80);
+    Fly(a,In(1,1),false,2);
+    Check(Near(RollAngle(a.get_forward(),a.get_up()),2*rate,1e-2),"full right command rolls at the A320 roll rate");
+    Check(Near(PitchAngle(a.get_forward()),0),"pitch command does not rotate the body here (FlightModel's job)");
+    auto b=Level(80);
     Fly(b,In(0,-1),false,2);
-    Check(RollAngle(b.get_forward(),b.get_up())<-.3f,"mouse left banks left");
-    Check(Heading(b.get_forward())<-.2,"and turns left");
-    // Unlimited roll: a full aileron roll at 1 rad/s takes 2*pi seconds.
-    auto d=Level(50);
+    Check(RollAngle(b.get_forward(),b.get_up())<-.4f,"mouse left banks left");
+    Fly(b,In(0,0),false,3);
+    Check(Near(RollAngle(b.get_forward(),b.get_up()),-2*rate,1e-2),"A320 normal law: neutral holds the bank");
+    // Unlimited roll: a full roll takes 2*pi/rate seconds.
+    auto d=Level(80);
     float minUp=1;
-    for(int i=0;i<int(2*Pi*60);++i) {
+    for(int i=0;i<int(2*Pi/rate*60)+1;++i) {
         ApplyControls(d,In(0,1),false,1.0f/60.0f);
         minUp=std::min(minUp,d.get_up().y);
     }
     Check(minUp<-.99f,"roll is not limited: the airplane flies inverted");
-    Check(d.get_up().y>.95f,"holding full right completes a 360 degree roll");
-    // Inverted with a centered mouse stays inverted (no forced leveling).
-    auto e=Level(50);
+    Check(d.get_up().y>.99f,"holding full right completes a 360 degree roll");
+    auto e=Level(80);
     e.set_up(glm::vec3(0,-1,0));
     Fly(e,In(0,0),false,3);
-    Check(e.get_up().y<-.99f,"centered mouse keeps inverted flight"); 
-    auto c=Level(50);
-    Fly(c,In(0,1),false,.4f);
+    Check(e.get_up().y<-.99f,"centered mouse keeps inverted flight");
+    // The light aircraft has dihedral: wings slowly return to level.
+    auto c=Level(50);c.set_profile(FlightProfileFor("light"));
+    Fly(c,In(0,1),false,.5f);
     const float banked=RollAngle(c.get_forward(),c.get_up());
     Fly(c,In(0,0),false,3);
-    Check(std::abs(RollAngle(c.get_forward(),c.get_up()))<banked,"centered mouse slowly levels the wings");
+    Check(std::abs(RollAngle(c.get_forward(),c.get_up()))<banked*.5f,"light aircraft levels its wings");
     const auto f=c.get_forward(),u=c.get_up(),r=c.get_right();
     Check(Near(glm::length(f),1)&&Near(glm::length(u),1)&&Near(glm::dot(f,u),0)&&Near(glm::dot(r,f),0),
           "basis stays orthonormal");
@@ -121,20 +103,32 @@ void Ground() {
     Fly(a,In(1,1),true,2);
     Check(Near(Heading(a.get_forward()),0)&&Near(PitchAngle(a.get_forward()),0),
           "stopped on the ground: no steering, no rotation");
-    auto b=Level(10);
-    Fly(b,In(1,1),true,1);
-    Check(Heading(b.get_forward())>.2,"rolling on the ground: lateral command steers the nose wheel");
-    Check(Near(PitchAngle(b.get_forward()),0)&&Near(RollAngle(b.get_forward(),b.get_up()),0),
-          "on the ground pitch and roll stay at the ground attitude");
+    // Bicycle model: yaw rate = V tan(delta) / wheelbase, tiller at taxi speed.
+    auto b=Level(3);
+    ApplyControls(b,In(0,1),true,.1f);
+    const float expected=3*std::tan(FlightProfileFor("a320").maxSteerLow)/12.64f*.1f;
+    Check(Near(Heading(b.get_forward()),expected,1e-3),"taxi steering follows the wheelbase geometry");
+    auto fast=Level(70);
+    ApplyControls(fast,In(0,1),true,.1f);
+    Check(Heading(fast.get_forward())<expected*10,"at takeoff speed only the small pedal angle remains");
+    Check(Near(RollAngle(fast.get_forward(),fast.get_up()),0),"no roll on the ground");
+    // Rotation: no elevator authority at low speed, ~3 deg/s at VR.
+    auto slow=Level(20);
+    Fly(slow,In(1,0),true,2);
+    Check(PitchAngle(slow.get_forward())<.01f,"at 20 m/s the A320 cannot lift its nose");
+    auto vr=Level(FlightProfileFor("a320").rotationSpeed);
+    Fly(vr,In(1,0),true,2);
+    Check(Near(PitchAngle(vr.get_forward()),2*FlightProfileFor("a320").rotationPitchRate,5e-3),
+          "at VR full pull rotates at ~3 deg/s");
     auto c=Level(10);
     c.set_forward(glm::normalize(glm::vec3(0,.1f,-1)));c.set_up(glm::normalize(glm::vec3(0,1,.1f)));
-    Fly(c,In(0,0),true,4);
+    Fly(c,In(0,0),true,6);
     Check(std::abs(PitchAngle(c.get_forward()))<.01f,"after touchdown the nose lowers to the runway");
 }
 } // namespace
 
 int main() {
-    Yoke();Rotation();PitchControl();RollAndTurn();Ground();
+    Yoke();Rotation();Roll();Ground();
     std::printf("flight_controls: %d checks passed\n",checks);
     return EXIT_SUCCESS;
 }

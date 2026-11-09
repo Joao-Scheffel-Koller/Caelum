@@ -8,6 +8,7 @@ namespace flightcontrols {
 namespace {
 const glm::vec3 WorldUp(0.0f,1.0f,0.0f);
 const float HalfPi=1.57079632679f;
+float Clamp(float v,float lo,float hi) {return std::max(lo,std::min(hi,v));}
 
 bool Finite(const glm::vec3& v) {return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z);}
 
@@ -73,35 +74,36 @@ void ApplyControls(Aircraft& aircraft,const ControlInput& rawInput,bool grounded
     right=glm::normalize(right);
     up=glm::cross(right,forward);
 
-    const float pitchCommand=std::max(-1.0f,std::min(1.0f,rawInput.pitch));
-    const float rollCommand=std::max(-1.0f,std::min(1.0f,rawInput.roll));
+    const FlightProfile& p=aircraft.get_profile();
+    const float pitchCommand=Clamp(rawInput.pitch,-1.0f,1.0f);
+    const float rollCommand=Clamp(rawInput.roll,-1.0f,1.0f);
     const float pitch=PitchAngle(forward);
     const float roll=RollAngle(forward,up);
     const glm::vec3 velocity=aircraft.get_velocity();
-    const float speed=glm::length(velocity);
+    const float rollingSpeed=std::max(0.0f,glm::dot(velocity,forward));
 
     float pitchRate=0.0f,rollRate=0.0f,yawRate=0.0f;
     if(grounded) {
-        // Wheels on the runway: no pitch/roll commands (avoids tail and wing
-        // strikes); the airplane returns to the ground attitude, and the
-        // lateral command steers the nose wheel proportionally to speed.
-        pitchRate=-tuning.groundLevelRate*pitch;
+        // Takeoff rotation: the elevator only overcomes the weight on the
+        // nose wheel with enough dynamic pressure, ~ (V/VR)^2.
+        const float ratio=rollingSpeed/p.rotationSpeed;
+        const float authority=Clamp(ratio*ratio,0.0f,1.0f);
+        // Pull: rotate. Push or no authority: the nose settles back on its
+        // wheel. At VR a neutral command holds the rotation attitude.
+        const float settle=pitchCommand<0.0f?1.0f:1.0f-authority;
+        pitchRate=p.rotationPitchRate*authority*std::max(0.0f,pitchCommand)-tuning.groundLevelRate*settle*pitch;
         rollRate=-tuning.groundLevelRate*roll;
-        const float steering=std::min(1.0f,speed/tuning.groundSteerSpeed);
-        yawRate=tuning.groundSteerRate*rollCommand*steering;
+        // Kinematic (bicycle) steering: yaw rate = V tan(delta) / wheelbase.
+        // Tiller angles at taxi speed blend into pedal angles at takeoff speed.
+        const float fade=Clamp((rollingSpeed-p.steerFadeStart)/(p.steerFadeEnd-p.steerFadeStart),0.0f,1.0f);
+        const float maxSteer=p.maxSteerLow+(p.maxSteerHigh-p.maxSteerLow)*fade;
+        yawRate=rollingSpeed*std::tan(maxSteer*rollCommand)/p.wheelbase;
     } else {
-        // Elevator and ailerons are rate commands, like GeoFS: a held mouse
-        // keeps rotating, a centered mouse keeps (roughly) the attitude.
-        pitchRate=tuning.maxPitchRate*pitchCommand;
-        rollRate=tuning.maxRollRate*rollCommand;
-        // No attitude limits: loops, rolls and inverted flight are allowed.
-        // Wing leveling only acts while upright (|roll| < 90 degrees), so it
-        // never fights inverted flight or the top of a loop.
-        if(rollCommand==0.0f&&std::fabs(roll)<HalfPi)rollRate-=tuning.rollStability*roll;
-        // A banked wing tilts the lift and curves the path: coordinated turn.
-        // It turns around the world vertical, so it fades with cos(pitch):
-        // with the nose vertical that axis would only spin the fuselage.
-        yawRate=(tuning.turnRate*std::sin(roll)+tuning.directYawRate*rollCommand)*std::cos(pitch);
+        // Ailerons: roll-rate command. No attitude limits (loops, rolls and
+        // inverted flight are allowed). Wing leveling, when the profile has
+        // it, only acts while upright so it never fights inverted flight.
+        rollRate=p.maxRollRate*rollCommand;
+        if(rollCommand==0.0f&&std::fabs(roll)<HalfPi)rollRate-=p.rollStability*roll;
     }
 
     // Pitch about the body right axis (positive = nose up).
@@ -125,8 +127,8 @@ void ApplyControls(Aircraft& aircraft,const ControlInput& rawInput,bool grounded
     aircraft.set_roll(RollAngle(forward,up));
     aircraft.set_yaw(std::atan2(forward.x,-forward.z));
 
-    aircraft.set_velocity(AlignVelocity(velocity,forward,
-        grounded?tuning.groundAlignment:tuning.airAlignment,dt));
+    // Tyres: the velocity turns with the heading (no sideways skid).
+    if(grounded)aircraft.set_velocity(AlignVelocity(velocity,forward,tuning.groundAlignment,dt));
 }
 
 } // namespace flightcontrols

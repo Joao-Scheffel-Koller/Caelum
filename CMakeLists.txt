@@ -36,6 +36,7 @@ set(SOURCES
   src/aircraft/Aircraft.cpp
   src/aircraft/FlightModel.cpp
   src/aircraft/FlightControls.cpp
+  src/aircraft/FlightProfile.cpp
   src/animation/BezierPath.cpp
   src/aircraft/BezierFlight.cpp
   src/render/ModelRenderer.cpp
@@ -131,9 +132,12 @@ if(BUILD_TESTING)
   add_executable(flight_telemetry_test tests/FlightTelemetryTest.cpp src/aircraft/FlightTelemetry.cpp)
   target_include_directories(flight_telemetry_test PRIVATE include src)
   add_test(NAME flight_telemetry COMMAND flight_telemetry_test)
-  add_executable(flight_controls_test tests/FlightControlsTest.cpp src/aircraft/FlightControls.cpp src/aircraft/Aircraft.cpp)
+  add_executable(flight_controls_test tests/FlightControlsTest.cpp src/aircraft/FlightControls.cpp src/aircraft/Aircraft.cpp src/aircraft/FlightProfile.cpp)
   target_include_directories(flight_controls_test PRIVATE include src)
   add_test(NAME flight_controls COMMAND flight_controls_test)
+  add_executable(flight_model_test tests/FlightModelTest.cpp src/aircraft/FlightModel.cpp src/aircraft/FlightControls.cpp src/aircraft/Aircraft.cpp src/aircraft/FlightProfile.cpp)
+  target_include_directories(flight_model_test PRIVATE include src)
+  add_test(NAME flight_model COMMAND flight_model_test)
   add_executable(hud_layout_test tests/HudLayoutTest.cpp src/ui/HudLayout.cpp)
   target_include_directories(hud_layout_test PRIVATE src)
   add_test(NAME hud_layout COMMAND hud_layout_test)

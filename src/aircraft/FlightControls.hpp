@@ -16,20 +16,14 @@ struct ControlInput {
     float roll=0.0f;
 };
 
-// Gameplay tuning, not aircraft data. All rates are in radians per second.
+// Mouse shaping. Aircraft-specific rates (roll rate, steering, rotation)
+// live in FlightProfile; the pitch command is a load-factor demand handled
+// by FlightModel.
 struct ControlTuning {
     float deadZone=0.05f;        // Fraction of the half-window ignored near the center.
     float responseExponent=1.5f; // >1 gives finer control near the center.
-    float maxPitchRate=0.50f;    // Elevator: rotation about the aircraft right axis.
-    float maxRollRate=1.00f;     // Ailerons: rotation about the aircraft forward axis.
-    float directYawRate=0.10f;   // Small rudder-like yaw from the lateral command.
-    float turnRate=0.60f;        // Coordinated turn: yaw rate = turnRate*sin(bank).
-    float rollStability=0.50f;   // Gentle return to wings level (upright only) with a centered mouse.
-    float groundSteerRate=0.50f; // Nose-wheel steering at/above groundSteerSpeed.
-    float groundSteerSpeed=5.0f; // m/s: steering grows linearly up to this speed.
-    float groundLevelRate=0.80f; // Pitch/roll return to the ground attitude.
-    float airAlignment=1.5f;     // 1/s: velocity direction follows the nose in flight.
-    float groundAlignment=6.0f;  // 1/s: tire grip on the ground.
+    float groundLevelRate=0.80f; // 1/s: nose settles on the nose/tail wheel.
+    float groundAlignment=6.0f;  // 1/s: tyre grip turns the velocity with the heading.
 };
 
 // Converts a cursor position (window coordinates, origin top-left, Y down)
@@ -46,9 +40,10 @@ float PitchAngle(const glm::vec3& forward);
 float RollAngle(const glm::vec3& forward,const glm::vec3& up);
 
 // Applies one step of attitude control to the aircraft's forward/up/right
-// vectors and aligns its velocity with the nose. `grounded` comes from the
-// previous contact resolution: on the ground the lateral command steers the
-// nose wheel and pitch/roll are held at the ground attitude.
+// vectors. In flight: ailerons (roll rate) only; the turn and the pitch
+// follow from the forces in FlightModel. On the ground (`grounded`, from the
+// previous contact resolution): nose-wheel steering, takeoff rotation with
+// speed-dependent elevator authority, and tyre grip on the velocity.
 void ApplyControls(Aircraft& aircraft,const ControlInput& input,bool grounded,float dt,
                    const ControlTuning& tuning=ControlTuning());
 

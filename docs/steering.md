@@ -2,6 +2,13 @@
 
 Implementação realizada com auxílio de IA (ver `prompts.md`).
 
+> **Atualização (branch `physics`)**: o manche virtual (seção 3) continua igual,
+> mas em voo o mouse vertical passou a pedir **fator de carga** em vez de taxa
+> de arfagem, e a curva/alinhamento da velocidade agora vêm das forças
+> aerodinâmicas. A guinada artificial (`turnRate`, `directYawRate`) foi
+> removida, e taxas de rolagem, direção no solo e rotação vêm do perfil de
+> cada aeronave. Veja [physics.md](physics.md).
+
 Este documento explica o controle de atitude da aeronave pelo mouse, no estilo
 do GeoFS: o mouse funciona como um **manche virtual**.
 
