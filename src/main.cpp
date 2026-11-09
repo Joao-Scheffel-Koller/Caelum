@@ -52,6 +52,7 @@
 //Newly definied classes
 #include "aircraft/Aircraft.hpp"
 #include "aircraft/FlightModel.hpp"
+#include "aircraft/FlightControls.hpp"
 #include "aircraft/AircraftCatalog.hpp"
 #include "render/GameScene.hpp"
 #include "camera/CameraInput.hpp"
@@ -239,6 +240,9 @@ Aircraft MainAircraft;
 glm::vec3 velocity = glm::vec3(0.00000008f, 0.00000008f, 0.00000008f);
 
 FlightModel MainModel;
+// AI-assisted: GeoFS-style mouse yoke. Holds its last value while the right
+// button captures the cursor for the camera or the window is unfocused.
+flightcontrols::ControlInput g_MouseYoke;
 
 
 int main(int argc, char* argv[])
@@ -564,7 +568,17 @@ int main(int argc, char* argv[])
         const auto previousPose=GameScene::PhysicalPose(MainAircraft);
         const double physicsStep=std::min(dt,0.05f);
         // Keep the existing physics step limit; camera travel uses real elapsed time.
+        // Absolute cursor position -> yoke, only while the cursor is free
+        // (camera look disables it) and the window has focus.
+        if(glfwGetWindowAttrib(window,GLFW_FOCUSED)&&glfwGetInputMode(window,GLFW_CURSOR)==GLFW_CURSOR_NORMAL) {
+            double cursorX,cursorY;int windowWidth,windowHeight;
+            glfwGetCursorPos(window,&cursorX,&cursorY);glfwGetWindowSize(window,&windowWidth,&windowHeight);
+            g_MouseYoke=flightcontrols::MouseYoke(cursorX,cursorY,windowWidth,windowHeight);
+        }
         if(!g_PlayerCrashed) {
+            // Attitude changes belong to this step so contacts sweep old->new pose.
+            const bool grounded=scene->PlayerContact().state==collision::AircraftState::Grounded;
+            flightcontrols::ApplyControls(MainAircraft,g_MouseYoke,grounded,static_cast<float>(physicsStep));
             MainModel.update(&MainAircraft,static_cast<float>(physicsStep));
             scene->ResolvePlayer(MainAircraft,previousPose,physicsStep);
             g_PlayerCrashed=scene->PlayerContact().state==collision::AircraftState::Crashed;
@@ -687,6 +701,12 @@ int main(int argc, char* argv[])
             if(w>=650) {
                 const float baseline=std::max(26.0f,.04f*h)+84.0f;
                 TextRendering_PrintString(window,status,-1+24.0f/w,1-2*baseline/h,w<650?.85f:1.0f);
+                if(g_ShowInfoText&&!g_PlayerCrashed) {
+                    char yoke[120];
+                    snprintf(yoke,sizeof(yoke),"Manche (mouse): arfagem %+.0f%% | rolagem %+.0f%%",
+                             g_MouseYoke.pitch*100.0f,g_MouseYoke.roll*100.0f);
+                    TextRendering_PrintString(window,yoke,-1+24.0f/w,1-2*(baseline+28.0f)/h,1.0f);
+                }
             }
         }
         const auto& missionState=flightMission.Snapshot();
