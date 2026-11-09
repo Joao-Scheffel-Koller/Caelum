@@ -1,15 +1,61 @@
 ## File used to store ai prompts
 
-35. I merged the last changes into  main than created a new branch called physics from main. Now we are going to refine the flight physics. I want the parameters envolved (mass, darg-force, drag coefficient, lift factor, lift    force, speed, etc (i.e. any parameters related to physics) to be realistic for an aribus a320. Please make this first  
+35. Claude Code (2026-11-09): "I merged the last changes into main than
+    created a new branch called physics from main. Now we are going to refine
+    the flight physics. I want the parameters envolved (mass, darg-force, drag
+    coefficient, lift factor, lift force, speed, etc (i.e. any parameters
+    related to physics) to be realistic for an aribus a320. Please make this
+    first". Substituir os parametros de brinquedo (massa 10, gravidade -1,
+    lift_factor, drag_factor, empuxo 80) por valores reais do A320-200 (60 t,
+    S 122,6 m2, envergadura 34,1 m, 2x120 kN, CD0 0,020, e 0,80, flaps 0..FULL
+    calibrados pelas velocidades de estol publicadas) e do monomotor (classe
+    Cessna 172S). Gerados com IA: FlightProfile.*, FlightModel.* reescrito
+    (atmosfera ISA, CL(alfa) com estol, polar de arrasto, arrasto transonico
+    de Lock, empuxo turbofan de Mattingly/helice, atrito de rolamento e freio,
+    lei de fator de carga com protecao de alfa e manutencao da trajetoria),
+    tests/FlightModelTest.cpp e docs/physics.md. Ajustes em Aircraft.*,
+    FlightControls.* (rolagem por perfil, direcao por modelo de bicicleta,
+    rotacao na decolagem), volume da fuselagem/cauda do A320 em
+    AircraftContacts.cpp medido na malha (tail strike ~9 graus em vez de ~3),
+    GameScene.cpp, main.cpp (flaps F6/F7, freio '.', HUD) e nota em
+    docs/steering.md. Verificado com CTest, smoke test e --collision-check no
+    mapa real; sem teste pilotado.
 
-34. Nice job! but I see there is a maximum angle for the pitch and the left or right turn. I want it to be ilimited.  Can you fix that?                                                                                                 
+34. Claude Code (2026-11-09): "Nice job! but I see there is a maximum angle
+    for the pitch and the left or right turn. I want it to be ilimited. Can
+    you fix that?". Remover os limites de arfagem (~50 graus) e rolagem (~60
+    graus) em FlightControls.*, permitindo looping, giro de 360 graus e voo de
+    dorso. Restringir a estabilidade lateral a |rolagem| < 90 graus e atenuar
+    a curva coordenada por cos(arfagem) perto da vertical. Substituir os
+    testes de limite e atualizar docs/steering.md.
 
-
-33. This is the repository of the final project of a class of Computer Graphics. In it we have to create a 3d game that utilizes some key concepts of coompuyter graphics (e.g. colision detection, bezier curves, etc). We decided to  
-  make a simples flight simulator inspired by GEOfs browser flight simulator (i.e. we want it to be a light game). Almost everything is done, but it has almost no flight physics still. It only makes the airplane go up according   
-  to its forward speed. My working directory is currently showing the branch "steering". In this branch my goal is to implement the mouse control over the plane. I want it to bem like the geofs (and other simulators): If the      
-  mouse goes down, nose up (and vice-versa). And if it goes to the right, the aircraft turns right (and the same for the left side). Help me implement this. Bascially what we have to do (please correct me if I'm mistaken) is to   
-  change the pitch for mouse up or down and change both yaw and roll for mouse going to left or right. Please mak an markdown file in /docs/ in brazilian portuguese explaining the changes you've made.
+33. Claude Code (2026-11-09): "This is the repository of the final project of
+    a class of Computer Graphics. In it we have to create a 3d game that
+    utilizes some key concepts of coompuyter graphics (e.g. colision
+    detection, bezier curves, etc). We decided to make a simples flight
+    simulator inspired by GEOfs browser flight simulator (i.e. we want it to
+    be a light game). Almost everything is done, but it has almost no flight
+    physics still. It only makes the airplane go up according to its forward
+    speed. My working directory is currently showing the branch "steering". In
+    this branch my goal is to implement the mouse control over the plane. I
+    want it to bem like the geofs (and other simulators): If the mouse goes
+    down, nose up (and vice-versa). And if it goes to the right, the aircraft
+    turns right (and the same for the left side). Help me implement this.
+    Bascially what we have to do (please correct me if I'm mistaken) is to
+    change the pitch for mouse up or down and change both yaw and roll for
+    mouse going to left or right. Please mak an markdown file in /docs/ in
+    brazilian portuguese explaining the changes you've made.". Implementar na
+    branch steering o controle por mouse no estilo GeoFS, corrigindo o modelo
+    proposto: ailerons comandam a rolagem e a curva resulta da inclinacao
+    (curva coordenada turnRate*sin(rolagem)) mais uma pequena guinada direta.
+    Gerados com IA: src/aircraft/FlightControls.* (manche virtual pela posicao
+    absoluta do cursor com zona morta e curva de resposta; rotacoes por
+    Rodrigues nos eixos do aviao; comandos de taxa, estabilidade lateral,
+    Gram-Schmidt; velocidade alinhada ao nariz; no solo, direcao da bequilha e
+    retorno a atitude de solo), tests/FlightControlsTest.cpp e
+    docs/steering.md. Integracao em main.cpp (leitura do cursor, aplicacao
+    antes do FlightModel, linha do manche no HUD), CMakeLists.txt e
+    Makefile.macOS. Verificacao com CTest e smoke test com os assets reais.
 
 32. Codex (2026-11-03): "vamos fazer a implementar o phong tb ent".
     Substituir Blinn-Phong pelo modelo de reflexao de Phong nos fragment
@@ -294,8 +340,6 @@
    Ajuste adicional em FlightModel.cpp: cancelar velocidade vertical negativa
    no contato com o solo. Verificacao da cena com --smoke-test e captura PPM.
 
-1. formate o @file:trabalho.md  para ficar bonito em markdown
-
 2. Codex (2026-10-28): dividir o OBJ do Rio em partes deterministicas por uma
    grade espacial de 2 x 2 km, subdividindo as regioes acima de 50 MB e
    preservando coordenadas, faces, materiais e texturas. Pedido: "faça isso ent,
@@ -303,3 +347,5 @@
    data/rio/tools/test_split_obj.py e a
    documentacao data/rio/README.md. Os OBJ menores sao derivados automaticamente
    do mapa OSM2World; identificar este auxilio no commit correspondente.
+
+1. formate o @file:trabalho.md  para ficar bonito em markdown
