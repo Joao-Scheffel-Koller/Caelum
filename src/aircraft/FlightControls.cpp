@@ -7,6 +7,7 @@
 namespace flightcontrols {
 namespace {
 const glm::vec3 WorldUp(0.0f,1.0f,0.0f);
+const float HalfPi=1.57079632679f;
 
 bool Finite(const glm::vec3& v) {return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z);}
 
@@ -93,12 +94,14 @@ void ApplyControls(Aircraft& aircraft,const ControlInput& rawInput,bool grounded
         // keeps rotating, a centered mouse keeps (roughly) the attitude.
         pitchRate=tuning.maxPitchRate*pitchCommand;
         rollRate=tuning.maxRollRate*rollCommand;
-        if(rollCommand==0.0f)rollRate-=tuning.rollStability*roll;
-        // Attitude limits: refuse commands that push beyond them.
-        if((pitch>=tuning.maxPitch&&pitchRate>0.0f)||(pitch<=-tuning.maxPitch&&pitchRate<0.0f))pitchRate=0.0f;
-        if((roll>=tuning.maxRoll&&rollRate>0.0f)||(roll<=-tuning.maxRoll&&rollRate<0.0f))rollRate=0.0f;
+        // No attitude limits: loops, rolls and inverted flight are allowed.
+        // Wing leveling only acts while upright (|roll| < 90 degrees), so it
+        // never fights inverted flight or the top of a loop.
+        if(rollCommand==0.0f&&std::fabs(roll)<HalfPi)rollRate-=tuning.rollStability*roll;
         // A banked wing tilts the lift and curves the path: coordinated turn.
-        yawRate=tuning.turnRate*std::sin(roll)+tuning.directYawRate*rollCommand;
+        // It turns around the world vertical, so it fades with cos(pitch):
+        // with the nose vertical that axis would only spin the fuselage.
+        yawRate=(tuning.turnRate*std::sin(roll)+tuning.directYawRate*rollCommand)*std::cos(pitch);
     }
 
     // Pitch about the body right axis (positive = nose up).

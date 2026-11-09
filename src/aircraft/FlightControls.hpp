@@ -24,9 +24,7 @@ struct ControlTuning {
     float maxRollRate=1.00f;     // Ailerons: rotation about the aircraft forward axis.
     float directYawRate=0.10f;   // Small rudder-like yaw from the lateral command.
     float turnRate=0.60f;        // Coordinated turn: yaw rate = turnRate*sin(bank).
-    float rollStability=0.50f;   // Gentle return to wings level with a centered mouse.
-    float maxPitch=0.87f;        // ~50 degrees: stops commands that exceed it.
-    float maxRoll=1.05f;         // ~60 degrees.
+    float rollStability=0.50f;   // Gentle return to wings level (upright only) with a centered mouse.
     float groundSteerRate=0.50f; // Nose-wheel steering at/above groundSteerSpeed.
     float groundSteerSpeed=5.0f; // m/s: steering grows linearly up to this speed.
     float groundLevelRate=0.80f; // Pitch/roll return to the ground attitude.

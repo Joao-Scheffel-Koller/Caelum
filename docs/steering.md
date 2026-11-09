@@ -94,7 +94,7 @@ rotação, e não o ângulo. Em cada passo de física (`dt`):
 |---|---|---|
 | Arfagem (profundor) | `right` do avião | `maxPitchRate = 0,5 rad/s` |
 | Rolagem (ailerons) | `forward` do avião | `maxRollRate = 1,0 rad/s` |
-| Guinada (curva) | vertical do mundo `(0,1,0)` | `turnRate·sin(rolagem) + 0,1·comando` |
+| Guinada (curva) | vertical do mundo `(0,1,0)` | `(turnRate·sin(rolagem) + 0,1·comando)·cos(arfagem)` |
 
 Convenções de sinal (sistema destro, `right = forward × up`):
 
@@ -111,14 +111,20 @@ right   = normalize(forward × up)
 up      = right × forward
 ```
 
-### Limites e estabilidade
+### Sem limites de atitude e estabilidade
 
-- Arfagem limitada a cerca de ±50° e rolagem a cerca de ±60°: comandos que
-  ultrapassariam o limite são ignorados (sem looping nem voo invertido nesta
-  versão).
+- **Não há ângulo máximo** de arfagem nem de rolagem: é possível fazer
+  loopings, tonneaux (giros de 360°) e voar de dorso. Como a orientação é
+  guardada em vetores e as rotações são feitas nos eixos do avião, não existe
+  *gimbal lock* ao passar pela vertical.
+- A curva coordenada gira em torno da vertical do mundo; por isso ela é
+  multiplicada por `cos(arfagem)`. Com o nariz na vertical, girar em torno de
+  +Y só faria a fuselagem rodar sobre si mesma, então o efeito some ali.
 - Com o comando lateral na zona morta, uma **estabilidade lateral simples**
-  (`rollStability`) devolve lentamente as asas ao nível. Para um comportamento
-  mais "puro", basta zerar essa constante.
+  (`rollStability`) devolve lentamente as asas ao nível, **apenas com o avião
+  em pé** (|rolagem| < 90°). De dorso ou no topo de um looping ela não age, para
+  não desfazer a manobra. Para um comportamento mais "puro", basta zerar essa
+  constante.
 
 ### Velocidade acompanha o nariz
 
@@ -177,7 +183,8 @@ ctest --test-dir build --output-on-failure -R flight_controls
 
 Eles verificam: centro neutro, zona morta, sinais de cada borda, saturação fora
 da janela, rotação de Rodrigues, cabrar/picar, inclinação e curva para cada
-lado, limites, retorno das asas ao nível, base ortonormal, e o comportamento no
+lado, looping completo, giro de 360°, voo de dorso mantido, retorno das asas ao
+nível, base ortonormal, e o comportamento no
 solo (parado não gira, rolando faz curva, nariz baixa após o pouso).
 
 No jogo:

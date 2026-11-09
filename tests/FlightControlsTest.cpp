@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <glm/geometric.hpp>
 
 using namespace flightcontrols;
@@ -69,9 +70,16 @@ void PitchControl() {
     auto b=Level(50);
     Fly(b,In(-1,0),false,.5f);
     Check(PitchAngle(b.get_forward())<-.2f,"mouse up pitches the nose down");
+    // Unlimited pitch: a full loop at 0.5 rad/s takes 2*pi/0.5 seconds.
     auto c=Level(50);
-    Fly(c,In(1,0),false,10);
-    Check(PitchAngle(c.get_forward())<=ControlTuning().maxPitch+.01f,"pitch is limited");
+    float maxPitch=-10;
+    for(int i=0;i<int(2*Pi/.5*60);++i) {
+        ApplyControls(c,In(1,0),false,1.0f/60.0f);
+        maxPitch=std::max(maxPitch,PitchAngle(c.get_forward()));
+    }
+    Check(maxPitch>1.5f,"pitch is not limited: the nose passes the vertical");
+    Check(glm::dot(c.get_forward(),glm::vec3(0,0,-1))>.99f&&c.get_up().y>.99f,
+          "holding full nose up completes a loop back to level"); 
 }
 
 void RollAndTurn() {
@@ -84,7 +92,20 @@ void RollAndTurn() {
     Fly(b,In(0,-1),false,2);
     Check(RollAngle(b.get_forward(),b.get_up())<-.3f,"mouse left banks left");
     Check(Heading(b.get_forward())<-.2,"and turns left");
-    Check(RollAngle(b.get_forward(),b.get_up())>=-ControlTuning().maxRoll-.02f,"roll is limited");
+    // Unlimited roll: a full aileron roll at 1 rad/s takes 2*pi seconds.
+    auto d=Level(50);
+    float minUp=1;
+    for(int i=0;i<int(2*Pi*60);++i) {
+        ApplyControls(d,In(0,1),false,1.0f/60.0f);
+        minUp=std::min(minUp,d.get_up().y);
+    }
+    Check(minUp<-.99f,"roll is not limited: the airplane flies inverted");
+    Check(d.get_up().y>.95f,"holding full right completes a 360 degree roll");
+    // Inverted with a centered mouse stays inverted (no forced leveling).
+    auto e=Level(50);
+    e.set_up(glm::vec3(0,-1,0));
+    Fly(e,In(0,0),false,3);
+    Check(e.get_up().y<-.99f,"centered mouse keeps inverted flight"); 
     auto c=Level(50);
     Fly(c,In(0,1),false,.4f);
     const float banked=RollAngle(c.get_forward(),c.get_up());
