@@ -26,7 +26,17 @@ const View Views[]={
     {"runway-move-b",{5237,12,6260},{5240,0,6510},{0,1,0}},
     {"runway-move-c",{5237,12,6270},{5240,0,6520},{0,1,0}},
     {"cockpit",{0,0,0},{0,0,0},{0,1,0}},
-    {"bezier-later",{0,0,0},{0,0,0},{0,1,0}}
+    {"bezier-later",{0,0,0},{0,0,0},{0,1,0}},
+    // AI-assisted: grazing views over the asphalt/grass overlap measured near
+    // (4400, 6200) and over the apron, where coplanar layers z-fight.
+    {"coplanar-near",{4300,12,6020},{4450,0,6230},{0,1,0}},
+    {"coplanar-far",{5237,30,6290},{4400,0,6200},{0,1,0}},
+    // Small camera steps over the same overlap: z-fighting shows as pixels
+    // that swap between grass and asphalt from one step to the next.
+    {"coplanar-step-a",{4330.0f,35,6100},{4450,0,6250},{0,1,0}},
+    {"coplanar-step-b",{4330.3f,35,6100},{4450,0,6250},{0,1,0}},
+    {"coplanar-step-c",{4330.6f,35,6100},{4450,0,6250},{0,1,0}},
+    {"coplanar-step-d",{4330.9f,35,6100},{4450,0,6250},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;

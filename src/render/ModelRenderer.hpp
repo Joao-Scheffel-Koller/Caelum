@@ -48,8 +48,10 @@ public:
     static std::size_t CountMapChunks(const std::string& manifest);
     // Call after loading/reloading the shader program (R remains supported).
     void SetProgram(GLuint program);
+    // depthBias: extra depth-priority steps for the whole model (Solid pass),
+    // added to each material's DepthPriority (e.g. the low filler terrain).
     void Draw(const RenderModel& model, const glm::mat4& transform,
-              const glm::vec3& camera, RenderPass pass);
+              const glm::vec3& camera, RenderPass pass, int depthBias=0);
     bool Visible(const MapChunk& chunk,const glm::mat4& viewProjection) const;
     void Release(RenderModel& model);
 private:

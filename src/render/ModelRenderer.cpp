@@ -277,7 +277,7 @@ void ModelRenderer::SetProgram(GLuint program) {
     }
 }
 
-void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,RenderPass pass) {
+void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,RenderPass pass,int depthBias) {
     glUniformMatrix4fv(modelUniform,1,GL_FALSE,glm::value_ptr(transform));
     glUniform3fv(cameraUniform,1,glm::value_ptr(camera));
     glUniform1f(alphaCutoffUniform,pass==RenderPass::Solid?.2f:.001f);
@@ -301,8 +301,19 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
         glUniform1i(hasTextureUniform,material.texture!=0);
         glUniform1i(proceduralUniform,static_cast<int>(material.policy.procedural));
         glBindTexture(GL_TEXTURE_2D,material.texture);glBindSampler(0,samplers[material.clamp?1:0]);
+        if(pass==RenderPass::Solid) {
+            // AI-assisted: coplanar layers. glPolygonOffset works in window-depth
+            // steps, so the separation holds at any distance (a fixed vertical
+            // margin would fail beyond a few hundred meters with near=0.5 m,
+            // far=30 km); the factor term covers grazing view angles.
+            // FONTE: https://wikis.khronos.org/opengl/GLAPI/glPolygonOffset
+            const int steps=static_cast<int>(material.policy.depth)+depthBias;
+            if(steps>0) {glEnable(GL_POLYGON_OFFSET_FILL);glPolygonOffset(float(steps),2.0f*steps);}
+            else glDisable(GL_POLYGON_OFFSET_FILL);
+        }
         glBindVertexArray(batch->vao);glDrawArrays(GL_TRIANGLES,0,batch->count);
     }
+    if(pass==RenderPass::Solid)glDisable(GL_POLYGON_OFFSET_FILL);
     glBindVertexArray(0);
 }
 

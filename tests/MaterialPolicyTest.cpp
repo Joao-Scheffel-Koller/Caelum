@@ -62,6 +62,24 @@ int main() {
     }
     const auto lower=ClassifyMaterial("mat_13_1","TEXTURES/RUNWAY_CENTERLINE_STRIPES.PNG",true,true);
     Check(lower.layer==MaterialLayer::DECAL,"classification handles case consistently");
+    // AI-assisted: coplanar layers measured in the export (same Y=0) get an
+    // ordered depth priority: natural ground < pavement < specific surfaces.
+    const auto depth=[](const char* name,const char* image){
+        return ClassifyMaterial(name,image,image[0]!=0,true).depth;
+    };
+    Check(depth("GRASS_0","textures/Ground003_Color.jpg")==DepthPriority::NATURAL_GROUND,"grass is natural ground");
+    Check(depth("WATER_0","")==DepthPriority::NATURAL_GROUND,"water lies under roads crossing it");
+    Check(depth("SCRUB_0","")==DepthPriority::NATURAL_GROUND,"scrub is natural ground");
+    Check(depth("ASPHALT_0","textures/Asphalt010_Color.png")==DepthPriority::PAVEMENT,"asphalt is pavement");
+    Check(depth("CONCRETE_0","")==DepthPriority::PAVEMENT,"concrete is pavement");
+    Check(depth("GRASS_PAVER_0","")==DepthPriority::PAVEMENT,"grass paver is pavement, not grass");
+    Check(depth("MAT_13_0","textures/Asphalt010_Color.png")==DepthPriority::SURFACE,"runway base wins over apron asphalt");
+    Check(depth("RED_ROAD_MARKING_0","")==DepthPriority::SURFACE,"bike lane wins over asphalt");
+    Check(depth("ROAD_MARKING_DASHED_0","textures/Asphalt010_Color.png")==DepthPriority::SURFACE,"lane base wins over asphalt");
+    Check(depth("SANDSTONE_0","")==DepthPriority::SURFACE,"sandstone walls are not ground");
+    Check(depth("ROOF_DEFAULT_0","")==DepthPriority::SURFACE,"roofs keep the default depth");
+    Check(ClassifyMaterial("grass","",false,false).depth==DepthPriority::SURFACE,"aircraft materials are never offset");
+    Check(depth("TAXIWAY_CENTER_MARKING_0","")==DepthPriority::SURFACE,"decals keep their own pass offset");
     std::cout<<"PASS: "<<checks<<" material policy checks\n";
     return EXIT_SUCCESS;
 }

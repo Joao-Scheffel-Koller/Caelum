@@ -22,6 +22,19 @@ bool IsCutoutGeometry(const std::string& name,const std::string& path) {
         if(Contains(name,token)||Contains(path,token))return true;
     return false;
 }
+// Measured overlaps in the export (same Y): asphalt over grass and water,
+// concrete/sett over grass, runway/lane/bike-lane surfaces over asphalt.
+DepthPriority GroundPriority(const std::string& name) {
+    for(const char* token:{"grass_paver","asphalt","concrete","sett","paving_stone",
+                          "pebblestone","cobblestone","gravel"})
+        if(Contains(name,token))return DepthPriority::PAVEMENT;
+    if(Contains(name,"sandstone"))return DepthPriority::SURFACE;   // Walls, not ground.
+    for(const char* token:{"grass","scrub","earth","sand","scree","water","wetland","meadow"})
+        if(Contains(name,token))return DepthPriority::NATURAL_GROUND;
+    // MAT_<n>_0 (runway/pitch bases), *_MARKING_0 lanes, roofs, railways...
+    return DepthPriority::SURFACE;
+}
+
 bool IsOverlayImage(const std::string& path) {
     // Verified image families in this OSM2World export: road/airfield paint,
     // pitch markings and window layers drawn over their separately exported base.
@@ -45,6 +58,7 @@ MaterialPolicy ClassifyMaterial(const std::string& originalName,const std::strin
         if(Contains(name,"taxiway_center_marking") ||
            (hasImage && (IsOverlayImage(path)||generatedOverlay)))
             policy.layer=MaterialLayer::DECAL;
+        if(policy.layer==MaterialLayer::BASE)policy.depth=GroundPriority(name);
     }
 
     // Preserve supplied images; procedural fallback only fills genuinely plain

@@ -319,9 +319,9 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     std::vector<const MapChunk*> visible;
     if(layer!=SceneLayer::AIRCRAFT)for(const auto& chunk:chunks)if(renderer.Visible(chunk,viewProjection)) {
         visible.push_back(&chunk);
-        if(chunk.foundation) {glEnable(GL_POLYGON_OFFSET_FILL);glPolygonOffset(1.0f,4.0f);}
-        renderer.Draw(chunk.model,identity,camera,RenderPass::Solid);
-        if(chunk.foundation)glDisable(GL_POLYGON_OFFSET_FILL);
+        // The filler terrain (Y=-0.02) stays behind every map layer, including
+        // the natural ground it shares GRASS_0 with: 3 extra priority steps.
+        renderer.Draw(chunk.model,identity,camera,RenderPass::Solid,chunk.foundation?3:0);
     }
     if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
     // Traffic belongs to the world even in cockpit; the near pass is player-only.
