@@ -16,7 +16,7 @@
 ## Ajustes
 
 08 - Mudar parâmetros de voo (tailstrike e velocidade de pouso mais permissivos).
-09 - Ajustar resolução de texto on-screen.
+
 ## Extras
 
 10 - Fazer as hélices girarem.
