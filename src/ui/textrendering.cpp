@@ -1,6 +1,11 @@
 // Based on http://hamelot.io/visualization/opengl-text-without-any-external-libraries/
 //   and on https://github.com/rougier/freetype-gl
+#include <cmath>
+#include <cstdio>
+#include <fstream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -10,6 +15,48 @@
 
 #include "utils.h"
 #include "dejavufont.h"
+#include "stb_image.h"
+
+// AI-assisted: pixel-exact text. tools/generate_font_atlas.py bakes DejaVu Sans
+// Mono with FreeType hinting at every pixel size the UI uses; PrintString picks
+// the size that matches the requested scale and draws it 1:1, aligned to the
+// pixel grid. The old 18 px atlas above (dejavufont.h) was drawn shrunk to
+// ~13.5-16 px, sampled half a texel off and at fractional positions, which
+// blurred every letter. It remains as a fallback if the files are missing.
+namespace {
+struct AtlasGlyph { float x=0, y=0, w=0, h=0, left=0, top=0, advance=0; };
+struct AtlasSize { int pixels=0; AtlasGlyph glyphs[95]; };
+struct FontAtlas {
+    bool loaded=false;
+    int width=0, height=0;
+    std::vector<AtlasSize> sizes;
+};
+FontAtlas g_FontAtlas;
+const char* const AtlasImage="../../data/fonts/dejavu_mono_atlas.png";
+const char* const AtlasMetrics="../../data/fonts/dejavu_mono_atlas.txt";
+
+bool LoadFontAtlas(FontAtlas& atlas)
+{
+    std::ifstream file(AtlasMetrics);
+    if (!file) return false;
+    std::string line;
+    while (std::getline(file, line))
+    {
+        std::istringstream in(line);
+        std::string kind;
+        if (!(in >> kind) || kind[0] == '#') continue;
+        if (kind == "atlas") in >> atlas.width >> atlas.height;
+        else if (kind == "size") { atlas.sizes.push_back(AtlasSize()); in >> atlas.sizes.back().pixels; }
+        else if (kind == "glyph" && !atlas.sizes.empty())
+        {
+            int code; AtlasGlyph g;
+            in >> code >> g.x >> g.y >> g.w >> g.h >> g.left >> g.top >> g.advance;
+            if (in && code >= 32 && code <= 126) atlas.sizes.back().glyphs[code - 32] = g;
+        }
+    }
+    return atlas.width > 0 && atlas.height > 0 && !atlas.sizes.empty();
+}
+} // namespace
 
 GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id); // Função definida em main.cpp
 
@@ -125,7 +172,22 @@ void TextRendering_Init()
     GLuint textureunit = 31;
     glActiveTexture(GL_TEXTURE0 + textureunit);
     glBindTexture(GL_TEXTURE_2D, texttexture_id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, dejavufont.tex_width, dejavufont.tex_height, 0, GL_RED, GL_UNSIGNED_BYTE, dejavufont.tex_data);
+    int imageWidth = 0, imageHeight = 0, channels = 0;
+    unsigned char* pixels = LoadFontAtlas(g_FontAtlas) ?
+        stbi_load(AtlasImage, &imageWidth, &imageHeight, &channels, 1) : NULL;
+    if (pixels && imageWidth == g_FontAtlas.width && imageHeight == g_FontAtlas.height)
+    {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, imageWidth, imageHeight, 0, GL_RED, GL_UNSIGNED_BYTE, pixels);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        g_FontAtlas.loaded = true;
+    }
+    else
+    {
+        fprintf(stderr, "WARNING: font atlas %s not loaded; using the old 18 px font.\n", AtlasImage);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, dejavufont.tex_width, dejavufont.tex_height, 0, GL_RED, GL_UNSIGNED_BYTE, dejavufont.tex_data);
+    }
+    if (pixels) stbi_image_free(pixels);
     glBindSampler(textureunit, sampler);
     glCheckError();
 
@@ -149,8 +211,78 @@ void TextRendering_Init()
 
 float textscale = 1.5f;
 
+// AI-assisted: draws one string from the multi-size atlas, 1:1 on the pixel grid,
+// with a single draw call. x, y (pen and baseline) are NDC, as before.
+static void PrintStringPixelExact(GLFWwindow* window, const std::string &str, float x, float y, float scale)
+{
+    int windowWidth, windowHeight, width, height;
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    glfwGetFramebufferSize(window, &width, &height);
+    if (windowWidth <= 0 || windowHeight <= 0 || width <= 0 || height <= 0) return;
+
+    // Same on-screen size as the old renderer: 18 px font * scale * textscale / 2
+    // (logical pixels), converted to framebuffer pixels for HiDPI screens.
+    const float wanted = dejavufont.size * scale * textscale * 0.5f * width / windowWidth;
+    const AtlasSize* best = &g_FontAtlas.sizes[0];
+    for (const AtlasSize& size : g_FontAtlas.sizes)
+        if (std::fabs(size.pixels - wanted) < std::fabs(best->pixels - wanted)) best = &size;
+    // Within half a pixel: draw 1:1 (the size changes by at most 0.5 px).
+    // Only titles beyond the largest baked sizes are scaled, and only slightly.
+    const float k = std::fabs(best->pixels - wanted) <= 0.5f ? 1.0f : wanted / best->pixels;
+
+    // Pen and baseline on whole framebuffer pixels (pixel rows grow upward here).
+    float pen = std::floor((x + 1.0f) * 0.5f * width + 0.5f);
+    const float baseline = std::floor((y + 1.0f) * 0.5f * height + 0.5f);
+
+    std::vector<float> vertices;
+    vertices.reserve(str.size() * 24);
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        const int index = (int)(unsigned char)str[i] - 32;
+        if (index < 0 || index >= 95) continue;
+        const AtlasGlyph& g = best->glyphs[index];
+        if (g.w > 0 && g.h > 0)
+        {
+            // One empty texel around the ink (the atlas keeps 2) so the dark
+            // outline drawn by the fragment shader is not clipped by the quad.
+            const float e = 1.0f;
+            const float px0 = std::floor(pen + 0.5f) + (g.left - e) * k;
+            const float py0 = baseline + (g.top + e) * k;     // Top edge.
+            const float px1 = px0 + (g.w + 2 * e) * k, py1 = py0 - (g.h + 2 * e) * k;
+            // Texel edges map onto pixel edges: no half-texel shift.
+            const float s0 = (g.x - e) / g_FontAtlas.width, s1 = (g.x + g.w + e) / g_FontAtlas.width;
+            const float t0 = (g.y - e) / g_FontAtlas.height, t1 = (g.y + g.h + e) / g_FontAtlas.height;
+            const float X0 = px0 / width * 2.0f - 1.0f, X1 = px1 / width * 2.0f - 1.0f;
+            const float Y0 = py0 / height * 2.0f - 1.0f, Y1 = py1 / height * 2.0f - 1.0f;
+            const float quad[24] = {
+                X0, Y0, s0, t0,  X0, Y1, s0, t1,  X1, Y1, s1, t1,
+                X0, Y0, s0, t0,  X1, Y1, s1, t1,  X1, Y0, s1, t0 };
+            vertices.insert(vertices.end(), quad, quad + 24);
+        }
+        // Monospace: whole-pixel advance at 1:1 keeps the spacing even.
+        pen += k == 1.0f ? std::floor(g.advance + 0.5f) : g.advance * k;
+    }
+    if (vertices.empty()) return;
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDepthFunc(GL_ALWAYS);
+    glBindBuffer(GL_ARRAY_BUFFER, textVBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STREAM_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(textprogram_id);
+    glBindVertexArray(textVAO);
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(vertices.size() / 4));
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
+}
+
 void TextRendering_PrintString(GLFWwindow* window, const std::string &str, float x, float y, float scale = 1.0f)
 {
+    if (g_FontAtlas.loaded) { PrintStringPixelExact(window, str, x, y, scale); return; }
     scale *= textscale;
     int width, height;
     glfwGetWindowSize(window, &width, &height);

@@ -1,5 +1,40 @@
 ## File used to store ai prompts
 
+37. Claude Code (2026-11-11): "I took a printscreen of how the text appears on
+    the screen and you can check it under /docs/ as image.png. Please check if
+    option 1 would really solve this problem. If so. let's do it (and dont
+    forget to add the last prompt to prompts.md)". Confirmar pela captura que
+    o texto era desfocado por reducao do atlas de 18 px, deslocamento de meio
+    texel e posicoes fracionarias. Gerados com IA:
+    tools/generate_font_atlas.py (DejaVu Sans Mono rasterizada pelo FreeType
+    via Pillow, com hinting, em todos os tamanhos inteiros de 8 a 32 px e
+    36-64 px), data/fonts/dejavu_mono_atlas.png/.txt e o caminho 1:1 em
+    src/ui/textrendering.cpp (tamanho mais proximo, pena e linha de base em
+    pixels inteiros, sem meio texel, quad com 1 texel de borda para o
+    contorno, uma chamada de desenho por string e retorno ao atlas antigo se
+    os arquivos faltarem). O pedido sobre o z-fighting (36) foi registrado
+    nesta mudanca.
+
+36. Claude Code (2026-11-10): "Nice job so far! I merged the changes into main
+    (I discarded the changes regarding the correction of the text on the
+    screen because I did not like them... we can get back to it later). Now I
+    am observing that there is some z-fighting between some roads and some
+    lanes near the runaway and the green ground. Can you spot where this is
+    happening in the code and show me? Then suggest me a solution for that
+    that you find best (e.g. maybe insert a margin bewteen the lanes and the
+    ground (so that they do not share the same points) (but I'm not sure
+    whether this is the best soltion, so you can give suggestions). Then apply
+    the solution that you suggested. The working directory is now set to anew
+    branch dedicated to this fix". Medir no OBJ do mapa as sobreposicoes
+    coplanares (Y=0) entre materiais opacos (asfalto x grama/agua, concreto x
+    grama, pista/ciclofaixa x asfalto) e explicar por que uma margem vertical
+    falha com a precisao do z-buffer (near 0,5 m, far 30 km) e alteraria a
+    fisica. Gerados com IA: prioridade de profundidade por classe de material
+    em MaterialPolicy.* aplicada com glPolygonOffset no passe solido de
+    ModelRenderer.*, terreno base integrado ao mesmo mecanismo em
+    GameScene.cpp, testes em MaterialPolicyTest.cpp e vistas
+    rasantes/deslocadas em RenderInspection.cpp para comparar antes e depois.
+
 35. Claude Code (2026-11-09): "I merged the last changes into main than
     created a new branch called physics from main. Now we are going to refine
     the flight physics. I want the parameters envolved (mass, darg-force, drag
