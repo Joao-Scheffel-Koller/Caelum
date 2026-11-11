@@ -7,6 +7,7 @@
 #include <map>
 #include <functional>
 #include "render/MaterialPolicy.hpp"
+#include "render/WindSway.hpp"
 #include "platform/LoadProgress.hpp"
 namespace collision {class CollisionWorld;}
 
@@ -53,13 +54,20 @@ public:
     void Draw(const RenderModel& model, const glm::mat4& transform,
               const glm::vec3& camera, RenderPass pass, int depthBias=0);
     bool Visible(const MapChunk& chunk,const glm::mat4& viewProjection) const;
+    // Wind state used by the next Draw calls (sway materials only).
+    void SetWind(const WindParameters& parameters,float time) {wind=parameters;windTime=time;}
     void Release(RenderModel& model);
 private:
     std::map<std::string,GLuint> textures;
     GLuint samplers[2]={0,0};
     GLint modelUniform=-1, colorUniform=-1, opacityUniform=-1,
           textureUniform=-1, hasTextureUniform=-1, cameraUniform=-1,
-          proceduralUniform=-1, alphaCutoffUniform=-1;
+          proceduralUniform=-1, alphaCutoffUniform=-1,
+          windStrengthUniform=-1, windTimeUniform=-1, windDirectionUniform=-1,
+          windAmplitudeUniform=-1, windFrequencyUniform=-1, windWavenumberUniform=-1,
+          windFlutterUniform=-1, windFlutterFrequencyUniform=-1;
+    WindParameters wind;
+    float windTime=0;
     GLuint LoadTexture(const std::string& file,const LoadCallbacks& callbacks);
 };
 #endif

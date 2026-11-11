@@ -12,6 +12,17 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 camera_position;
 
+// AI-assisted: wind on the tree billboards (docs/wind.md). Same formula as
+// WindOffset() in src/render/WindSway.cpp. wind_strength is 1 only for trees.
+uniform float wind_strength;
+uniform float wind_time;
+uniform vec2  wind_direction;
+uniform float wind_amplitude;
+uniform float wind_angular_frequency;
+uniform float wind_wavenumber;
+uniform float wind_flutter;
+uniform float wind_flutter_frequency;
+
 // Atributos de vértice que serão gerados como saída ("out") pelo Vertex Shader.
 // ** Estes serão interpolados pelo rasterizador! ** gerando, assim, valores
 // para cada fragmento, os quais serão recebidos como entrada pelo Fragment
@@ -36,6 +47,21 @@ void main()
     // slides 41-67 e 69-86 do documento Aula_09_Projecoes.pdf.
 
     vec4 world = model * model_coefficients;
+    if (wind_strength > 0.0)
+    {
+        // Texture v of the billboard: 0 at the base (fixed), 1 at the top.
+        float v = clamp(texture_coefficients.y, 0.0, 1.0);
+        float bend = v * v;
+        // Gust travelling with the wind: phase from the position along it.
+        float phase = -wind_wavenumber * dot(world.xz, wind_direction);
+        float sway = 0.7 * sin(wind_angular_frequency * wind_time + phase)
+                   + 0.3 * sin(2.3 * wind_angular_frequency * wind_time + 1.7 * phase);
+        // Leaf rustle on the crown only.
+        float crown = clamp((v - 0.4) / 0.6, 0.0, 1.0);
+        float rustle = sin(wind_flutter_frequency * wind_time + 0.37 * world.x + 0.71 * world.z);
+        float along = wind_strength * (wind_amplitude * bend * sway + wind_flutter * crown * rustle);
+        world.xz += wind_direction * along;
+    }
     // Subtract the camera before rotating. Avoid cancellation between large
     // map coordinates and view translation when surfaces are millimeters apart.
     vec4 camera_relative = vec4(mat3(view)*(world.xyz-camera_position),1.0);

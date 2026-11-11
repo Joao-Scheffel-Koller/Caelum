@@ -263,6 +263,14 @@ void ModelRenderer::SetProgram(GLuint program) {
     cameraUniform=glGetUniformLocation(program,"camera_position");
     proceduralUniform=glGetUniformLocation(program,"procedural_surface");
     alphaCutoffUniform=glGetUniformLocation(program,"alpha_cutoff");
+    windStrengthUniform=glGetUniformLocation(program,"wind_strength");
+    windTimeUniform=glGetUniformLocation(program,"wind_time");
+    windDirectionUniform=glGetUniformLocation(program,"wind_direction");
+    windAmplitudeUniform=glGetUniformLocation(program,"wind_amplitude");
+    windFrequencyUniform=glGetUniformLocation(program,"wind_angular_frequency");
+    windWavenumberUniform=glGetUniformLocation(program,"wind_wavenumber");
+    windFlutterUniform=glGetUniformLocation(program,"wind_flutter");
+    windFlutterFrequencyUniform=glGetUniformLocation(program,"wind_flutter_frequency");
     if(!samplers[0]) {
         glGenSamplers(2,samplers);
         const float anisotropy=MaxAnisotropy();
@@ -282,6 +290,15 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
     glUniform3fv(cameraUniform,1,glm::value_ptr(camera));
     glUniform1f(alphaCutoffUniform,pass==RenderPass::Solid?.2f:.001f);
     glUniform1i(textureUniform,0);glActiveTexture(GL_TEXTURE0);
+    // AI-assisted wind (docs/wind.md): parameters shared by every batch;
+    // wind_strength below switches it on only for tree materials.
+    glUniform1f(windTimeUniform,windTime);
+    glUniform2f(windDirectionUniform,wind.direction.x,wind.direction.y);
+    glUniform1f(windAmplitudeUniform,wind.amplitude);
+    glUniform1f(windFrequencyUniform,wind.angularFrequency);
+    glUniform1f(windWavenumberUniform,wind.wavenumber);
+    glUniform1f(windFlutterUniform,wind.flutter);
+    glUniform1f(windFlutterFrequencyUniform,wind.flutterFrequency);
     std::vector<const RenderBatch*> batches;
     for(const auto& batch:model.batches) {
         const RenderPass batchPass=batch.material.policy.layer==MaterialLayer::DECAL?RenderPass::Decal:
@@ -300,6 +317,7 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
         glUniform1f(opacityUniform,material.opacity);
         glUniform1i(hasTextureUniform,material.texture!=0);
         glUniform1i(proceduralUniform,static_cast<int>(material.policy.procedural));
+        glUniform1f(windStrengthUniform,material.policy.sway?1.0f:0.0f);
         glBindTexture(GL_TEXTURE_2D,material.texture);glBindSampler(0,samplers[material.clamp?1:0]);
         if(pass==RenderPass::Solid) {
             // AI-assisted: coplanar layers. glPolygonOffset works in window-depth

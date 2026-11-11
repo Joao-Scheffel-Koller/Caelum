@@ -33,7 +33,7 @@ public:
     mission::MissionSample PlayerMissionSample(Aircraft& aircraft) const;
     bool InspectMission(Aircraft& aircraft,const std::string& report) const;
     static collision::AircraftPose PhysicalPose(Aircraft& aircraft);
-    void Update(double dt) {traffic.Update(dt);lightClock.Update(dt);}
+    void Update(double dt) {traffic.Update(dt);lightClock.Update(dt);windClock.Update(dt);}
     FlightPose TrafficPose() const {return traffic.Pose();}
     CameraFrame Cameras(Aircraft& aircraft) const;
     void Draw(GLuint program, Aircraft& aircraft, const glm::mat4& view,const glm::mat4& projection,
@@ -44,6 +44,8 @@ private:
     BezierFlight traffic;
     AircraftLightRenderer lightRenderer;
     aircraftlights::Clock lightClock;
+    WindClock windClock;      // AI-assisted: time-based tree sway (docs/wind.md).
+    WindParameters wind;
     std::string lightProfileId="a320";
     std::vector<MapChunk> chunks;
     collision::CollisionWorld physicalWorld;

@@ -50,6 +50,8 @@ MaterialPolicy ClassifyMaterial(const std::string& originalName,const std::strin
                                bool hasImage,bool isMap) {
     const std::string name=Lower(originalName),path=Lower(diffusePath);
     MaterialPolicy policy;
+    // Tree billboards: texture v runs from 0 (base) to 1 (top), used as height.
+    policy.sway=isMap && (Contains(name,"tree")||Contains(path,"tree"));
     if(isMap && !IsCutoutGeometry(name,path)) {
         // OSM2World names generated texture layers MAT_<material>_<layer>.
         // All observed layer 1 images are alpha overlays; layer 0 remains base.

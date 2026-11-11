@@ -80,6 +80,12 @@ int main() {
     Check(depth("ROOF_DEFAULT_0","")==DepthPriority::SURFACE,"roofs keep the default depth");
     Check(ClassifyMaterial("grass","",false,false).depth==DepthPriority::SURFACE,"aircraft materials are never offset");
     Check(depth("TAXIWAY_CENTER_MARKING_0","")==DepthPriority::SURFACE,"decals keep their own pass offset");
+    // AI-assisted: only the map's tree billboards sway in the wind.
+    Check(ClassifyMaterial("TREE_BILLBOARD_BROAD_LEAVED_0","textures/arbaro_tree_broad_leaved.png",true,true).sway,"broad-leaved trees sway");
+    Check(ClassifyMaterial("TREE_BILLBOARD_CONIFEROUS_0","textures/arbaro_tree_coniferous.png",true,true).sway,"coniferous trees sway");
+    Check(!ClassifyMaterial("GRASS_0","textures/Ground003_Color.jpg",true,true).sway,"grass does not sway");
+    Check(!ClassifyMaterial("METAL_FENCE_0","",false,true).sway,"fences do not sway");
+    Check(!ClassifyMaterial("tree","",false,false).sway,"aircraft materials never sway");
     std::cout<<"PASS: "<<checks<<" material policy checks\n";
     return EXIT_SUCCESS;
 }

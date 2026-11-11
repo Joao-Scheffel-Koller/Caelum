@@ -307,6 +307,7 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
                      const glm::vec3& camera,SceneLayer layer) {
     const glm::mat4 viewProjection=projection*view;
     renderer.SetProgram(program); // Also refreshes locations after R reloads shaders.
+    renderer.SetWind(wind,windClock.Time());
     glDisable(GL_CULL_FACE); // Trees/fences contain intentionally two-sided quads.
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);

@@ -40,6 +40,7 @@ set(SOURCES
   src/animation/BezierPath.cpp
   src/aircraft/BezierFlight.cpp
   src/render/ModelRenderer.cpp
+  src/render/WindSway.cpp
   src/render/GameScene.cpp
   src/camera/CameraController.cpp
   src/camera/CameraInput.cpp
@@ -150,6 +151,9 @@ if(BUILD_TESTING)
   add_executable(camera_input_test tests/CameraInputTest.cpp src/camera/CameraInput.cpp src/camera/CameraController.cpp)
   target_include_directories(camera_input_test PRIVATE include src)
   add_test(NAME camera_input COMMAND camera_input_test)
+  add_executable(wind_sway_test tests/WindSwayTest.cpp src/render/WindSway.cpp)
+  target_include_directories(wind_sway_test PRIVATE include src)
+  add_test(NAME wind_sway COMMAND wind_sway_test)
   add_executable(material_policy_test tests/MaterialPolicyTest.cpp src/render/MaterialPolicy.cpp)
   target_include_directories(material_policy_test PRIVATE src)
   add_test(NAME material_policy COMMAND material_policy_test)

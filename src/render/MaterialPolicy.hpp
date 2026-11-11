@@ -16,6 +16,7 @@ struct MaterialPolicy {
     MaterialLayer layer=MaterialLayer::BASE;
     ProceduralSurface procedural=ProceduralSurface::NONE;
     DepthPriority depth=DepthPriority::SURFACE;
+    bool sway=false;   // AI-assisted: map tree billboards move with the wind (docs/wind.md).
 };
 
 MaterialPolicy ClassifyMaterial(const std::string& name,const std::string& diffusePath,

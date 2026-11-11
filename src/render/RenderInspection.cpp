@@ -36,7 +36,10 @@ const View Views[]={
     {"coplanar-step-a",{4330.0f,35,6100},{4450,0,6250},{0,1,0}},
     {"coplanar-step-b",{4330.3f,35,6100},{4450,0,6250},{0,1,0}},
     {"coplanar-step-c",{4330.6f,35,6100},{4450,0,6250},{0,1,0}},
-    {"coplanar-step-d",{4330.9f,35,6100},{4450,0,6250},{0,1,0}}
+    {"coplanar-step-d",{4330.9f,35,6100},{4450,0,6250},{0,1,0}},
+    // Same camera ~0.5 s apart next to a park tree: only the wind moves.
+    {"wind-a",{4262,4,6622},{4280,5,6640},{0,1,0}},
+    {"wind-b",{4262,4,6622},{4280,5,6640},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;

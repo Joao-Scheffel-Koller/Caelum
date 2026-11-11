@@ -1,5 +1,26 @@
 ## File used to store ai prompts
 
+38. Claude Code (2026-11-11): "I merged everything into main and now I created
+    a branch for wind-animation regarding the leaves (as seen in spec.md). How
+    do you suggest to make it? Just give me a suggestion for now"; "I dont
+    understand the idea behind it. Please explain it with more details"; "Nice
+    one! than let's apply this Sousa idea that you've mentioned. For every tree use the texture
+    coordinate V in order to know whether a vertex is on top of it or on the bottom.
+    (v = 1 means top, v = 0 means bottom). Use a sine function to compute
+    the intensity of the wind at each given time (i.e. the movement of back and forth). Moreover
+    make the offset of the leaves be more intense the higher we get at each tree by
+    multiplying v² to the intensity (given by sine) of the wind. You may add other parameters
+    such as phase or angular speed fif you find it useful. Animar as arvores
+    (billboards do OSM2World) no vertex shader: deslocamento horizontal
+    proporcional a v^2 da textura (base fixa), soma de dois senos no tempo com
+    fase pela posicao ao longo do vento (rajada que atravessa a cidade) e
+    vibracao da copa. Gerados com IA: src/render/WindSway.* (parametros,
+    relogio por dt e a mesma formula em C++), uniforms wind_* em
+    shader_vertex.glsl, flag sway em MaterialPolicy.*, envio por material em
+    ModelRenderer.*, relogio em GameScene.*, vistas wind-a/wind-b em
+    RenderInspection.cpp, tests/WindSwayTest.cpp, checagens em
+    MaterialPolicyTest.cpp e docs/wind.md.
+
 37. Claude Code (2026-11-11): "I took a printscreen of how the text appears on
     the screen and you can check it under /docs/ as image.png. Please check if
     option 1 would really solve this problem. If so. let's do it (and dont
