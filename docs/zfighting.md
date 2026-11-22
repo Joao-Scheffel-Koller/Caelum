@@ -64,16 +64,46 @@ materiais diferentes sobrepostos no mesmo plano. A nova escala dá **um nível
 diferente para cada par encontrado**: areia sobre grama e terra, terra sobre
 grama, paralelepípedo sobre concreto e pedra, asfalto sobre todos eles.
 
+## Cuidado com o `factor`: prédios "flutuando"
+
+A assinatura é `glPolygonOffset(factor, units)`:
+
+- **`units`**: um deslocamento fixo e muito pequeno. É ele que define a
+  **ordem** entre os níveis (2 unidades por nível).
+- **`factor`**: é multiplicado pela **inclinação** da profundidade do
+  triângulo na tela. Olhando o chão de forma rasante (avião no chão, olhando
+  para o horizonte), essa inclinação é enorme.
+
+Na primeira versão da nova escala, o `factor` também crescia com o nível
+(grama = 7). Na margem do outro lado da baía, a vários km, a profundidade do
+chão já é quase 1,0 (o fim do depth buffer). O empurrão extra levava esse chão
+**para além de 1,0**: ele era descartado no teste de profundidade e o céu
+aparecia numa faixa fina sob os prédios, que pareciam flutuar. Ao subir, o
+ângulo deixa de ser rasante e o efeito sumia.
+
+```
+  antes:   ▆▆▆▆ prédios           depois:  ▆▆▆▆ prédios
+           ~~~~ céu (chão sumiu)           ████ chão
+           ████ chão perto                 ████ chão perto
+```
+
+A correção mantém a ordem em `units` e usa um `factor` pequeno:
+`glPolygonOffset(0,25 × degraus, 2 × degraus)`. A grama fica com `factor`
+1,75, menor que os 2 da escala original de três níveis, quando o problema não
+existia. A vista `horizon-south` (olho a 2 m da pista, olhando para o sul)
+confere que o chão continua desenhado sob os prédios, e as vistas
+`coplanar-step-*` e `flamengo-*` conferem que o z-fighting não voltou.
+
 ## Onde está no código
 
 | Arquivo | O que faz |
 |---|---|
 | `src/render/MaterialPolicy.hpp` | A escala `DepthPriority` (0 a 7). |
 | `src/render/MaterialPolicy.cpp` | `GroundPriority()`: escolhe o nível pelo nome do material. A ordem dos testes importa (`grass_paver` antes de `grass`, `sandstone` antes de `sand`). |
-| `src/render/ModelRenderer.cpp` | Antes de cada grupo de triângulos, liga `glPolygonOffset(degraus, 2 × degraus)`. O segundo termo cobre ângulos rasantes. |
+| `src/render/ModelRenderer.cpp` | Antes de cada grupo de triângulos, liga `glPolygonOffset(0,25 × degraus, 2 × degraus)` (ver a seção abaixo). |
 | `src/render/GameScene.cpp` | Terreno de preenchimento: 3 degraus além da grama. |
 | `tests/MaterialPolicyTest.cpp` | Nível de cada material e, para cada par medido sobreposto no mapa, que os dois têm níveis diferentes. |
-| `src/render/RenderInspection.cpp` | Vistas `flamengo-*` para conferir no jogo (`--texture-check`). |
+| `src/render/RenderInspection.cpp` | Vistas `flamengo-*` e `horizon-south` para conferir no jogo (`--texture-check`). |
 
 ## Limitações
 

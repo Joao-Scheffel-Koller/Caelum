@@ -323,10 +323,15 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
             // AI-assisted: coplanar layers. glPolygonOffset works in window-depth
             // steps, so the separation holds at any distance (a fixed vertical
             // margin would fail beyond a few hundred meters with near=0.5 m,
-            // far=30 km); the factor term covers grazing view angles.
+            // far=30 km). The order comes from units; the factor term (scaled
+            // by the on-screen depth slope) covers grazing angles but is kept
+            // small: a large factor pushed distant ground past depth 1.0 near
+            // the horizon, so it vanished under buildings (docs/zfighting.md).
             // FONTE: https://wikis.khronos.org/opengl/GLAPI/glPolygonOffset
             const int steps=static_cast<int>(material.policy.depth)+depthBias;
-            if(steps>0) {glEnable(GL_POLYGON_OFFSET_FILL);glPolygonOffset(float(steps),2.0f*steps);}
+            // glPolygonOffset(factor, units): grass (7) gets factor 1.75, below
+            // the 2 of the original three-level scale; units keep 2 per level.
+            if(steps>0) {glEnable(GL_POLYGON_OFFSET_FILL);glPolygonOffset(.25f*steps,2.0f*steps);}
             else glDisable(GL_POLYGON_OFFSET_FILL);
         }
         glBindVertexArray(batch->vao);glDrawArrays(GL_TRIANGLES,0,batch->count);

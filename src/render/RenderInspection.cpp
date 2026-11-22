@@ -46,7 +46,10 @@ const View Views[]={
     {"flamengo-sand-a",{4200.0f,25,8760},{4240,0,8815},{0,1,0}},
     {"flamengo-sand-b",{4200.3f,25,8760},{4240,0,8815},{0,1,0}},
     {"flamengo-earth-a",{4440.0f,20,8150},{4540,0,8276},{0,1,0}},
-    {"flamengo-earth-b",{4440.3f,20,8150},{4540,0,8276},{0,1,0}}
+    {"flamengo-earth-b",{4440.3f,20,8150},{4540,0,8276},{0,1,0}},
+    // Eye 2 m above the runway: distant ground must stay drawn under the
+    // buildings near the horizon (too large a polygon-offset factor hid it).
+    {"horizon-south",{5240,2,6300},{5320,2,7500},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;
