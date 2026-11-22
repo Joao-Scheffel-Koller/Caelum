@@ -321,7 +321,7 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     if(layer!=SceneLayer::AIRCRAFT)for(const auto& chunk:chunks)if(renderer.Visible(chunk,viewProjection)) {
         visible.push_back(&chunk);
         // The filler terrain (Y=-0.02) stays behind every map layer, including
-        // the natural ground it shares GRASS_0 with: 3 extra priority steps.
+        // the grass it shares GRASS_0 with: 3 steps beyond DepthPriority::GRASS.
         renderer.Draw(chunk.model,identity,camera,RenderPass::Solid,chunk.foundation?3:0);
     }
     if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);

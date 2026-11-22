@@ -63,16 +63,37 @@ int main() {
     const auto lower=ClassifyMaterial("mat_13_1","TEXTURES/RUNWAY_CENTERLINE_STRIPES.PNG",true,true);
     Check(lower.layer==MaterialLayer::DECAL,"classification handles case consistently");
     // AI-assisted: coplanar layers measured in the export (same Y=0) get an
-    // ordered depth priority: natural ground < pavement < specific surfaces.
+    // ordered depth priority (docs/zfighting.md): grass farthest back, then
+    // earth/scrub, sand/water patches, stone pavements, asphalt, surfaces.
     const auto depth=[](const char* name,const char* image){
         return ClassifyMaterial(name,image,image[0]!=0,true).depth;
     };
-    Check(depth("GRASS_0","textures/Ground003_Color.jpg")==DepthPriority::NATURAL_GROUND,"grass is natural ground");
-    Check(depth("WATER_0","")==DepthPriority::NATURAL_GROUND,"water lies under roads crossing it");
-    Check(depth("SCRUB_0","")==DepthPriority::NATURAL_GROUND,"scrub is natural ground");
-    Check(depth("ASPHALT_0","textures/Asphalt010_Color.png")==DepthPriority::PAVEMENT,"asphalt is pavement");
-    Check(depth("CONCRETE_0","")==DepthPriority::PAVEMENT,"concrete is pavement");
-    Check(depth("GRASS_PAVER_0","")==DepthPriority::PAVEMENT,"grass paver is pavement, not grass");
+    Check(depth("GRASS_0","textures/Ground003_Color.jpg")==DepthPriority::GRASS,"grass is the park background");
+    Check(depth("EARTH_0","")==DepthPriority::BARE_GROUND,"earth fields and paths lie over grass");
+    Check(depth("SCRUB_0","")==DepthPriority::BARE_GROUND,"scrub lies over grass");
+    Check(depth("SAND_0","")==DepthPriority::GROUND_PATCH,"sand circles lie over grass and earth");
+    Check(depth("WATER_0","")==DepthPriority::GROUND_PATCH,"water lies under roads crossing it");
+    Check(depth("UNHEWN_COBBLESTONE_0","")==DepthPriority::COBBLESTONE,"cobblestone is the lowest pavement");
+    Check(depth("CONCRETE_0","")==DepthPriority::CONCRETE,"concrete is a paved area");
+    Check(depth("PAVING_STONE_0","")==DepthPriority::CONCRETE,"paving stone is a paved area");
+    Check(depth("SETT_0","")==DepthPriority::SETT,"sett lies over concrete and cobblestone");
+    Check(depth("GRASS_PAVER_0","")==DepthPriority::SETT,"grass paver is pavement, not grass");
+    Check(depth("ASPHALT_0","textures/Asphalt010_Color.png")==DepthPriority::ASPHALT,"roads cross over paved areas");
+    // Every pair of ground materials measured overlapping on the same plane
+    // (whole map) must be ordered, otherwise the pair z-fights.
+    const char* overlapping[][2]={
+        {"ASPHALT_0","GRASS_0"},{"EARTH_0","GRASS_0"},{"ASPHALT_0","CONCRETE_0"},
+        {"CONCRETE_0","GRASS_0"},{"GRASS_0","SCRUB_0"},{"ASPHALT_0","WATER_0"},
+        {"GRASS_0","SAND_0"},{"ASPHALT_0","SETT_0"},{"GRASS_0","SCREE_0"},
+        {"GRASS_0","WATER_0"},{"GRASS_0","SETT_0"},{"ASPHALT_0","EARTH_0"},
+        {"ASPHALT_0","PAVING_STONE_0"},{"SETT_0","UNHEWN_COBBLESTONE_0"},
+        {"EARTH_0","SAND_0"},{"CONCRETE_0","WATER_0"},{"SCRUB_0","SETT_0"},
+        {"GRASS_0","PAVING_STONE_0"},{"ASPHALT_0","UNHEWN_COBBLESTONE_0"},
+        {"ASPHALT_0","SCRUB_0"},{"CONCRETE_0","SETT_0"},{"PAVING_STONE_0","SETT_0"},
+        {"PAVING_STONE_0","WATER_0"},{"ASPHALT_0","SAND_0"},
+        {"PAVING_STONE_0","UNHEWN_COBBLESTONE_0"}};
+    for(const auto& pair:overlapping)
+        Check(depth(pair[0],"")!=depth(pair[1],""),"overlapping ground materials have distinct depth priorities");
     Check(depth("MAT_13_0","textures/Asphalt010_Color.png")==DepthPriority::SURFACE,"runway base wins over apron asphalt");
     Check(depth("RED_ROAD_MARKING_0","")==DepthPriority::SURFACE,"bike lane wins over asphalt");
     Check(depth("ROAD_MARKING_DASHED_0","textures/Asphalt010_Color.png")==DepthPriority::SURFACE,"lane base wins over asphalt");

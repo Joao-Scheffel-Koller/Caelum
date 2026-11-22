@@ -22,15 +22,26 @@ bool IsCutoutGeometry(const std::string& name,const std::string& path) {
         if(Contains(name,token)||Contains(path,token))return true;
     return false;
 }
-// Measured overlaps in the export (same Y): asphalt over grass and water,
-// concrete/sett over grass, runway/lane/bike-lane surfaces over asphalt.
+// Measured overlaps in the export (same Y, whole map): asphalt over grass,
+// concrete and water; runway/lane/bike-lane surfaces over asphalt; earth
+// (fields, footpaths), sand (playground circles), scree, scrub and water over
+// grass; sand over earth; sett over cobblestone, paving stone and concrete.
+// Order of the checks matters: grass_paver before grass, sandstone before sand.
 DepthPriority GroundPriority(const std::string& name) {
-    for(const char* token:{"grass_paver","asphalt","concrete","sett","paving_stone",
-                          "pebblestone","cobblestone","gravel"})
-        if(Contains(name,token))return DepthPriority::PAVEMENT;
+    if(Contains(name,"asphalt"))return DepthPriority::ASPHALT;
+    for(const char* token:{"sett","gravel","grass_paver"})
+        if(Contains(name,token))return DepthPriority::SETT;
+    for(const char* token:{"concrete","paving_stone"})
+        if(Contains(name,token))return DepthPriority::CONCRETE;
+    for(const char* token:{"cobblestone","pebblestone"})
+        if(Contains(name,token))return DepthPriority::COBBLESTONE;
     if(Contains(name,"sandstone"))return DepthPriority::SURFACE;   // Walls, not ground.
-    for(const char* token:{"grass","scrub","earth","sand","scree","water","wetland","meadow"})
-        if(Contains(name,token))return DepthPriority::NATURAL_GROUND;
+    for(const char* token:{"sand","scree","water","wetland"})
+        if(Contains(name,token))return DepthPriority::GROUND_PATCH;
+    for(const char* token:{"earth","scrub"})
+        if(Contains(name,token))return DepthPriority::BARE_GROUND;
+    for(const char* token:{"grass","meadow"})
+        if(Contains(name,token))return DepthPriority::GRASS;
     // MAT_<n>_0 (runway/pitch bases), *_MARKING_0 lanes, roofs, railways...
     return DepthPriority::SURFACE;
 }

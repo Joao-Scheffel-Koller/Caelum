@@ -39,7 +39,14 @@ const View Views[]={
     {"coplanar-step-d",{4330.9f,35,6100},{4450,0,6250},{0,1,0}},
     // Same camera ~0.5 s apart next to a park tree: only the wind moves.
     {"wind-a",{4262,4,6622},{4280,5,6640},{0,1,0}},
-    {"wind-b",{4262,4,6622},{4280,5,6640},{0,1,0}}
+    {"wind-b",{4262,4,6622},{4280,5,6640},{0,1,0}},
+    // AI-assisted: Flamengo waterfront, where same-priority ground layers
+    // overlap (sand circle and earth footpaths over grass). Steps of 0.3 m.
+    {"flamengo-top",{4200,350,8500},{4200,0,8500},{0,0,-1}},
+    {"flamengo-sand-a",{4200.0f,25,8760},{4240,0,8815},{0,1,0}},
+    {"flamengo-sand-b",{4200.3f,25,8760},{4240,0,8815},{0,1,0}},
+    {"flamengo-earth-a",{4440.0f,20,8150},{4540,0,8276},{0,1,0}},
+    {"flamengo-earth-b",{4440.3f,20,8150},{4540,0,8276},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;

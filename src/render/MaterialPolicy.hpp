@@ -10,7 +10,18 @@ enum class ProceduralSurface { NONE=0, GENERAL=1, GRASS=2, METAL=3, PAINT=4 };
 // surfaces as overlapping polygons on the same plane (Y=0). Opaque layers that
 // share a plane are separated by a depth priority instead of moving geometry
 // (which also feeds the collision world). Higher = pushed farther back.
-enum class DepthPriority { SURFACE=0, PAVEMENT=1, NATURAL_GROUND=2 };
+// One level per pair of materials measured overlapping in the export, so no
+// two overlapping ground materials share a level (docs/zfighting.md).
+enum class DepthPriority {
+    SURFACE=0,       // Markings, runway/pitch bases, railways, roofs.
+    ASPHALT=1,       // Roads cross over plazas and paved areas.
+    SETT=2,          // Sett, gravel, grass paver.
+    CONCRETE=3,      // Concrete, paving stone.
+    COBBLESTONE=4,   // Unhewn cobblestone, pebblestone.
+    GROUND_PATCH=5,  // Sand, scree, water, wetland: patches inside parks.
+    BARE_GROUND=6,   // Earth, scrub: fields and footpaths over grass.
+    GRASS=7          // Grass, meadow: the background of every park.
+};
 
 struct MaterialPolicy {
     MaterialLayer layer=MaterialLayer::BASE;
