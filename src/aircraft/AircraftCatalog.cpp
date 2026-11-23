@@ -23,7 +23,14 @@ const std::vector<AircraftSpec>& AircraftCatalog() {
          // the model's outer arm reaches further on the left, and scale 0.72
          // (this stylized cabin is smaller than a real one): nothing crosses
          // the skin and the pilots stay 5.8 cm apart (docs/pilot.md).
-         pilot::Crew{{{2.00f,1.695f,-.24f},{2.00f,1.695f,.26f}},.72f}}
+         pilot::Crew{{{2.00f,1.695f,-.24f},{2.00f,1.695f,.26f}},.72f},
+         // OBJ survey: the 3 blades are the objects "wing", "wing.001",
+         // "wing.002" (Propeller_* materials) and the spinner is "wingRoot".
+         // The spinner is a solid of revolution about the line Y=1.9327, Z=0
+         // parallel to X (every vertex ring has one radius): that is the axis.
+         // Blades lie at X 4.06-4.40 (disc at 4.30); longest blade 1.10 m.
+         // 2700 rpm: maximum of a 180 hp Lycoming O-360 (docs/propeller.md).
+         propeller::Spec{{"wing","wing.001","wing.002"},{"wingRoot"},{4.30f,1.9327f,0.0f},1.10f,2700.0f}}
     };
     return catalog;
 }

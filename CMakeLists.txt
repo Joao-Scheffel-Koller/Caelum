@@ -16,6 +16,7 @@ set(SOURCES
   src/aircraft/FlightTelemetry.cpp
   src/aircraft/AircraftCatalog.cpp
   src/aircraft/PilotCrew.cpp
+  src/aircraft/Propeller.cpp
   src/aircraft/AircraftLights.cpp
   src/render/AircraftLightRenderer.cpp
   src/render/AircraftLightsInspection.cpp
@@ -170,6 +171,9 @@ if(BUILD_TESTING)
   add_executable(pilot_fit_test tests/PilotFitTest.cpp src/aircraft/PilotCrew.cpp src/aircraft/AircraftCatalog.cpp src/third_party/tiny_obj_loader.cpp)
   target_include_directories(pilot_fit_test PRIVATE include src)
   add_test(NAME pilot_fit COMMAND pilot_fit_test ${PROJECT_SOURCE_DIR}/data)
+  add_executable(propeller_test tests/PropellerTest.cpp src/aircraft/Propeller.cpp src/aircraft/AircraftCatalog.cpp src/third_party/tiny_obj_loader.cpp)
+  target_include_directories(propeller_test PRIVATE include src)
+  add_test(NAME propeller COMMAND propeller_test ${PROJECT_SOURCE_DIR}/data)
   find_program(CAELUM_TEST_PYTHON NAMES python3 python)
   if(CAELUM_TEST_PYTHON)
     add_test(NAME base_terrain COMMAND ${CAELUM_TEST_PYTHON} ${PROJECT_SOURCE_DIR}/data/rio/tools/test_base_terrain.py)

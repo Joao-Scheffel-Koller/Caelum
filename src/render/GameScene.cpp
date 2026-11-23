@@ -22,22 +22,61 @@ mission::MissionSample MissionInput(const collision::ContactResult& contact,
 }
 }
 
-void GameScene::LoadAircraft(const std::string& path,const glm::vec3& cockpitEye,const LoadCallbacks& callbacks) {
+void GameScene::LoadAircraft(const std::string& path,const glm::vec3& cockpitEye,
+                             const propeller::Spec& spec,const LoadCallbacks& callbacks) {
     if(callbacks.progress)callbacks.progress(LoadProgress("Aeronave",0,1));
-    auto replacement=renderer.Load(path,false,nullptr,callbacks);
+    // AI-assisted (docs/propeller.md): the propeller objects are split from the
+    // rest at load time, so they can be drawn with their own Model matrix.
+    std::vector<RenderModel> pieces;   // [0] blades, [1] spinner.
+    RenderModel disc;
+    auto replacement=spec.Present()?renderer.LoadSplit(path,{spec.blades,spec.spinner},pieces,callbacks):
+                                    renderer.Load(path,false,nullptr,callbacks);
+    pieces.resize(2);
+    // The whole aircraft's bounds combine both pieces, so the pivot that places
+    // the aircraft (and the collision volume) are the same as before the split.
+    glm::vec3 low=replacement.min,high=replacement.max;
     collision::AircraftContacts replacementContacts;
     try {
-        replacementContacts.Configure(glm::dvec3(replacement.min),glm::dvec3(replacement.max));
+        if(spec.Present()) {
+            for(const auto& piece:pieces){low=glm::min(low,piece.min);high=glm::max(high,piece.max);}
+            // The blades used to be drawn 24% opaque as a static "blur"; now the
+            // motion is animated, so a stopped propeller is solid.
+            for(auto& batch:pieces[0].batches)batch.material.opacity=1.0f;
+            // Blur disc in the blades' face colour (Propeller_Red, Kd 1 0 0).
+            disc=renderer.CreateDisc(spec.tipRadius,48,glm::vec3(1.0f,0.0f,0.0f));
+        }
+        replacementContacts.Configure(glm::dvec3(low),glm::dvec3(high));
         if(callbacks.progress)callbacks.progress(LoadProgress("Aeronave",1,1));
         if(callbacks.pump)callbacks.pump();
     }
-    catch(...) {renderer.Release(replacement);throw;}
+    catch(...) {renderer.Release(replacement);for(auto& piece:pieces)renderer.Release(piece);renderer.Release(disc);throw;}
     renderer.Release(aircraftModel);aircraftModel=std::move(replacement);
+    renderer.Release(bladesModel);bladesModel=std::move(pieces[0]);
+    renderer.Release(spinnerModel);spinnerModel=std::move(pieces[1]);
+    renderer.Release(discModel);discModel=std::move(disc);
+    propellerSpec=spec;playerPropeller.Reset();trafficPropeller.Reset();
+    airframeMin=low;airframeMax=high;
     contacts=std::move(replacementContacts);cockpitEyeLocal=cockpitEye;
 }
 
+void GameScene::Update(double dt,float playerThrottle) {
+    traffic.Update(dt);lightClock.Update(dt);windClock.Update(dt);
+    if(propellerSpec.Present()) {
+        // Time-based (dt), like the wind: same speed on any computer, stops on pause.
+        playerPropeller.Update(dt,playerThrottle,propellerSpec.maxRpm);
+        // The Bezier traffic aircraft cruises at a constant 75% power.
+        trafficPropeller.Update(dt,.75f,propellerSpec.maxRpm);
+    }
+}
+
+glm::vec3 GameScene::AirframePivot() const {
+    // Centre of the whole aircraft's bounds (body + propeller).
+    return (airframeMin+airframeMax)*.5f;
+}
+
 void GameScene::Load(GLFWwindow* window,const LoadCallbacks& callbacks,
-                     const std::string& aircraftPath,const glm::vec3& cockpitEye) {
+                     const std::string& aircraftPath,const glm::vec3& cockpitEye,
+                     const propeller::Spec& propellerSpec) {
     if(!chunks.empty()||!aircraftModel.batches.empty())throw std::logic_error("Scene already loaded");
     const std::string manifest="../../data/rio/chunks/manifest.json";
     const std::size_t mapCount=ModelRenderer::CountMapChunks(manifest),total=mapCount+2;
@@ -53,7 +92,7 @@ void GameScene::Load(GLFWwindow* window,const LoadCallbacks& callbacks,
         activity.pump();
     };
     report("Aeronave",0);
-    LoadAircraft(aircraftPath,cockpitEye,activity);
+    LoadAircraft(aircraftPath,cockpitEye,propellerSpec,activity);
     // AI-assisted: the pilot is shared by every aircraft and seat (docs/pilot.md).
     pilotModel=renderer.Load("../../data/pilot/pilot.obj");
     report("Cenario",1);
@@ -86,7 +125,7 @@ collision::AircraftPose GameScene::PhysicalPose(Aircraft& aircraft) {
     return pose;
 }
 void GameScene::SetAirframeType(collision::AirframeType type) {
-    contacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),type);
+    contacts.Configure(glm::dvec3(airframeMin),glm::dvec3(airframeMax),type);
     airframeType=type;
 }
 void GameScene::SetLightProfile(const std::string& aircraftId) {
@@ -104,7 +143,7 @@ void GameScene::ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& 
     }
 }
 void GameScene::ResetPlayer(Aircraft& aircraft) {
-    lightClock.Reset();
+    lightClock.Reset();playerPropeller.Reset();
     Spawn(aircraft);contacts.Reset();ResolvePlayer(aircraft,PhysicalPose(aircraft),0);
 }
 std::vector<collision::ProbeSphere> GameScene::PlayerProbes(Aircraft& aircraft) const {
@@ -161,7 +200,7 @@ bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) con
         inclinedHigh.up=-direction*std::sin(pitch)+glm::dvec3(0,std::cos(pitch),0);
         inclinedLow=inclinedHigh;inclinedLow.position=center;
         collision::AircraftContacts inclinedContacts;
-        inclinedContacts.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
+        inclinedContacts.Configure(glm::dvec3(airframeMin),glm::dvec3(airframeMax),airframeType);
         const auto inclined=inclinedContacts.Resolve(physicalWorld,inclinedHigh,inclinedLow,
                                                    direction*3.0+glm::dvec3(0,-1,0),4.0);
         collision::AircraftPose inclinedSettled;
@@ -173,7 +212,7 @@ bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) con
         high.position=center+glm::dvec3(0,1,0);high.forward=direction;
         low=high;low.position=center-glm::dvec3(0,.01,0);
         collision::AircraftContacts arrival;
-        arrival.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
+        arrival.Configure(glm::dvec3(airframeMin),glm::dvec3(airframeMax),airframeType);
         const auto contact=arrival.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-1,0),1.01);
         check(contact.state==collision::AircraftState::Grounded&&contact.gearContacts==3,
               runway.id+" supports the A320 landing gear at arrival");
@@ -182,7 +221,7 @@ bool GameScene::InspectMission(Aircraft& aircraft,const std::string& report) con
         const auto sample=MissionInput(contact,arrival.DebugSpheres(settled));
         auto failedArrival=replay;
         collision::AircraftContacts impact;
-        impact.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
+        impact.Configure(glm::dvec3(airframeMin),glm::dvec3(airframeMax),airframeType);
         const auto crash=impact.Resolve(physicalWorld,high,low,direction*3.0+glm::dvec3(0,-30,0),1.01);
         collision::AircraftPose stopped;stopped.position=crash.position;stopped.forward=crash.forward;stopped.up=crash.up;
         failedArrival.Update(MissionInput(crash,impact.DebugSpheres(stopped)),1.01);
@@ -218,7 +257,7 @@ bool GameScene::InspectCollisions(Aircraft& aircraft,const std::string& report) 
         passed=passed&&condition;
     };
     collision::AircraftContacts checker;
-    checker.Configure(glm::dvec3(aircraftModel.min),glm::dvec3(aircraftModel.max),airframeType);
+    checker.Configure(glm::dvec3(airframeMin),glm::dvec3(airframeMax),airframeType);
     const auto start=PhysicalPose(aircraft);
     auto result=checker.Resolve(physicalWorld,start,start,glm::dvec3(0),0);
     check(result.state==collision::AircraftState::Grounded,"Santos Dumont spawn supported by runway");
@@ -287,8 +326,8 @@ glm::mat4 GameScene::AircraftTransform(Aircraft& aircraft) const {
     orientation[0]=glm::vec4(forward,0);
     orientation[1]=glm::vec4(glm::normalize(glm::cross(right,forward)),0);
     orientation[2]=glm::vec4(right,0);
-    glm::vec3 pivot=(aircraftModel.min+aircraftModel.max)*.5f;
-    pivot.y=aircraftModel.min.y;
+    glm::vec3 pivot=AirframePivot();
+    pivot.y=airframeMin.y;
     const glm::vec3 position=aircraft.get_position();
     return Matrix_Translate(position.x,position.y,position.z)*orientation*
            Matrix_Translate(-pivot.x,-pivot.y,-pivot.z);
@@ -326,7 +365,7 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     const glm::mat4 identity(1), transform=AircraftTransform(aircraft);
     const FlightPose npc=traffic.Pose();
-    const glm::vec3 pivot=(aircraftModel.min+aircraftModel.max)*.5f;
+    const glm::vec3 pivot=AirframePivot();
     const glm::mat4 npcTransform=Matrix_Translate(npc.position.x,npc.position.y,npc.position.z)*
         npc.Orientation()*Matrix_Translate(-pivot.x,-pivot.y,-pivot.z);
     std::vector<const MapChunk*> visible;
@@ -336,6 +375,25 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
         // the grass it shares GRASS_0 with: 3 steps beyond DepthPriority::GRASS.
         renderer.Draw(chunk.model,identity,camera,RenderPass::Solid,chunk.foundation?3:0);
     }
+    // AI-assisted (docs/propeller.md): the propeller of one aircraft. Blades:
+    // aircraft Model * T(hub) R_x(theta) T(-hub), so they stay on the nose and
+    // follow every movement of the aircraft while turning about its axis.
+    // Solid while slow; above VisibleRpm they fade into a translucent disc.
+    struct PropellerDraw {glm::mat4 blades,disc;float bladeAlpha,discAlpha;glm::vec3 hub;};
+    const auto propellerOf=[&](const glm::mat4& aircraftTransform,const propeller::Spin& spin) {
+        PropellerDraw p;
+        p.blades=aircraftTransform*propeller::BladeMatrix(propellerSpec.hub,spin.Angle());
+        p.disc=aircraftTransform*propeller::DiscMatrix(propellerSpec.hub);
+        p.bladeAlpha=propeller::BladeOpacity(spin.Rpm());
+        p.discAlpha=propeller::DiscOpacity(spin.Rpm());
+        p.hub=glm::vec3(aircraftTransform*glm::vec4(propellerSpec.hub,1.0f));
+        return p;
+    };
+    std::vector<PropellerDraw> propellers;
+    if(propellerSpec.Present()) {
+        if(layer!=SceneLayer::WORLD)propellers.push_back(propellerOf(transform,playerPropeller));
+        if(layer!=SceneLayer::AIRCRAFT)propellers.push_back(propellerOf(npcTransform,trafficPropeller));
+    }
     if(layer!=SceneLayer::WORLD) {
         renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
         DrawCrew(transform,camera);
@@ -344,6 +402,12 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     if(layer!=SceneLayer::AIRCRAFT) {
         renderer.Draw(aircraftModel,npcTransform,camera,RenderPass::Solid);
         DrawCrew(npcTransform,camera);
+    }
+    for(const auto& p:propellers) {
+        // The spinner turns with the blades (same matrix) but stays solid.
+        renderer.Draw(spinnerModel,p.blades,camera,RenderPass::Solid);
+        // Opaque blades only (alpha 1); faded blades go to the transparent pass.
+        renderer.Draw(bladesModel,p.blades,camera,RenderPass::Solid,0,p.bladeAlpha);
     }
 
     // Cores contribute depth before glass. The same complete model matrices
@@ -358,13 +422,18 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     drawLights(LightRenderPass::Core);
 
     // Draw all opaque geometry first, then glass from far to near.
-    struct Instance {const RenderModel* model;glm::mat4 transform;glm::vec3 center;};
+    struct Instance {const RenderModel* model;glm::mat4 transform;glm::vec3 center;float alpha;};
     std::vector<Instance> transparent;
     for(const auto* chunk:visible)
-        transparent.push_back({&chunk->model,identity,(chunk->min+chunk->max)*.5f});
-    if(layer!=SceneLayer::WORLD)transparent.push_back({&aircraftModel,transform,aircraft.get_position()});
-    if(layer!=SceneLayer::AIRCRAFT)transparent.push_back({&aircraftModel,npcTransform,npc.position});
-    std::sort(transparent.begin(),transparent.end(),[&](const Instance& a,const Instance& b){
+        transparent.push_back({&chunk->model,identity,(chunk->min+chunk->max)*.5f,1.0f});
+    if(layer!=SceneLayer::WORLD)transparent.push_back({&aircraftModel,transform,aircraft.get_position(),1.0f});
+    if(layer!=SceneLayer::AIRCRAFT)transparent.push_back({&aircraftModel,npcTransform,npc.position,1.0f});
+    // Disc first, then the faint blades over it (same centre: stable order).
+    for(const auto& p:propellers) {
+        if(p.discAlpha>0)transparent.push_back({&discModel,p.disc,p.hub,p.discAlpha});
+        if(p.bladeAlpha<1)transparent.push_back({&bladesModel,p.blades,p.hub,p.bladeAlpha});
+    }
+    std::stable_sort(transparent.begin(),transparent.end(),[&](const Instance& a,const Instance& b){
         glm::vec3 da=a.center-camera,db=b.center-camera;
         return glm::dot(da,da)>glm::dot(db,db);
     });
@@ -379,7 +448,7 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
     glPolygonOffset(-1.0f,-2.0f);
     for(const auto& item:transparent)renderer.Draw(*item.model,item.transform,camera,RenderPass::Decal);
     glDisable(GL_POLYGON_OFFSET_FILL);
-    for(const auto& item:transparent)renderer.Draw(*item.model,item.transform,camera,RenderPass::Transparent);
+    for(const auto& item:transparent)renderer.Draw(*item.model,item.transform,camera,RenderPass::Transparent,0,item.alpha);
     // Halos stay depth-tested against opaque geometry. Their additive glow is
     // an approximation and does not simulate light scattering through glass.
     drawLights(LightRenderPass::Halo);
@@ -391,5 +460,8 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
 GameScene::~GameScene() {
     renderer.Release(aircraftModel);
     renderer.Release(pilotModel);
+    renderer.Release(bladesModel);
+    renderer.Release(spinnerModel);
+    renderer.Release(discModel);
     for(auto& chunk:chunks)renderer.Release(chunk.model);
 }

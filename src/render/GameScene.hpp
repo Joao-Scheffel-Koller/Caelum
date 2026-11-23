@@ -10,6 +10,7 @@
 #include "aircraft/AircraftLights.hpp"
 #include "render/AircraftLightRenderer.hpp"
 #include "aircraft/PilotCrew.hpp"
+#include "aircraft/Propeller.hpp"
 
 enum class SceneLayer { ALL, WORLD, AIRCRAFT };
 
@@ -19,9 +20,11 @@ public:
     ~GameScene();
     void Load(GLFWwindow* window,const LoadCallbacks& callbacks={},
               const std::string& aircraftPath="../../data/aircraft/aircraft.obj",
-              const glm::vec3& cockpitEye=glm::vec3(7.90f,.95f,-.65f));
+              const glm::vec3& cockpitEye=glm::vec3(7.90f,.95f,-.65f),
+              const propeller::Spec& propellerSpec={});
+    // propellerSpec (docs/propeller.md): objects split from the OBJ and animated.
     void LoadAircraft(const std::string& aircraftPath,const glm::vec3& cockpitEye,
-                      const LoadCallbacks& callbacks={});
+                      const propeller::Spec& propellerSpec={},const LoadCallbacks& callbacks={});
     void Spawn(Aircraft& aircraft) const;
     void SetAirframeType(collision::AirframeType type);
     void SetLightProfile(const std::string& aircraftId);
@@ -35,14 +38,22 @@ public:
     mission::MissionSample PlayerMissionSample(Aircraft& aircraft) const;
     bool InspectMission(Aircraft& aircraft,const std::string& report) const;
     static collision::AircraftPose PhysicalPose(Aircraft& aircraft);
-    void Update(double dt) {traffic.Update(dt);lightClock.Update(dt);windClock.Update(dt);}
+    // playerThrottle in [0,1] sets the player's propeller speed (docs/propeller.md).
+    void Update(double dt,float playerThrottle=0.0f);
     FlightPose TrafficPose() const {return traffic.Pose();}
     CameraFrame Cameras(Aircraft& aircraft) const;
     void Draw(GLuint program, Aircraft& aircraft, const glm::mat4& view,const glm::mat4& projection,
               const glm::vec3& camera, SceneLayer layer=SceneLayer::ALL);
 private:
     ModelRenderer renderer;
-    RenderModel aircraftModel;
+    RenderModel aircraftModel;          // Without the propeller, when it is split.
+    // AI-assisted (docs/propeller.md): propeller blades (rotate and blur),
+    // spinner (rotates, always solid) and the blur disc.
+    RenderModel bladesModel,spinnerModel,discModel;
+    propeller::Spec propellerSpec;
+    propeller::Spin playerPropeller,trafficPropeller;
+    // Bounds of the whole aircraft (body + propeller): pivot and collisions.
+    glm::vec3 airframeMin{0.0f},airframeMax{0.0f};
     RenderModel pilotModel;   // One mesh, drawn once per seat (docs/pilot.md).
     pilot::Crew crew;
     BezierFlight traffic;
@@ -59,5 +70,6 @@ private:
     glm::vec3 cockpitEyeLocal{7.90f,.95f,-.65f};
     glm::mat4 AircraftTransform(Aircraft& aircraft) const;
     void DrawCrew(const glm::mat4& aircraftTransform,const glm::vec3& camera);
+    glm::vec3 AirframePivot() const;
 };
 #endif

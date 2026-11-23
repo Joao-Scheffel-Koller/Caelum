@@ -425,10 +425,10 @@ int main(int argc, char* argv[])
             callbacks.pump();
             if(!sceneReady) {
                 scene.reset(new GameScene);
-                scene->Load(window,callbacks,spec.modelPath,spec.cockpitEye);
+                scene->Load(window,callbacks,spec.modelPath,spec.cockpitEye,spec.propeller);
                 sceneReady=true;
             } else if(loadedAircraft!=spec.id) {
-                scene->LoadAircraft(spec.modelPath,spec.cockpitEye,callbacks);
+                scene->LoadAircraft(spec.modelPath,spec.cockpitEye,spec.propeller,callbacks);
             }
             loadedAircraft=spec.id;
             scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
@@ -589,7 +589,9 @@ int main(int argc, char* argv[])
         }
         flightMission.Update(scene->PlayerMissionSample(MainAircraft),physicsStep);
         previous_time = current_time;
-        scene->Update(elapsed); // Advance traffic/lights once; cockpit draw passes only read them.
+        // Advance traffic/lights/propellers once; cockpit draw passes only read them.
+        // A crashed engine gets no throttle: the propeller winds down.
+        scene->Update(elapsed,g_PlayerCrashed?0.0f:MainAircraft.get_throttle());
         g_CameraFrame=scene->Cameras(MainAircraft);
         g_CameraInput->Update(dt);
         const CameraPose camera=texture_check?inspection.Camera(g_CameraFrame,scene->TrafficPose()):g_Camera.Pose(g_CameraFrame);

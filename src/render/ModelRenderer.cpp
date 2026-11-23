@@ -24,7 +24,7 @@ std::string Join(const std::string& base,const std::string& file) {
     if (file.empty() || file[0]=='/' || file.find(':')!=std::string::npos) return file;
     return base+file;
 }
-struct Vertex { glm::vec3 position,normal; glm::vec2 uv; };
+using Vertex=RenderVertex;
 float MaxAnisotropy() {
     GLint count=0;glGetIntegerv(GL_NUM_EXTENSIONS,&count);
     for(GLint i=0;i<count;++i) {
@@ -52,9 +52,15 @@ struct PreparedModel {
     glm::vec3 min,max;
     std::vector<tinyobj::material_t> materials;
     std::map<int,std::vector<Vertex>> grouped;
+    // AI-assisted (docs/propeller.md): faces of the OBJ objects asked to be
+    // split (e.g. propeller blades, spinner), one group per piece, grouped by
+    // material like the rest.
+    struct Piece {glm::vec3 min,max;std::map<int,std::vector<Vertex>> grouped;};
+    std::vector<Piece> pieces;
 };
 
-PreparedModel PrepareModel(const std::string& path,bool map,collision::CollisionWorld* physicalWorld) {
+PreparedModel PrepareModel(const std::string& path,bool map,collision::CollisionWorld* physicalWorld,
+                           const std::vector<std::vector<std::string>>& splitPieces={}) {
     tinyobj::attrib_t attributes;
     std::vector<tinyobj::shape_t> shapes;
     PreparedModel result;
@@ -64,7 +70,10 @@ PreparedModel PrepareModel(const std::string& path,bool map,collision::Collision
         throw std::runtime_error(path+": "+error);
     result.min=glm::vec3(std::numeric_limits<float>::max());
     result.max=glm::vec3(std::numeric_limits<float>::lowest());
-    auto& grouped=result.grouped;
+    result.pieces.resize(splitPieces.size());
+    for(auto& piece:result.pieces){piece.min=result.min;piece.max=result.max;}
+    std::vector<std::string> missing;
+    for(const auto& names:splitPieces)for(const auto& name:names)missing.push_back(name);
     // Reuse the OBJ read: the physical world retains positions/material kinds,
     // while GPU batches retain normals/UVs. Neither depends on camera visibility.
     std::vector<collision::WorldTriangle> physical;
@@ -77,6 +86,15 @@ PreparedModel PrepareModel(const std::string& path,bool map,collision::Collision
     struct Tree {glm::dvec3 base{0};double height=0,width=0;};
     std::map<std::tuple<long long,long long,long long,long long>,Tree> trees;
     for(const auto& shape:shapes) {
+        // tinyobj names each shape after its "o"/"g" line.
+        PreparedModel::Piece* piece=nullptr;
+        for(size_t i=0;i<splitPieces.size();++i)
+            if(std::find(splitPieces[i].begin(),splitPieces[i].end(),shape.name)!=splitPieces[i].end())
+                piece=&result.pieces[i];
+        if(piece)missing.erase(std::remove(missing.begin(),missing.end(),shape.name),missing.end());
+        auto& grouped=piece?piece->grouped:result.grouped;
+        glm::vec3& low=piece?piece->min:result.min;
+        glm::vec3& high=piece?piece->max:result.max;
         size_t offset=0;
         for(size_t face=0;face<shape.mesh.num_face_vertices.size();++face) {
             const int count=shape.mesh.num_face_vertices[face];
@@ -87,7 +105,7 @@ PreparedModel PrepareModel(const std::string& path,bool map,collision::Collision
                 auto index=shape.mesh.indices[offset+corner];
                 Vertex& v=triangle[corner];
                 v.position=glm::vec3(attributes.vertices[3*index.vertex_index],attributes.vertices[3*index.vertex_index+1],attributes.vertices[3*index.vertex_index+2]);
-                result.min=glm::min(result.min,v.position);result.max=glm::max(result.max,v.position);
+                low=glm::min(low,v.position);high=glm::max(high,v.position);
                 v.normal=glm::vec3(0);
                 if(index.normal_index>=0)v.normal=glm::vec3(attributes.normals[3*index.normal_index],attributes.normals[3*index.normal_index+1],attributes.normals[3*index.normal_index+2]);
                 v.uv=index.texcoord_index<0?glm::vec2(0):glm::vec2(attributes.texcoords[2*index.texcoord_index],attributes.texcoords[2*index.texcoord_index+1]);
@@ -138,6 +156,7 @@ PreparedModel PrepareModel(const std::string& path,bool map,collision::Collision
         physicalWorld->AddChunk(path,std::move(physical));
     }
     if(result.grouped.empty())throw std::runtime_error("Empty OBJ: "+path);
+    if(!missing.empty())throw std::runtime_error(path+": no object named "+missing.front());
     return result;
 }
 }
@@ -164,14 +183,8 @@ GLuint ModelRenderer::LoadTexture(const std::string& path,const LoadCallbacks& c
     return texture;
 }
 
-RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::CollisionWorld* physicalWorld,
-                                const LoadCallbacks& callbacks) {
-    auto prepared=RunLoadCpu(callbacks,[&](){return PrepareModel(path,map,physicalWorld);});
-    RenderModel result;result.min=prepared.min;result.max=prepared.max;
-    auto& materials=prepared.materials;
-    auto& grouped=prepared.grouped;
-    const auto base=Directory(path);
-    try {
+void ModelRenderer::Upload(std::map<int,std::vector<RenderVertex>>& grouped,const std::vector<tinyobj::material_t>& materials,
+                           const std::string& base,bool map,const LoadCallbacks& callbacks,RenderModel& result) {
     for(auto& group:grouped) {
         if(callbacks.pump)callbacks.pump();
         result.batches.emplace_back();
@@ -186,26 +199,92 @@ RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::Coll
         } else {
             batch.material.policy=ClassifyMaterial("","",false,map);
         }
-        batch.count=GLsizei(group.second.size());
-        glm::vec3 low(std::numeric_limits<float>::max()),high(std::numeric_limits<float>::lowest());
-        for(const auto& vertex:group.second){low=glm::min(low,vertex.position);high=glm::max(high,vertex.position);}
-        batch.center=(low+high)*.5f;
-        glGenVertexArrays(1,&batch.vao);glBindVertexArray(batch.vao);
-        glGenBuffers(1,&batch.vbo);glBindBuffer(GL_ARRAY_BUFFER,batch.vbo);
-        glBufferData(GL_ARRAY_BUFFER,group.second.size()*sizeof(Vertex),group.second.data(),GL_STATIC_DRAW);
-        for(GLuint attribute=0;attribute<3;++attribute) {
-            const size_t offsets[]={offsetof(Vertex,position),offsetof(Vertex,normal),offsetof(Vertex,uv)};
-            glVertexAttribPointer(attribute,attribute==2?2:3,GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[attribute]));
-            glEnableVertexAttribArray(attribute);
-        }
+        UploadBatch(group.second,batch);
         if(callbacks.pump)callbacks.pump();
     }
     glBindVertexArray(0);
-    if(result.batches.empty())throw std::runtime_error("Empty OBJ: "+path);
+}
+
+void ModelRenderer::UploadBatch(const std::vector<RenderVertex>& vertices,RenderBatch& batch) {
+    batch.count=GLsizei(vertices.size());
+    glm::vec3 low(std::numeric_limits<float>::max()),high(std::numeric_limits<float>::lowest());
+    for(const auto& vertex:vertices){low=glm::min(low,vertex.position);high=glm::max(high,vertex.position);}
+    batch.center=(low+high)*.5f;
+    glGenVertexArrays(1,&batch.vao);glBindVertexArray(batch.vao);
+    glGenBuffers(1,&batch.vbo);glBindBuffer(GL_ARRAY_BUFFER,batch.vbo);
+    glBufferData(GL_ARRAY_BUFFER,vertices.size()*sizeof(Vertex),vertices.data(),GL_STATIC_DRAW);
+    for(GLuint attribute=0;attribute<3;++attribute) {
+        const size_t offsets[]={offsetof(Vertex,position),offsetof(Vertex,normal),offsetof(Vertex,uv)};
+        glVertexAttribPointer(attribute,attribute==2?2:3,GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(offsets[attribute]));
+        glEnableVertexAttribArray(attribute);
+    }
+}
+
+RenderModel ModelRenderer::Load(const std::string& path,bool map,collision::CollisionWorld* physicalWorld,
+                                const LoadCallbacks& callbacks) {
+    auto prepared=RunLoadCpu(callbacks,[&](){return PrepareModel(path,map,physicalWorld);});
+    RenderModel result;result.min=prepared.min;result.max=prepared.max;
+    try {
+        Upload(prepared.grouped,prepared.materials,Directory(path),map,callbacks,result);
+        if(result.batches.empty())throw std::runtime_error("Empty OBJ: "+path);
     } catch(...) {
         glBindVertexArray(0);glBindBuffer(GL_ARRAY_BUFFER,0);
         Release(result);throw;
     }
+    return result;
+}
+
+RenderModel ModelRenderer::LoadSplit(const std::string& path,const std::vector<std::vector<std::string>>& pieces,
+                                     std::vector<RenderModel>& parts,const LoadCallbacks& callbacks) {
+    // AI-assisted (docs/propeller.md): one OBJ read, several models. The
+    // objects of pieces[i] go to parts[i], everything else to the returned
+    // model; each keeps its own bounds (the caller combines them).
+    auto prepared=RunLoadCpu(callbacks,[&](){return PrepareModel(path,false,nullptr,pieces);});
+    RenderModel result;result.min=prepared.min;result.max=prepared.max;
+    std::vector<RenderModel> split(prepared.pieces.size());
+    try {
+        const auto base=Directory(path);
+        Upload(prepared.grouped,prepared.materials,base,false,callbacks,result);
+        for(size_t i=0;i<split.size();++i) {
+            split[i].min=prepared.pieces[i].min;split[i].max=prepared.pieces[i].max;
+            Upload(prepared.pieces[i].grouped,prepared.materials,base,false,callbacks,split[i]);
+            if(split[i].batches.empty())throw std::runtime_error("Empty split of "+path);
+        }
+        if(result.batches.empty())throw std::runtime_error("Empty split of "+path);
+    } catch(...) {
+        glBindVertexArray(0);glBindBuffer(GL_ARRAY_BUFFER,0);
+        Release(result);for(auto& model:split)Release(model);throw;
+    }
+    for(auto& model:parts)Release(model);
+    parts=std::move(split);
+    return result;
+}
+
+RenderModel ModelRenderer::CreateDisc(float radius,int segments,const glm::vec3& color) {
+    // AI-assisted (docs/propeller.md): flat disc in the YZ plane at the origin,
+    // facing +X and -X (two faces 1 mm apart, so both sides are lit).
+    std::vector<RenderVertex> vertices;
+    const float TwoPi=6.28318531f;
+    for(int side=0;side<2;++side) {
+        const float x=side?-.0005f:.0005f;
+        const glm::vec3 normal(side?-1.0f:1.0f,0,0);
+        for(int i=0;i<segments;++i) {
+            const float a0=TwoPi*i/segments,a1=TwoPi*(i+1)/segments;
+            const glm::vec3 p0(x,radius*std::cos(a0),radius*std::sin(a0));
+            const glm::vec3 p1(x,radius*std::cos(a1),radius*std::sin(a1));
+            vertices.push_back({glm::vec3(x,0,0),normal,glm::vec2(.5f)});
+            vertices.push_back({side?p1:p0,normal,glm::vec2(.5f)});
+            vertices.push_back({side?p0:p1,normal,glm::vec2(.5f)});
+        }
+    }
+    RenderModel result;
+    result.min=glm::vec3(-.0005f,-radius,-radius);result.max=glm::vec3(.0005f,radius,radius);
+    result.batches.emplace_back();
+    auto& batch=result.batches.back();
+    batch.material.diffuse=color;
+    batch.material.policy=ClassifyMaterial("","",false,false);
+    UploadBatch(vertices,batch);
+    glBindVertexArray(0);
     return result;
 }
 
@@ -285,7 +364,8 @@ void ModelRenderer::SetProgram(GLuint program) {
     }
 }
 
-void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,RenderPass pass,int depthBias) {
+void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,const glm::vec3& camera,RenderPass pass,
+                         int depthBias,float alpha) {
     glUniformMatrix4fv(modelUniform,1,GL_FALSE,glm::value_ptr(transform));
     glUniform3fv(cameraUniform,1,glm::value_ptr(camera));
     glUniform1f(alphaCutoffUniform,pass==RenderPass::Solid?.2f:.001f);
@@ -302,7 +382,7 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
     std::vector<const RenderBatch*> batches;
     for(const auto& batch:model.batches) {
         const RenderPass batchPass=batch.material.policy.layer==MaterialLayer::DECAL?RenderPass::Decal:
-            batch.material.opacity<.999f?RenderPass::Transparent:RenderPass::Solid;
+            batch.material.opacity*alpha<.999f?RenderPass::Transparent:RenderPass::Solid;
         if(batchPass==pass)batches.push_back(&batch);
     }
     // Bounds-center sorting is approximate for intersecting glass surfaces.
@@ -314,7 +394,7 @@ void ModelRenderer::Draw(const RenderModel& model,const glm::mat4& transform,con
     for(const auto* batch:batches) {
         const auto& material=batch->material;
         glUniform3fv(colorUniform,1,glm::value_ptr(material.diffuse));
-        glUniform1f(opacityUniform,material.opacity);
+        glUniform1f(opacityUniform,material.opacity*alpha);
         glUniform1i(hasTextureUniform,material.texture!=0);
         glUniform1i(proceduralUniform,static_cast<int>(material.policy.procedural));
         glUniform1f(windStrengthUniform,material.policy.sway?1.0f:0.0f);

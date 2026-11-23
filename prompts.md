@@ -1,5 +1,35 @@
 ## File used to store ai prompts
 
+45. Claude Code (2026-11-23): "Now I wanted to make the propeller of the
+    monomotor  rotate according to the throttle that we set. Is this possible to
+    be made? How is it done? Do we break the .obj file of the monotor into two
+    pieces (i.e. propeller and rest) and do we animate the propeller piece
+    accordingly?"; "If you said that the propeller is already split today, why
+    do you suggest to make a python script to split the .obj file?"; "let's
+    implement the propeller animation of the monotor.  write a doc in /docs/,
+    let's split the propeller from the rest of the plane at load time,  than
+    adjust the the pivot used to place the the aricraft. Since it is using the
+    bounding box of the object today and this would change slightly considering
+    we do not have a propeller anymore, adjust this pivot by computing it from
+    both pieces together. Now the propellers model matrix: draw the propeller
+    always on the nose of the plane, followinf every of its movements. Rotate it
+    around the aircrafts longitudinall axis by an angle theta. Theta advances
+    with time (i.e. it does not deppend ond the speed of the cpu) at a speed set
+    by the throttle. To avoid aliasing change the propeller at a high throttle
+    into a translucent disc. You may add other changes you find useful to avoid
+    aliasing. If I did not mention something important in this prompt to
+    implement this functionality, you may do this thing, but make sure to tell
+    me what you've done so that I understand it". Separar no carregamento as pas
+    e o cone da helice do resto do OBJ, usar a caixa do aviao inteiro (corpo +
+    helice) no pivo e nas colisoes, desenhar as pas com Model do aviao * T(cubo)
+    * R_x(theta) * T(-cubo) e avancar theta por dt numa rotacao que segue o
+    throttle com atraso de 1 s; contra aliasing, rotacao mostrada limitada a 300
+    rpm e pas que viram disco translucido entre 300 e 900 rpm. Gerados com IA:
+    src/aircraft/Propeller.*, helice em AircraftCatalog.*,
+    LoadSplit/CreateDisc/opacidade em ModelRenderer.*, pecas, pivo, colisoes,
+    atualizacao e desenho em GameScene.*, integracao em main.cpp,
+    tests/PropellerTest.cpp, CMakeLists.txt, Makefile.macOS e docs/propeller.md.
+
 44. Claude Code (2026-11-23): "now let's add the pilots to the A320. And don't
     forget to add the prompts to the prompt md file". Sentar comandante e
     copiloto no A320 em escala 1,0 (modelo em tamanho real), com o apoio na
