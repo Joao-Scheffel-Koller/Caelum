@@ -1,5 +1,45 @@
 ## File used to store ai prompts
 
+40. Claude Code (2026-11-22): "The new changes you've made to the code made some
+    buildings look like they are floating above a thin layer of air when you
+    begin with the small plane at the ground. Once you begin get a slightly
+    higher altitude this effect disappears. Please refer to the two
+    screenshots I added to the /docs/ folder in the repository two see a
+    comparison before and after. What have you done to cause this? Did you
+    perhaps add some margin toe the ground or to the buildings? How would
+    you fix it?"; "Please try to keep the order in units and stop scaling
+    factor so much with the level. You may fix the code now". Explicar que
+    nenhuma geometria foi movida: o factor do glPolygonOffset, multiplicado
+    pela inclinacao da profundidade, empurrava o chao distante alem da
+    profundidade 1,0 perto do horizonte e o ceu aparecia sob os predios.
+    Manter a ordem dos niveis em units e reduzir o factor para 0,25 x nivel.
+    Gerados com IA: ModelRenderer.cpp, vista horizon-south em
+    RenderInspection.cpp e secao correspondente em docs/zfighting.md.
+
+39. Claude Code (2026-11-22): "I happened to notice more z-fighting happening at
+    some sort of rectangle and some circles on the ground near to Santos
+    Dumont Airport. To get there you have to move straight forward from the
+    point the aircraft spawns, get passed the runaway, get above the ocean
+    and turn right. When the terrain starts to appear again, near some roads
+    you can find those surfaces. Please identify where this z-fighint is
+    happening and then fix it using the same approach with glPolygonOffset
+    that we used previously. That is, implement the same idea of priority
+    per material. The depth value written to the depth buffer would be
+    probably pushed a little further back in depth steps. If you think some
+    other approached should be used, let me know. I updated the branch
+    z-githing (thats a typo, it should by z-fighting) with the current main
+    branch. You are at z-githing. Once you've made the changes to the code,
+    make a simple explanation of this solution to z-fighting in /docs/ in a
+    markdown file"; "Please resume what you were doing on the last prompt.
+    Apparently you've been killed by the operating system because you were
+    using a lot of memory". Localizar no Aterro do Flamengo o circulo de
+    areia e os caminhos de terra sobre a grama, empatados no mesmo nivel de
+    DepthPriority, e separar em niveis (0 a 7) cada par de materiais do chao
+    medido sobreposto no mapa inteiro (varredura por chunk para limitar a
+    memoria). Gerados com IA: MaterialPolicy.*, comentario em GameScene.cpp,
+    vistas flamengo-* em RenderInspection.cpp, testes em
+    MaterialPolicyTest.cpp e docs/zfighting.md.
+
 38. Claude Code (2026-11-11): "I merged everything into main and now I created
     a branch for wind-animation regarding the leaves (as seen in spec.md). How
     do you suggest to make it? Just give me a suggestion for now"; "I dont
