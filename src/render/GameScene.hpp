@@ -9,6 +9,7 @@
 #include "mission/FlightMission.hpp"
 #include "aircraft/AircraftLights.hpp"
 #include "render/AircraftLightRenderer.hpp"
+#include "aircraft/PilotCrew.hpp"
 
 enum class SceneLayer { ALL, WORLD, AIRCRAFT };
 
@@ -24,6 +25,7 @@ public:
     void Spawn(Aircraft& aircraft) const;
     void SetAirframeType(collision::AirframeType type);
     void SetLightProfile(const std::string& aircraftId);
+    void SetCrew(const pilot::Crew& seated) {crew=seated;}   // AI-assisted (docs/pilot.md).
     void ResolvePlayer(Aircraft& aircraft,const collision::AircraftPose& previous,double dt);
     void ResetPlayer(Aircraft& aircraft);
     const collision::ContactResult& PlayerContact() const {return playerContact;}
@@ -41,6 +43,8 @@ public:
 private:
     ModelRenderer renderer;
     RenderModel aircraftModel;
+    RenderModel pilotModel;   // One mesh, drawn once per seat (docs/pilot.md).
+    pilot::Crew crew;
     BezierFlight traffic;
     AircraftLightRenderer lightRenderer;
     aircraftlights::Clock lightClock;
@@ -54,5 +58,6 @@ private:
     collision::ContactResult playerContact;
     glm::vec3 cockpitEyeLocal{7.90f,.95f,-.65f};
     glm::mat4 AircraftTransform(Aircraft& aircraft) const;
+    void DrawCrew(const glm::mat4& aircraftTransform,const glm::vec3& camera);
 };
 #endif

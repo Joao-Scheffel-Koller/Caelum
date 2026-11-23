@@ -434,6 +434,7 @@ int main(int argc, char* argv[])
             scene->SetAirframeType(spec.light?collision::AirframeType::LightTaildragger:collision::AirframeType::Airliner);
             MainAircraft.set_profile(FlightProfileFor(spec.id)); // Realistic mass/wing/engines (docs/physics.md).
             scene->SetLightProfile(spec.id);
+            scene->SetCrew(spec.crew);   // AI-assisted: seated pilots (docs/pilot.md).
             scene->ResetPlayer(MainAircraft);g_PlayerCrashed=false;g_ResetFlightRequested=false;
             flightMission.Reset();flightMission.Update(scene->PlayerMissionSample(MainAircraft),0);
             std::printf("Flight ready: %s state=%d gear=%u origin_armed=%d reused_scene=%d\n",spec.id.c_str(),

@@ -54,6 +54,8 @@ void GameScene::Load(GLFWwindow* window,const LoadCallbacks& callbacks,
     };
     report("Aeronave",0);
     LoadAircraft(aircraftPath,cockpitEye,activity);
+    // AI-assisted: the pilot is shared by every aircraft and seat (docs/pilot.md).
+    pilotModel=renderer.Load("../../data/pilot/pilot.obj");
     report("Cenario",1);
     chunks=renderer.LoadMap(manifest,[&](size_t loaded){
         glfwSetWindowTitle(window,("Caelum - carregando Rio ("+std::to_string(loaded)+" partes)").c_str());
@@ -292,6 +294,16 @@ glm::mat4 GameScene::AircraftTransform(Aircraft& aircraft) const {
            Matrix_Translate(-pivot.x,-pivot.y,-pivot.z);
 }
 
+void GameScene::DrawCrew(const glm::mat4& aircraftTransform,const glm::vec3& camera) {
+    // AI-assisted (docs/pilot.md): instances of one pilot mesh. Each seat's
+    // Model matrix = aircraft Model * seat matrix (pilot OBJ -> aircraft OBJ),
+    // so the pilots follow every translation and rotation of the aircraft.
+    for(const auto& seat:crew.seats) {
+        if(pilot::CameraInsidePilot(aircraftTransform,seat,crew.scale,camera))continue;
+        renderer.Draw(pilotModel,aircraftTransform*pilot::SeatMatrix(seat,crew.scale),camera,RenderPass::Solid);
+    }
+}
+
 CameraFrame GameScene::Cameras(Aircraft& aircraft) const {
     CameraFrame frame;
     frame.aircraftModel=AircraftTransform(aircraft);
@@ -324,9 +336,15 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
         // the grass it shares GRASS_0 with: 3 steps beyond DepthPriority::GRASS.
         renderer.Draw(chunk.model,identity,camera,RenderPass::Solid,chunk.foundation?3:0);
     }
-    if(layer!=SceneLayer::WORLD)renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
+    if(layer!=SceneLayer::WORLD) {
+        renderer.Draw(aircraftModel,transform,camera,RenderPass::Solid);
+        DrawCrew(transform,camera);
+    }
     // Traffic belongs to the world even in cockpit; the near pass is player-only.
-    if(layer!=SceneLayer::AIRCRAFT)renderer.Draw(aircraftModel,npcTransform,camera,RenderPass::Solid);
+    if(layer!=SceneLayer::AIRCRAFT) {
+        renderer.Draw(aircraftModel,npcTransform,camera,RenderPass::Solid);
+        DrawCrew(npcTransform,camera);
+    }
 
     // Cores contribute depth before glass. The same complete model matrices
     // attach lights to the mesh despite the player/NPC using different pivots.
@@ -372,5 +390,6 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
 
 GameScene::~GameScene() {
     renderer.Release(aircraftModel);
+    renderer.Release(pilotModel);
     for(auto& chunk:chunks)renderer.Release(chunk.model);
 }

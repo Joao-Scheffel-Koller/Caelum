@@ -49,7 +49,10 @@ const View Views[]={
     {"flamengo-earth-b",{4440.3f,20,8150},{4540,0,8276},{0,1,0}},
     // Eye 2 m above the runway: distant ground must stay drawn under the
     // buildings near the horizon (too large a polygon-offset factor hid it).
-    {"horizon-south",{5240,2,6300},{5320,2,7500},{0,1,0}}
+    {"horizon-south",{5240,2,6300},{5320,2,7500},{0,1,0}},
+    // AI-assisted: pilots seen through the light aircraft windshield at the spawn
+    // (cabin ~2.2 m ahead of the wheel point, nose towards +Z).
+    {"pilot-front",{5237.6f,3.6f,6303.5f},{5237.1f,2.1f,6297.4f},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;

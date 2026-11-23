@@ -15,6 +15,7 @@ set(SOURCES
   src/ui/HudInspection.cpp
   src/aircraft/FlightTelemetry.cpp
   src/aircraft/AircraftCatalog.cpp
+  src/aircraft/PilotCrew.cpp
   src/aircraft/AircraftLights.cpp
   src/render/AircraftLightRenderer.cpp
   src/render/AircraftLightsInspection.cpp
@@ -163,6 +164,9 @@ if(BUILD_TESTING)
   add_executable(pilot_asset_test tests/PilotAssetTest.cpp src/third_party/tiny_obj_loader.cpp)
   target_include_directories(pilot_asset_test PRIVATE include)
   add_test(NAME pilot_asset COMMAND pilot_asset_test ${PROJECT_SOURCE_DIR}/data/pilot)
+  add_executable(pilot_crew_test tests/PilotCrewTest.cpp src/aircraft/PilotCrew.cpp src/aircraft/AircraftCatalog.cpp)
+  target_include_directories(pilot_crew_test PRIVATE include src)
+  add_test(NAME pilot_crew COMMAND pilot_crew_test)
   find_program(CAELUM_TEST_PYTHON NAMES python3 python)
   if(CAELUM_TEST_PYTHON)
     add_test(NAME base_terrain COMMAND ${CAELUM_TEST_PYTHON} ${PROJECT_SOURCE_DIR}/data/rio/tools/test_base_terrain.py)
