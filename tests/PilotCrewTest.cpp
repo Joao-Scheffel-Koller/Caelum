@@ -52,17 +52,8 @@ int main() {
         Check(lo.x>1.85f,"back stays in front of the seat back (X 1.88)");
         Check(lo.z>-.69f&&hi.z<.69f,"inside the fuselage width (Z +-0.69)");
     }
-    // The two pilots do not overlap: left one ends before the right one starts.
-    const auto zRange=[&](const glm::vec3& s,float& lo,float& hi) {
-        const glm::mat4 local=pilot::SeatMatrix(s,light.crew.scale);
-        lo=1e9f;hi=-1e9f;
-        for(float x:{pilot::BoundsMin.x,pilot::BoundsMax.x}) {
-            const float z=Point(local,glm::vec3(x,1,0)).z;lo=std::fmin(lo,z);hi=std::fmax(hi,z);
-        }
-    };
-    float leftLo,leftHi,rightLo,rightHi;
-    zRange(light.crew.seats[0],leftLo,leftHi);zRange(light.crew.seats[1],rightLo,rightHi);
-    Check(leftHi<rightLo,"the two pilots do not overlap");
+    // The fit against the cabin skin and the gap between the two pilots are
+    // measured on the real meshes in tests/PilotFitTest.cpp.
 
     // Cockpit camera sits in the left seat: that pilot is hidden, the other drawn,
     // in any aircraft pose (the test uses a rotated and moved aircraft).

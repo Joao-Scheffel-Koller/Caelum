@@ -43,9 +43,10 @@ No piloto, medimos o ponto que deve tocar o banco (**ponto de apoio**):
 ```
 
 No monomotor, cada assento é o ponto equivalente: **topo da almofada**
-(Y = 1,695), **frente do encosto** (X = 2,00) e **centro do banco** (Z = −0,30
-à esquerda, +0,30 à direita). Esses valores foram lidos dos objetos `SeatBase`
-e `SeatBack` do OBJ.
+(Y = 1,695) e **frente do encosto** (X = 2,00), lidos dos objetos `SeatBase` e
+`SeatBack` do OBJ. Na lateral, os pilotos ficam em **Z = −0,24** (esquerda) e
+**Z = +0,26** (direita), um pouco para dentro do centro dos bancos (±0,30);
+ver a seção 4.
 
 ## 3. A matriz de um assento
 
@@ -53,12 +54,12 @@ Para levar o piloto até um assento, montamos (de direita para esquerda, como
 são aplicadas no ponto):
 
 ```
-SeatMatrix = T(assento) · R_y(90°) · S(0,8) · T(−apoio)
+SeatMatrix = T(assento) · R_y(90°) · S(0,72) · T(−apoio)
 ```
 
 1. **`T(−apoio)`**: move o piloto para que o ponto de apoio fique na origem.
    A partir daqui, rotação e escala acontecem "em torno do quadril".
-2. **`S(0,8)`**: escala uniforme (ver seção 4).
+2. **`S(0,72)`**: escala uniforme (ver seção 4).
 3. **`R_y(90°)`**: gira 90° em torno do eixo Y. A matriz leva +Z em +X: a
    frente do piloto passa a apontar para o nariz.
    ```
@@ -71,14 +72,41 @@ SeatMatrix = T(assento) · R_y(90°) · S(0,8) · T(−apoio)
 Todas as matrizes vêm de `include/matrices.h` (`Matrix_Translate`,
 `Matrix_Rotate_Y`, `Matrix_Scale`), sem as funções proibidas da GLM.
 
-## 4. Por que a escala 0,8
+## 4. Escala e posição lateral: medidas nas malhas
 
 O monomotor é **estilizado**: a cabine é menor que a de um avião real. A
-câmera do cockpit, posicionada pela geometria do avião, fica com os olhos
-**0,70 m** acima do assento. No modelo do piloto, os olhos ficam **0,89 m**
-acima do quadril. Com 0,70 / 0,89 ≈ **0,8**, a cabeça do piloto fica na altura
-dos olhos da câmera, abaixo do teto, e os pés no piso (afundam poucos
-centímetros dentro da espessura do piso, invisível de fora).
+primeira versão usava escala **0,8** (a câmera do cockpit tem os olhos 0,70 m
+acima do assento; o piloto, 0,89 m acima do quadril) e os pilotos no centro
+dos bancos (Z = ±0,30). Mas o braço do lado da janela **atravessava o vidro**:
+na altura dos ombros, as paredes da cabine se inclinam para dentro.
+
+Para escolher novos valores sem adivinhar, medimos nas malhas reais: para cada
+vértice do piloto já posicionado, um raio sai da linha central da cabine
+(Z = 0) em direção ao vértice. Se o raio cruza a casca do avião (janelas,
+paredes) antes de chegar ao vértice, aquele ponto está **para fora**.
+
+```
+        janela          linha central         janela
+          │                   ┆                   │
+          │   ●───────────────┤ raio              │
+   ●──────┼───────────────────┤  ← cruza a janela: vértice para fora
+          │                   ┆                   │
+```
+
+| Escala | Z esq. / dir. | Saindo pela janela (esq. / dir.) | Folga entre os pilotos |
+|---|---|---|---|
+| 0,80 | −0,30 / +0,30 | 9,4 cm / 6,7 cm | 10,4 cm |
+| 0,80 | −0,25 / +0,25 | 4,4 cm / 1,7 cm | 2,7 cm |
+| 0,76 | −0,25 / +0,25 | 2,6 cm / 0 | 3,8 cm |
+| **0,72** | **−0,24 / +0,26** | **0 / 0** | **5,8 cm** |
+
+Só aproximar os pilotos do centro não basta: antes de os braços saírem da
+janela, eles já se encostariam. A escolha foi **escala 0,72** com **Z = −0,24
+/ +0,26**: nada atravessa a casca e sobra a maior folga entre os dois. O lado
+esquerdo vai mais para dentro (6 cm contra 4 cm) porque o modelo do piloto é
+assimétrico: o braço do lado de fora alcança mais longe. Com 0,72, os pés
+ficam apoiados no piso e a cabeça fica 6 cm abaixo dos olhos da câmera do
+cockpit (que não desenha esse piloto).
 
 ## 5. Do assento até o mundo
 
@@ -137,12 +165,13 @@ esconde um piloto se a câmera livre entrar nele.
 | Arquivo | O que faz |
 |---|---|
 | `src/aircraft/PilotCrew.hpp/.cpp` | **Novo.** Ponto de apoio e caixa do piloto, `Crew` (assentos e escala), `SeatMatrix()` e `CameraInsidePilot()`. Sem OpenGL. |
-| `src/aircraft/AircraftCatalog.hpp/.cpp` | Cada avião tem sua tripulação: o monomotor com 2 assentos e escala 0,8; o A320 ainda sem pilotos. |
+| `src/aircraft/AircraftCatalog.hpp/.cpp` | Cada avião tem sua tripulação: o monomotor com 2 assentos (Z = −0,24 e +0,26) e escala 0,72; o A320 ainda sem pilotos. **É aqui que se ajusta a posição dos pilotos.** |
 | `src/render/GameScene.hpp/.cpp` | Carrega `pilot.obj` uma vez, guarda a tripulação (`SetCrew`) e desenha os pilotos do jogador e do tráfego (`DrawCrew`). |
 | `src/main.cpp` | Ao escolher o avião no menu, passa a tripulação para a cena. |
 | `src/render/RenderInspection.cpp` | Vista `pilot-front` (pelo para-brisa); usar com `--texture-check <prefixo> --aircraft=light`. |
-| `tests/PilotCrewTest.cpp` | **Novo.** Apoio cai no assento, frente para o nariz, escala, pilotos dentro da cabine (teto, piso, painel, encosto, largura), sem sobreposição entre os dois, câmera do cockpit esconde só o piloto da esquerda. |
-| `CMakeLists.txt`, `Makefile.macOS` | Compilam `PilotCrew.cpp` e o teste `pilot_crew`. |
+| `tests/PilotCrewTest.cpp` | **Novo.** Apoio cai no assento, frente para o nariz, escala, pilotos dentro da cabine (teto, piso, painel, encosto, largura), câmera do cockpit esconde só o piloto da esquerda. |
+| `tests/PilotFitTest.cpp` | **Novo.** A medição da seção 4 nas malhas reais: nenhum vértice do piloto atravessa a casca do avião e os dois pilotos ficam a mais de 2 cm um do outro. |
+| `CMakeLists.txt`, `Makefile.macOS` | Compilam `PilotCrew.cpp` e os testes `pilot_crew` e `pilot_fit`. |
 
 ## 9. Limitações
 
@@ -150,4 +179,3 @@ esconde um piloto se a câmera livre entrar nele.
   ele não mexe as mãos com os comandos.
 - O monomotor não tem janelas laterais: os pilotos aparecem pelo para-brisa
   (de frente e de cima), não pela lateral.
-- Os pés afundam poucos centímetros dentro do piso da cabine.
