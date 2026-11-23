@@ -2,7 +2,6 @@
 
 ## Em Spec.md
 
-01 - Adicionar movimento de folhagens ao vento.
 02 - Adicionar piltos.
 03 - Tornar árvores Malhas poligonais complexas. 
 
