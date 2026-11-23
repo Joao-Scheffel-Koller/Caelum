@@ -2,7 +2,6 @@
 
 ## Em Spec.md
 
-02 - Adicionar piltos.
 03 - Tornar árvores Malhas poligonais complexas. 
 
 ## Entrega
@@ -15,6 +14,7 @@
 ## Ajustes
 
 08 - Mudar parâmetros de voo (tailstrike e velocidade de pouso mais permissivos).
+12 - reduzir tamanho do assento do monomotor (ele está ultrapassando a janela).
 
 ## Extras
 
