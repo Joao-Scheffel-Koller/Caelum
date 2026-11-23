@@ -8,6 +8,7 @@ e o processo de preparação dos assets; não substitui o relatório final da du
 | Rio de Janeiro | Escolha de uma região real com Santos Dumont e Galeão no OpenStreetMap. | Dados dos colaboradores do OpenStreetMap; conversão OSM2World. | OSM → OBJ/MTL/imagens → divisão determinística em 125 partes e base complementar. |
 | Airbus A320-200 | Busca de um avião comercial no Sketchfab; modelo escolhido e baixado manualmente pelo usuário. | TonyWony, “A320-200 with cockpit (ver VIII)”. | Importação no Blender, correção de materiais/UVs e exportação OBJ. |
 | Monomotor leve | Busca de um segundo avião gratuito de pequeno porte para a seleção no menu. | MagicGames, “Low Poly Airplane”, no itch.io. | Download da opção gratuita, conversão do FBX e adaptações simples da cabine. |
+| Piloto | Busca de um piloto sentado no Sketchfab; modelo escolhido e baixado manualmente pelo usuário (GLB). | Jungle Jim, “Low-poly PSX Pilot flying a plane (animated)”, CC-BY 4.0. | Exportação OBJ no Blender pelo usuário; textura recuperada do GLB com script gerado com IA. Detalhes em [`pilot/PROVENANCE.md`](pilot/PROVENANCE.md). |
 
 Os modelos originais de terceiros não foram criados pela dupla nem pela IA.
 A IA auxiliou a preparação, os scripts de conversão/divisão, a integração e
