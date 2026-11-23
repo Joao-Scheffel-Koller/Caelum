@@ -1,5 +1,55 @@
 ## File used to store ai prompts
 
+44. Claude Code (2026-11-23): "now let's add the pilots to the A320. And don't
+    forget to add the prompts to the prompt md file". Sentar comandante e
+    copiloto no A320 em escala 1,0 (modelo em tamanho real), com o apoio na
+    frente do encosto reclinado na altura dos ombros (X = 7,73), Y = 0,16 para
+    os pes ficarem no piso e o copiloto 1 cm para fora (Z = +0,70) para o joelho
+    nao entrar na almofada sob o painel. O teste de encaixe passou a lancar os
+    raios do centro de cada assento (no A320 o console central fica entre a
+    linha central e os pilotos). Gerados com IA: tripulacao do A320 em
+    AircraftCatalog.cpp, vistas a320-pilots-front/side em RenderInspection.cpp,
+    testes em PilotFitTest.cpp e PilotCrewTest.cpp, secao do A320 em
+    docs/pilot.md e estas entradas em prompts.md.
+
+43. Claude Code (2026-11-23): "One of the arms of both pilots (the one facing
+    the window) is traspassing the window of the plane a little bit, where in
+    the code can I adjust the position of the pilots so that they sit a little
+    bit more to the centre of the cockpit? Is there any parameter inside the
+    code for that?"; "yes, test a few values and pick the best one". Medir nas
+    malhas reais, com raios da linha central da cabine ate cada vertice do
+    piloto, quanto o braco atravessava a janela para varias posicoes e escalas,
+    e escolher escala 0,72 com Z = -0,24 / +0,26 (nada atravessa a casca, 5,8 cm
+    entre os pilotos). Gerados com IA: valores em AircraftCatalog.cpp,
+    tests/PilotFitTest.cpp (substitui a checagem por caixa em
+    PilotCrewTest.cpp), CMakeLists.txt e secao 4 de docs/pilot.md.
+
+42. Claude Code (2026-11-23): "Now let's try to draw the pilot inside the plane.
+    Begin with the monomotor. Please write a markdown file under /docs/
+    explaining how you drew it seated in the cokcpit." Desenhar a mesma malha do
+    piloto uma vez por assento, com matriz Model = Model do aviao * T(assento) *
+    R_y(90) * S(escala) * T(-apoio), e nao desenhar o piloto que contem a camera
+    (camera levada as coordenadas do piloto pela inversa da Model). Gerados com
+    IA: src/aircraft/PilotCrew.*, tripulacao em AircraftCatalog.*, carregamento
+    e DrawCrew em GameScene.*, integracao em main.cpp, vista pilot-front em
+    RenderInspection.cpp, tests/PilotCrewTest.cpp, CMakeLists.txt,
+    Makefile.macOS e docs/pilot.md.
+
+41. Claude Code (2026-11-23): "Now I wanna add the pilot 3d model to the game.I
+    want him to be seated inside both options of planes (i.e. monomotor and
+    a320).  at /Downloaded-models/ you will have access to the new 3d models I
+    downloaded. this one was originally a .glb. I used blender to export it as
+    an .obj. Now I have both .obj and .mtl files. First check for lines called
+    map_Kd (ou map_Bump, map_Ks etc.) athe the .mtl file to see whether the
+    pilot has textures"; "plase you may create the python script in the
+    downloaded images folder, run it, and make every change that you need in
+    order to have the the pilot 3d model  ready to be used in our project".
+    Constatar que o MTL exportado nao tinha map_Kd porque o material do GLB usa
+    KHR_materials_pbrSpecularGlossiness, e recuperar a textura lendo o GLB.
+    Gerados com IA: extract_pilot_textures.py, data/pilot/ (pilot.obj/.mtl
+    renomeados, pilot.mtl com map_Kd, pilot_preview.png e PROVENANCE.md), linha
+    do piloto em data/ASSETS.md, tests/PilotAssetTest.cpp e CMakeLists.txt.
+
 40. Claude Code (2026-11-22): "The new changes you've made to the code made some
     buildings look like they are floating above a thin layer of air when you
     begin with the small plane at the ground. Once you begin get a slightly

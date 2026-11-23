@@ -52,7 +52,11 @@ const View Views[]={
     {"horizon-south",{5240,2,6300},{5320,2,7500},{0,1,0}},
     // AI-assisted: pilots seen through the light aircraft windshield at the spawn
     // (cabin ~2.2 m ahead of the wheel point, nose towards +Z).
-    {"pilot-front",{5237.6f,3.6f,6303.5f},{5237.1f,2.1f,6297.4f},{0,1,0}}
+    {"pilot-front",{5237.6f,3.6f,6303.5f},{5237.1f,2.1f,6297.4f},{0,1,0}},
+    // A320 (default aircraft) at the spawn: cockpit ~16.4 m ahead of the wheel
+    // point, 4.2 m up; through the windshield and the captain's side window.
+    {"a320-pilots-front",{5238.6f,4.9f,6319.5f},{5238.2f,4.1f,6312.1f},{0,1,0}},
+    {"a320-pilots-side",{5243.2f,4.6f,6312.2f},{5238.9f,4.3f,6312.0f},{0,1,0}}
 };
 const int Count=sizeof(Views)/sizeof(Views[0]);
 const int FramesPerView=30;

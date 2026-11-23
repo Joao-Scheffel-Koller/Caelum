@@ -65,8 +65,13 @@ int main() {
     for(const auto& s:light.crew.seats)
         Check(!pilot::CameraInsidePilot(aircraft,s,light.crew.scale,outside),"external camera sees both pilots");
 
-    // The A320 crew comes in a later step.
-    Check(Spec("a320").crew.seats.empty(),"A320 has no pilots yet");
+    // A320: real-size model (scale 1), captain in the left seat with the
+    // cockpit camera, first officer on the right.
+    const auto& a320=Spec("a320");
+    Check(a320.crew.seats.size()==2&&a320.crew.scale==1.0f,"A320 has two pilots at real size");
+    const glm::vec3 a320Eye=Point(aircraft,a320.cockpitEye);
+    Check(pilot::CameraInsidePilot(aircraft,a320.crew.seats[0],a320.crew.scale,a320Eye),"A320 cockpit camera hides the captain");
+    Check(!pilot::CameraInsidePilot(aircraft,a320.crew.seats[1],a320.crew.scale,a320Eye),"A320 first officer stays visible");
     std::printf("pilot_crew: %d checks passed\n",checks);
     return EXIT_SUCCESS;
 }
