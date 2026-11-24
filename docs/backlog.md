@@ -18,5 +18,4 @@
 
 ## Extras
 
-10 - Fazer as hélices girarem.
 11 - Recolher trens de pouso.
