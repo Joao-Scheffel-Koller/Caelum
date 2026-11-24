@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 int checks=0;
@@ -27,6 +28,21 @@ propeller::Spin Run(float throttle,float seconds,float fps,float maxRpm=2700) {
 float AngleDifference(float a,float b) {
     float d=std::fmod(std::abs(a-b),2*Pi);
     return std::min(d,2*Pi-d);
+}
+std::vector<glm::vec3> Place(const std::vector<glm::vec3>& points,const glm::mat4& m) {
+    std::vector<glm::vec3> result;
+    for(const auto& p:points)result.push_back(glm::vec3(m*glm::vec4(p,1)));
+    return result;
+}
+// Largest distance from a point of a to the nearest point of b.
+float Mismatch(const std::vector<glm::vec3>& a,const std::vector<glm::vec3>& b) {
+    float worst=0;
+    for(const auto& p:a) {
+        float nearest=1e9f;
+        for(const auto& q:b)nearest=std::min(nearest,glm::length(p-q));
+        worst=std::max(worst,nearest);
+    }
+    return worst;
 }
 const AircraftSpec& Light() {
     for(const auto& spec:AircraftCatalog())if(spec.id=="light")return spec;
@@ -74,20 +90,9 @@ int main(int argc,char** argv) {
         Check(propeller::DiscOpacity(rpm+50)>=propeller::DiscOpacity(rpm),"disc only forms as rpm rises");
     }
 
-    // --- Matrix: rotation about the axis through the hub, parallel to X.
-    const glm::vec3 hub(4.30f,1.9327f,0.0f);
-    const glm::mat4 quarter=propeller::BladeMatrix(hub,Pi*.5f);
-    const glm::vec3 onAxis=glm::vec3(quarter*glm::vec4(3.0f,hub.y,hub.z,1));
-    Check(glm::length(onAxis-glm::vec3(3.0f,hub.y,hub.z))<1e-5f,"points on the axis do not move");
-    const glm::vec3 tip=glm::vec3(quarter*glm::vec4(hub+glm::vec3(0,1,0),1));
-    Check(glm::length(tip-(hub+glm::vec3(0,0,1)))<1e-5f,"positive angle: up -> right (+Z), clockwise from the cockpit");
-    const glm::vec3 anywhere(4.2f,2.5f,-.7f);
-    for(float a=0;a<6.3f;a+=.7f) {
-        const glm::vec3 p=glm::vec3(propeller::BladeMatrix(hub,a)*glm::vec4(anywhere,1));
-        Check(std::abs(p.x-anywhere.x)<1e-5f,"blades stay in their plane (X unchanged)");
-        Check(std::abs(glm::length(glm::vec2(p.y-hub.y,p.z-hub.z))-glm::length(glm::vec2(anywhere.y-hub.y,anywhere.z-hub.z)))<1e-5f,
-              "distance to the axis is kept (rigid rotation)");
-    }
+    Check(propeller::BladeOpacity(0,true)==propeller::CockpitBladeOpacity,"cockpit: stopped blades do not hide the view");
+    Check(propeller::BladeOpacity(2700,true)==propeller::BladeOpacity(2700),"cockpit: blur as faint as outside");
+    Check(propeller::DiscOpacity(2700,true)<=.1f&&propeller::DiscOpacity(2700,true)>0,"cockpit: the disc barely tints the runway");
 
     // --- Asset: the light aircraft's propeller as described in the catalog.
     const auto& spec=Light().propeller;
@@ -98,7 +103,7 @@ int main(int argc,char** argv) {
     Check(tinyobj::LoadObj(&attrib,&shapes,&materials,&warning,&error,(folder+"aircraft.obj").c_str(),folder.c_str(),true),
           "light aircraft OBJ loads");
     glm::vec3 allMin(1e9f),allMax(-1e9f),bodyMin(1e9f),bodyMax(-1e9f),partMin(1e9f),partMax(-1e9f);
-    float tipRadius=0;
+    std::vector<glm::vec3> blades[3],spinner;   // Vertices of each piece.
     size_t found=0;
     for(const auto& shape:shapes) {
         const bool part=std::find(spec.blades.begin(),spec.blades.end(),shape.name)!=spec.blades.end()||
@@ -110,30 +115,52 @@ int main(int argc,char** argv) {
             allMin=glm::min(allMin,v);allMax=glm::max(allMax,v);
             (part?partMin:bodyMin)=glm::min(part?partMin:bodyMin,v);
             (part?partMax:bodyMax)=glm::max(part?partMax:bodyMax,v);
-            if(part)tipRadius=std::max(tipRadius,glm::length(glm::vec2(v.y-spec.hub.y,v.z-spec.hub.z)));
-        }
-        if(shape.name=="wingRoot") {
-            // The spinner is round about the axis: vertices at the same X
-            // (1 mm slices) all have the same distance to it.
-            std::vector<std::pair<long,float>> rings;
-            for(const auto& index:shape.mesh.indices) {
-                const float* v=&attrib.vertices[3*index.vertex_index];
-                rings.push_back({std::lround(v[0]*1000),glm::length(glm::vec2(v[1]-spec.hub.y,v[2]-spec.hub.z))});
-            }
-            std::sort(rings.begin(),rings.end());
-            float spread=0;
-            for(size_t i=0,j=0;i<rings.size();i=j) {
-                float lo=1e9f,hi=-1e9f;
-                for(j=i;j<rings.size()&&rings[j].first==rings[i].first;++j){lo=std::min(lo,rings[j].second);hi=std::max(hi,rings[j].second);}
-                spread=std::max(spread,hi-lo);
-            }
-            Check(spread<.005f,"the spinner is centred on the rotation axis (it does not wobble)");
+            for(int b=0;b<3;++b)if(shape.name==spec.blades[b])blades[b].push_back(v);
+            if(part&&shape.name==spec.spinner[0])spinner.push_back(v);
         }
     }
     Check(found==spec.blades.size()+spec.spinner.size(),"every propeller object exists in the OBJ");
     Check(spec.spinner.size()==1&&spec.spinner[0]=="wingRoot","the spinner is split apart from the blades (stays solid)");
-    Check(std::abs(tipRadius-spec.tipRadius)<.01f,"blur disc radius = longest blade");
-    Check(spec.hub.x>=partMin.x&&spec.hub.x<=partMax.x,"disc sits in the blades' plane");
+
+    // --- Rotation axis. A propeller turned by 120 degrees must coincide with
+    // itself: that fails for any wrong axis, tilt or stretch. (The previous
+    // check compared vertices at equal X, which are only mirrored pairs, so it
+    // passed for almost any axis.)
+    std::vector<glm::vec3> allBlades;
+    for(const auto& b:blades)allBlades.insert(allBlades.end(),b.begin(),b.end());
+    Check(!blades[0].empty()&&!blades[1].empty()&&!blades[2].empty()&&!spinner.empty(),"blades and spinner read from the OBJ");
+    const float third=2*Pi/3;
+    for(float angle:{0.0f,.4f,1.3f,2.9f,4.7f})
+        Check(Mismatch(Place(allBlades,propeller::BladeMatrix(spec,angle+third)),
+                       Place(allBlades,propeller::BladeMatrix(spec,angle)))<.001f,"blades coincide after a 120 degree turn");
+    Check(Mismatch(Place(spinner,propeller::SpinnerMatrix(spec,third)),spinner)<.006f,"spinner coincides after a 120 degree turn");
+    Check(Mismatch(Place(spinner,propeller::SpinnerMatrix(spec,0)),spinner)<1e-4f,"at rest the spinner is where the OBJ has it (fits the cowling)");
+    // The check must be able to fail: the first version (about X) does.
+    const glm::mat4 wrong=Matrix_Translate(4.30f,1.9327f,0)*Matrix_Rotate_X(third)*Matrix_Translate(-4.30f,-1.9327f,0);
+    Check(Mismatch(Place(allBlades,wrong),allBlades)>.2f,"turning about X is detected as wrong");
+
+    // No wobble: at every angle the blades stay in the disc's plane and every
+    // tip keeps the disc's radius (they neither tilt nor stretch).
+    const glm::mat4 toDisc=glm::inverse(propeller::DiscMatrix(spec));
+    for(int step=0;step<72;++step) {
+        const glm::mat4 m=toDisc*propeller::BladeMatrix(spec,2*Pi*step/72);
+        for(const auto& b:blades) {
+            float tip=0;
+            for(const auto& v:Place(b,m)) {
+                Check(std::abs(v.x)<.04f,"blades stay in the disc's plane (blade thickness only)");
+                tip=std::max(tip,glm::length(glm::vec2(v.y,v.z)));
+            }
+            Check(std::abs(tip-spec.tipRadius)<.002f,"every blade keeps the disc's radius at every angle");
+        }
+    }
+    float lowest=1e9f;
+    for(int step=0;step<72;++step)for(const auto& v:Place(allBlades,propeller::BladeMatrix(spec,2*Pi*step/72)))lowest=std::min(lowest,v.y);
+    Check(lowest>.5f,"blades clear the ground");
+    // Direction: the top blade's tip moves to the right (+Z).
+    const glm::vec3 top=*std::max_element(blades[0].begin(),blades[0].end(),[](const glm::vec3& a,const glm::vec3& b){return a.y<b.y;});
+    Check(Place({top},propeller::BladeMatrix(spec,.3f))[0].z>.2f,"clockwise seen from the cockpit (up -> right)");
+    std::printf("plane tilt %.2f deg, lowest blade point Y %.3f m\n",propeller::PlaneTilt(spec)*180/Pi,lowest);
+
     // Pivot: without the propeller the bounds (and so the aircraft's position)
     // would change; combining both pieces gives back the original bounds.
     Check(bodyMax.x<allMax.x-.2f,"the propeller is the front of the aircraft: removing it shortens the bounds");

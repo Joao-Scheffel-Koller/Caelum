@@ -26,11 +26,14 @@ const std::vector<AircraftSpec>& AircraftCatalog() {
          pilot::Crew{{{2.00f,1.695f,-.24f},{2.00f,1.695f,.26f}},.72f},
          // OBJ survey: the 3 blades are the objects "wing", "wing.001",
          // "wing.002" (Propeller_* materials) and the spinner is "wingRoot".
-         // The spinner is a solid of revolution about the line Y=1.9327, Z=0
-         // parallel to X (every vertex ring has one radius): that is the axis.
-         // Blades lie at X 4.06-4.40 (disc at 4.30); longest blade 1.10 m.
+         // data/light_aircraft/tools/convert_asset.py stretched the source by
+         // 9/9.0396 (length), 3/2.6481 (height) and 11/8 (span). Undoing that,
+         // the 3 blades coincide after a 120 degree turn (error < 0.1 mm)
+         // about a shaft tilted 12.896 degrees nose-up, through this hub.
+         // Blade scale: geometric mean of height and span, giving 1.035 m.
          // 2700 rpm: maximum of a 180 hp Lycoming O-360 (docs/propeller.md).
-         propeller::Spec{{"wing","wing.001","wing.002"},{"wingRoot"},{4.30f,1.9327f,0.0f},1.10f,2700.0f}}
+         propeller::Spec{{"wing","wing.001","wing.002"},{"wingRoot"},{4.2646f,1.9345f,0.0f},
+                         {.99562f,1.13289f,1.375f},.225078f,1.2481f,1.035f,2700.0f}}
     };
     return catalog;
 }

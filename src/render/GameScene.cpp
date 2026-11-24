@@ -39,8 +39,9 @@ void GameScene::LoadAircraft(const std::string& path,const glm::vec3& cockpitEye
     try {
         if(spec.Present()) {
             for(const auto& piece:pieces){low=glm::min(low,piece.min);high=glm::max(high,piece.max);}
-            // The blades used to be drawn 24% opaque as a static "blur"; now the
-            // motion is animated, so a stopped propeller is solid.
+            // The asset's blades are 24% opaque so they do not hide the view
+            // from the cockpit; outside they are solid, and the cockpit view
+            // gets that opacity back in BladeOpacity().
             for(auto& batch:pieces[0].batches)batch.material.opacity=1.0f;
             // Blur disc in the blades' face colour (Propeller_Red, Kd 1 0 0).
             disc=renderer.CreateDisc(spec.tipRadius,48,glm::vec3(1.0f,0.0f,0.0f));
@@ -375,17 +376,19 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
         // the grass it shares GRASS_0 with: 3 steps beyond DepthPriority::GRASS.
         renderer.Draw(chunk.model,identity,camera,RenderPass::Solid,chunk.foundation?3:0);
     }
-    // AI-assisted (docs/propeller.md): the propeller of one aircraft. Blades:
-    // aircraft Model * T(hub) R_x(theta) T(-hub), so they stay on the nose and
-    // follow every movement of the aircraft while turning about its axis.
+    // AI-assisted (docs/propeller.md): the propeller of one aircraft, each piece
+    // with aircraft Model * its own matrix, so it stays on the nose and follows
+    // every movement of the aircraft while turning about the (tilted) shaft.
     // Solid while slow; above VisibleRpm they fade into a translucent disc.
-    struct PropellerDraw {glm::mat4 blades,disc;float bladeAlpha,discAlpha;glm::vec3 hub;};
+    struct PropellerDraw {glm::mat4 blades,spinner,disc;float bladeAlpha,discAlpha;glm::vec3 hub;};
     const auto propellerOf=[&](const glm::mat4& aircraftTransform,const propeller::Spin& spin) {
         PropellerDraw p;
-        p.blades=aircraftTransform*propeller::BladeMatrix(propellerSpec.hub,spin.Angle());
-        p.disc=aircraftTransform*propeller::DiscMatrix(propellerSpec.hub);
-        p.bladeAlpha=propeller::BladeOpacity(spin.Rpm());
-        p.discAlpha=propeller::DiscOpacity(spin.Rpm());
+        p.blades=aircraftTransform*propeller::BladeMatrix(propellerSpec,spin.Angle());
+        p.spinner=aircraftTransform*propeller::SpinnerMatrix(propellerSpec,spin.Angle());
+        p.disc=aircraftTransform*propeller::DiscMatrix(propellerSpec);
+        // The AIRCRAFT layer is the cockpit's own pass (player only).
+        p.bladeAlpha=propeller::BladeOpacity(spin.Rpm(),layer==SceneLayer::AIRCRAFT);
+        p.discAlpha=propeller::DiscOpacity(spin.Rpm(),layer==SceneLayer::AIRCRAFT);
         p.hub=glm::vec3(aircraftTransform*glm::vec4(propellerSpec.hub,1.0f));
         return p;
     };
@@ -404,8 +407,8 @@ void GameScene::Draw(GLuint program,Aircraft& aircraft,const glm::mat4& view,con
         DrawCrew(npcTransform,camera);
     }
     for(const auto& p:propellers) {
-        // The spinner turns with the blades (same matrix) but stays solid.
-        renderer.Draw(spinnerModel,p.blades,camera,RenderPass::Solid);
+        // The spinner turns with the blades but stays solid.
+        renderer.Draw(spinnerModel,p.spinner,camera,RenderPass::Solid);
         // Opaque blades only (alpha 1); faded blades go to the transparent pass.
         renderer.Draw(bladesModel,p.blades,camera,RenderPass::Solid,0,p.bladeAlpha);
     }

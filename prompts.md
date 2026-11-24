@@ -1,5 +1,21 @@
 ## File used to store ai prompts
 
+46. Claude Code (2026-11-24): "Sua alteração fez a héliee rotacionar de acordo
+    com o throttle e acompanhar o movimento do avião. Ademais o disco também vai
+    aparecendo a medida que a o throttle fica bem alto. No entanto, a hélice
+    está rotacionando de forma um pouco errada: parece que ela rotaciona de
+    acordo com um eixo longitudinal mas também altera a sua inclinação
+    dependendo do ângulo de rotação em que está. Isso foi um diagnóstico meu e
+    pode não estar nos melhores termos. O efeito visual que isso produz é o de
+    parecer que o eixo de rotação da hélice está um pouco torto na ponta. O que
+    há de errado? Como consertar isso?"; "sim, pode implementar os cinco
+    passos". Girar a helice no eixo verdadeiro (inclinado 12,9 graus) desfazendo
+    antes a escala desigual do asset, com pas redondas e cone na escala
+    original, disco no plano das pas, pas e disco mais transparentes no cockpit,
+    e teste que exige que a helice coincida consigo mesma ao girar 120 graus.
+    Gerados com IA: Propeller.*, AircraftCatalog.cpp, GameScene.cpp,
+    tests/PropellerTest.cpp e docs/propeller.md.
+
 45. Claude Code (2026-11-23): "Now I wanted to make the propeller of the
     monomotor  rotate according to the throttle that we set. Is this possible to
     be made? How is it done? Do we break the .obj file of the monotor into two

@@ -5,7 +5,9 @@
 // FONTE: codigo base do professor, include/matrices.h (definido em main.cpp).
 // Forward declarations avoid duplicating the header's non-inline definitions.
 glm::mat4 Matrix_Translate(float tx,float ty,float tz);
+glm::mat4 Matrix_Scale(float sx,float sy,float sz);
 glm::mat4 Matrix_Rotate_X(float angle);
+glm::mat4 Matrix_Rotate_Z(float angle);
 
 namespace propeller {
 namespace {
@@ -31,12 +33,38 @@ void Spin::Update(double dt,float throttle,float maxRpm) {
 }
 
 float DisplayedRpm(float rpm) {return std::min(std::max(0.0f,rpm),VisibleRpm);}
-float BladeOpacity(float rpm) {return 1.0f-(1.0f-FaintBladeOpacity)*Blur(rpm);}
-float DiscOpacity(float rpm) {return DiscMaxOpacity*Blur(rpm);}
-
-glm::mat4 BladeMatrix(const glm::vec3& hub,float angle) {
-    return Matrix_Translate(hub.x,hub.y,hub.z)*Matrix_Rotate_X(angle)*
-           Matrix_Translate(-hub.x,-hub.y,-hub.z);
+float BladeOpacity(float rpm,bool cockpit) {
+    const float opacity=1.0f-(1.0f-FaintBladeOpacity)*Blur(rpm);
+    return cockpit?std::min(opacity,CockpitBladeOpacity):opacity;
 }
-glm::mat4 DiscMatrix(const glm::vec3& hub) {return Matrix_Translate(hub.x,hub.y,hub.z);}
+float DiscOpacity(float rpm,bool cockpit) {return (cockpit?CockpitDiscOpacity:DiscMaxOpacity)*Blur(rpm);}
+
+float PlaneTilt(const Spec& spec) {
+    // A plane's normal transforms with the inverse of the stretch.
+    return std::atan2(std::sin(spec.shaftTilt)/spec.assetScale.y,
+                      std::cos(spec.shaftTilt)/spec.assetScale.x);
+}
+
+namespace {
+// OBJ -> hub at the origin, stretch undone, shaft along X, turned by angle.
+glm::mat4 TurnedAboutX(const Spec& spec,float angle) {
+    return Matrix_Rotate_X(angle)*Matrix_Rotate_Z(-spec.shaftTilt)*
+           Matrix_Scale(1.0f/spec.assetScale.x,1.0f/spec.assetScale.y,1.0f/spec.assetScale.z)*
+           Matrix_Translate(-spec.hub.x,-spec.hub.y,-spec.hub.z);
+}
+} // namespace
+
+glm::mat4 BladeMatrix(const Spec& spec,float angle) {
+    return Matrix_Translate(spec.hub.x,spec.hub.y,spec.hub.z)*
+           Matrix_Scale(spec.bladeScale,spec.bladeScale,spec.bladeScale)*
+           Matrix_Rotate_Z(PlaneTilt(spec))*TurnedAboutX(spec,angle);
+}
+glm::mat4 SpinnerMatrix(const Spec& spec,float angle) {
+    return Matrix_Translate(spec.hub.x,spec.hub.y,spec.hub.z)*
+           Matrix_Scale(spec.assetScale.x,spec.assetScale.y,spec.assetScale.z)*
+           Matrix_Rotate_Z(spec.shaftTilt)*TurnedAboutX(spec,angle);
+}
+glm::mat4 DiscMatrix(const Spec& spec) {
+    return Matrix_Translate(spec.hub.x,spec.hub.y,spec.hub.z)*Matrix_Rotate_Z(PlaneTilt(spec));
+}
 } // namespace propeller
